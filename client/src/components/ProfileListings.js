@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from '../api/http';
 import React from 'react';
 import { Component } from 'react';
 import { Link } from 'react-router-dom';
@@ -23,7 +23,7 @@ export default class ProfileListings extends Component {
   }
 
   delete(id) {
-    axios.delete('/api/item/delete/' + id).then((res) => this.props.refresh());
+    api.delete('/api/item/delete/' + id).then((res) => this.props.refresh());
   }
 
   render() {

@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "../api/http";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Header from "../components/Header";
@@ -24,9 +24,9 @@ const Item = props => {
 
     const getInfo = async () => {
         if (!item || !viewer) {
-            const resU = await axios.get('/api/auth/user');
+            const resU = await api.get('/api/auth/user');
             setViewer(resU.data);
-            const resI = await axios.get(`/api/item/${id}`);
+            const resI = await api.get(`/api/item/${id}`);
             setItem(resI.data)
         }
         if(viewer && !viewed){
@@ -37,9 +37,9 @@ const Item = props => {
 
     const updateViews = async(id) => {
         const url = `/api/analytics/item/views/${id}`;
-        const res = await axios.get(url)
+        const res = await api.get(url)
         let views = res.data.views + 1;
-        axios.put(url,{views:views})
+        api.put(url,{views:views})
     }
     getInfo();
 
@@ -47,7 +47,7 @@ const Item = props => {
     const update = async(id) =>{
         if(viewer){
             
-            await axios.post('/api/profile/favourites/update',{itemID:id, username:viewer})
+            await api.post('/api/profile/favourites/update',{itemID:id, username:viewer})
             refresh()
         }else{
             navigate('/login')
@@ -78,7 +78,7 @@ const Item = props => {
     const fecthSimilar = () =>{
         if(similarItems.length === 0 ){
     
-            axios.get(`/api/item/all`)
+            api.get(`/api/item/all`)
                     .then( res => {setSimilarItems(filter(res.data))})
                     .catch(e => console.log(e))
 

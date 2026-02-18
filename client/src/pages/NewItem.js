@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import Header from "../components/Header";
-import axios from "axios";
+import api from "../api/http";
 import { useNavigate } from "react-router-dom";
 import placeholder from '../assets/placeholder_item.png';
 
@@ -27,9 +27,9 @@ const NewItem = props => {
 
     useEffect(() =>{
         if(!user && !userID){
-            axios.get('/api/auth/user').then( res => {
+            api.get('/api/auth/user').then( res => {
                 setUser(res.data);
-                axios.get('/api/profile/' + res.data).then( res => {
+                api.get('/api/profile/' + res.data).then( res => {
                     setUserID(res.data._id)
                 })
             })
@@ -41,7 +41,7 @@ const NewItem = props => {
             setClickable(false)
             var formData = new FormData();
             formData.append("file", image);
-            axios.post('/api/file/upload', formData,{
+            api.post('/api/file/upload', formData,{
                 headers: {
                 'Content-Type': 'multipart/form-data'
                 }
@@ -59,7 +59,7 @@ const NewItem = props => {
                     image:imageUrl,
                 }
     
-                axios.post('/api/profile/item/new', data).then(res => {
+                api.post('/api/profile/item/new', data).then(res => {
                     if(res.data == 'Item added succesfully'){
                         navigate('/profile', { replace:true })
                     }

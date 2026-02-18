@@ -1,0 +1,237 @@
+​
+Netlify Build                                                 
+────────────────────────────────────────────────────────────────
+​
+❯ Version
+  @netlify/build 35.5.14
+​
+❯ Flags
+  accountId: 6912f52065dcfa72a65ae706
+  dry: false
+​
+❯ Current directory
+  /Users/juliakafozoff/Desktop/penn-thrift/PennThrift/client
+​
+❯ Config file
+  /Users/juliakafozoff/Desktop/penn-thrift/PennThrift/netlify.toml
+​
+❯ Context
+  production
+​
+build.command from netlify.toml                               
+────────────────────────────────────────────────────────────────
+​
+$ node -v && npm -v && ls -la && npm ci --legacy-peer-deps && npm run build
+v24.11.0
+11.6.1
+total 2360
+drwxr-xr-x   12 juliakafozoff  staff      384 Feb 18 15:46 .
+drwxr-xr-x   19 juliakafozoff  staff      608 Feb 18 17:01 ..
+-rw-r--r--    1 juliakafozoff  staff      310 Feb  9 12:39 .gitignore
+drwxr-xr-x@  11 juliakafozoff  staff      352 Feb 18 16:55 build
+drwxr-xr-x  859 juliakafozoff  staff    27488 Feb 18 16:47 node_modules
+-rw-r--r--@   1 juliakafozoff  staff  1186108 Feb 18 01:29 package-lock.json
+-rw-r--r--    1 juliakafozoff  staff     1312 Feb  9 12:39 package.json
+-rw-r--r--    1 juliakafozoff  staff       82 Feb  9 12:39 postcss.config.js
+drwxr-xr-x    9 juliakafozoff  staff      288 Feb 18 15:07 public
+-rw-r--r--    1 juliakafozoff  staff     3359 Feb  9 12:39 README.md
+drwxr-xr-x   10 juliakafozoff  staff      320 Feb  9 12:39 src
+-rw-r--r--    1 juliakafozoff  staff      119 Feb  9 12:39 tailwind.config.js
+npm warn deprecated source-map-resolve@0.6.0: See https://github.com/lydell/source-map-resolve#deprecated
+npm warn deprecated svgo@1.3.2: This SVGO version is no longer supported. Upgrade to v2.x.x.
+npm warn deprecated xlsx@0.10.9: this version is no longer supported.  More info at https://cdn.sheetjs.com/xlsx/
+
+added 1500 packages, and audited 1501 packages in 31s
+
+173 packages are looking for funding
+  run `npm fund` for details
+
+84 vulnerabilities (6 low, 30 moderate, 38 high, 10 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> penn-thrift@0.1.0 build
+> react-scripts build
+
+(node:6203) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Creating an optimized production build...
+Browserslist: caniuse-lite is outdated. Please run:
+  npx browserslist@latest --update-db
+  Why you should do it regularly: https://github.com/browserslist/browserslist#browsers-data-updating
+Browserslist: caniuse-lite is outdated. Please run:
+  npx browserslist@latest --update-db
+  Why you should do it regularly: https://github.com/browserslist/browserslist#browsers-data-updating
+Compiled with warnings.
+
+src/App.js
+  Line 1:10:  'useEffect' is defined but never used  no-unused-vars
+  Line 2:8:   'logo' is defined but never used       no-unused-vars
+
+src/api/ProfileAPI.js
+  Line 76:57:  Expected '===' and instead saw '=='  eqeqeq
+  Line 76:84:  'v' is assigned to itself            no-self-assign
+
+src/components/Form.js
+  Line 3:10:  'Link' is defined but never used  no-unused-vars
+
+src/components/Header.js
+  Line 53:8:   React Hook useEffect has missing dependencies: 'setUp' and 'updateUnread'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  Line 68:35:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                      jsx-a11y/alt-text
+  Line 73:21:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                      jsx-a11y/alt-text
+  Line 75:30:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                      jsx-a11y/alt-text
+  Line 76:37:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                      jsx-a11y/alt-text
+
+src/components/ProfileListings.js
+  Line 15:26:  Expected '!==' and instead saw '!='                                                                        eqeqeq
+  Line 20:26:  Expected '!==' and instead saw '!='                                                                        eqeqeq
+  Line 37:13:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+  Line 46:15:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+  Line 56:15:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+  Line 61:15:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+
+src/components/StoreItems.js
+  Line 1:8:    'axios' is defined but never used                                                                          no-unused-vars
+  Line 21:15:  'items' is assigned a value but never used                                                                 no-unused-vars
+  Line 22:29:  Expected '!==' and instead saw '!='                                                                        eqeqeq
+  Line 29:18:  Expected '!==' and instead saw '!='                                                                        eqeqeq
+  Line 68:37:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+  Line 80:44:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+
+src/pages/Analytics.js
+  Line 32:25:   Expected '===' and instead saw '=='                                                                        eqeqeq
+  Line 50:16:   'class_year' is assigned a value but never used                                                            no-unused-vars
+  Line 86:25:   img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+  Line 106:49:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+  Line 110:76:  Expected '===' and instead saw '=='                                                                        eqeqeq
+
+src/pages/EditProfile.js
+  Line 129:17:  Duplicate key 'profile_pic'                                                                                no-dupe-keys
+  Line 165:25:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+  Line 235:44:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+
+src/pages/Favourites.js
+  Line 5:29:   'getUserProfile' is defined but never used                        no-unused-vars
+  Line 39:50:  Expected '===' and instead saw '=='                               eqeqeq
+  Line 41:31:  Array.prototype.map() expects a return value from arrow function  array-callback-return
+  Line 44:34:  Expected '===' and instead saw '=='                               eqeqeq
+  Line 49:41:  Expected '===' and instead saw '=='                               eqeqeq
+  Line 67:29:  Array.prototype.map() expects a return value from arrow function  array-callback-return
+  Line 80:29:  Array.prototype.map() expects a return value from arrow function  array-callback-return
+
+src/pages/Item.js
+  Line 14:12:   'userInfo' is assigned a value but never used                                                                                  no-unused-vars
+  Line 14:22:   'setUserInfo' is assigned a value but never used                                                                               no-unused-vars
+  Line 21:21:   'setStateId' is assigned a value but never used                                                                                no-unused-vars
+  Line 59:22:   Array.prototype.map() expects a value to be returned at the end of arrow function                                              array-callback-return
+  Line 61:22:   Expected '===' and instead saw '=='                                                                                            eqeqeq
+  Line 62:17:   Array.prototype.map() expects a return value from arrow function                                                               array-callback-return
+  Line 64:24:   Expected '===' and instead saw '=='                                                                                            eqeqeq
+  Line 66:17:   Array.prototype.map() expects a return value from arrow function                                                               array-callback-return
+  Line 68:27:   Expected '===' and instead saw '=='                                                                                            eqeqeq
+  Line 70:17:   Array.prototype.map() expects a return value from arrow function                                                               array-callback-return
+  Line 91:24:   Array.prototype.map() expects a return value from arrow function                                                               array-callback-return
+  Line 99:40:   Expected '===' and instead saw '=='                                                                                            eqeqeq
+  Line 101:24:  Array.prototype.map() expects a return value from arrow function                                                               array-callback-return
+  Line 111:21:  Expected '!==' and instead saw '!='                                                                                            eqeqeq
+  Line 116:7:   React Hook useEffect has missing dependencies: 'fecthSimilar' and 'setUp'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  Line 133:25:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                      jsx-a11y/alt-text
+  Line 143:37:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                      jsx-a11y/alt-text
+
+src/pages/Login.js
+  Line 48:46:  Expected '===' and instead saw '=='  eqeqeq
+  Line 48:87:  Expected '===' and instead saw '=='  eqeqeq
+
+src/pages/Messages.js
+  Line 5:40:    'getUserImage' is defined but never used                                                                                                                                        no-unused-vars
+  Line 34:12:   'chatImages' is assigned a value but never used                                                                                                                                 no-unused-vars
+  Line 34:24:   'setChatImages' is assigned a value but never used                                                                                                                              no-unused-vars
+  Line 38:11:   'navigate' is assigned a value but never used                                                                                                                                   no-unused-vars
+  Line 48:31:   Array.prototype.map() expects a return value from arrow function                                                                                                                array-callback-return
+  Line 76:25:   Expected '!==' and instead saw '!='                                                                                                                                             eqeqeq
+  Line 117:22:  Expected '===' and instead saw '=='                                                                                                                                             eqeqeq
+  Line 132:21:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                       jsx-a11y/alt-text
+  Line 136:28:  Expected '!==' and instead saw '!='                                                                                                                                             eqeqeq
+  Line 139:21:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                       jsx-a11y/alt-text
+  Line 161:16:  Expected '!==' and instead saw '!='                                                                                                                                             eqeqeq
+  Line 167:28:  Expected '===' and instead saw '=='                                                                                                                                             eqeqeq
+  Line 186:20:  Expected '!==' and instead saw '!='                                                                                                                                             eqeqeq
+  Line 216:7:   React Hook useEffect has missing dependencies: 'joined', 'loadMessages', 'refresh', 'sender', 'stateId', and 'updateChats'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  Line 260:25:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                       jsx-a11y/alt-text
+  Line 269:65:  Array.prototype.map() expects a value to be returned at the end of arrow function                                                                                               array-callback-return
+  Line 271:64:  Expected '!==' and instead saw '!='                                                                                                                                             eqeqeq
+  Line 276:61:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                       jsx-a11y/alt-text
+  Line 299:25:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                       jsx-a11y/alt-text
+  Line 327:33:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                       jsx-a11y/alt-text
+  Line 342:29:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                       jsx-a11y/alt-text
+
+src/pages/NewItem.js
+  Line 63:33:   Expected '===' and instead saw '=='                                                                        eqeqeq
+  Line 103:25:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+  Line 191:29:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+  Line 197:43:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+
+src/pages/Profile.js
+  Line 2:21:    'useEffect' is defined but never used                                                                      no-unused-vars
+  Line 2:32:    'useState' is defined but never used                                                                       no-unused-vars
+  Line 3:16:    'renderMatches' is defined but never used                                                                  no-unused-vars
+  Line 106:29:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+  Line 130:41:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+
+src/pages/Store.js
+  Line 39:49:  Expected '===' and instead saw '=='                               eqeqeq
+  Line 41:31:  Array.prototype.map() expects a return value from arrow function  array-callback-return
+  Line 44:34:  Expected '===' and instead saw '=='                               eqeqeq
+  Line 56:31:  Array.prototype.map() expects a return value from arrow function  array-callback-return
+  Line 59:34:  Expected '===' and instead saw '=='                               eqeqeq
+  Line 80:29:  Array.prototype.map() expects a return value from arrow function  array-callback-return
+  Line 93:29:  Array.prototype.map() expects a return value from arrow function  array-callback-return
+
+src/pages/User.js
+  Line 3:10:    'Link' is defined but never used                                                                             no-unused-vars
+  Line 84:7:    React Hook useEffect has a missing dependency: 'username'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 95:25:   img elements must have an alt prop, either with meaningful text, or an empty string for decorative images    jsx-a11y/alt-text
+  Line 119:37:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images    jsx-a11y/alt-text
+  Line 124:44:  Expected '!==' and instead saw '!='                                                                          eqeqeq
+
+src/pages/Welcome.js
+  Line 9:17:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+File sizes after gzip:
+
+  1.07 MB  build/static/js/main.6ebf8296.js
+  3.24 kB  build/static/css/main.c55e84ea.css
+
+The bundle size is significantly larger than recommended.
+Consider reducing it with code splitting: https://goo.gl/9VhYWB
+You can also analyze the project dependencies: https://goo.gl/LeUzfb
+
+The project was built assuming it is hosted at /.
+You can control this with the homepage field in your package.json.
+
+The build folder is ready to be deployed.
+You may serve it with a static server:
+
+  npm install -g serve
+  serve -s build
+
+Find out more about deployment here:
+
+  https://cra.link/deployment
+
+​
+(build.command completed in 2m 2.4s)
+​
+Netlify Build Complete                                        
+────────────────────────────────────────────────────────────────
+​
+(Netlify Build completed in 2m 3s)

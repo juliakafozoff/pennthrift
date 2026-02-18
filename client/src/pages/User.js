@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "../api/http";
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import Header from "../components/Header";
@@ -28,7 +28,7 @@ const  User = props => {
 
     const getUserInfo = async () => {
         if (!userInfo) {
-            const res = await axios.get('/api/auth/user');
+            const res = await api.get('/api/auth/user');
             setViewer(res.data);
             if(username)setUserInfo(await getUserProfile(username));
         }
@@ -82,7 +82,7 @@ const  User = props => {
         }
         
         if(items.length === 0 && username){
-            axios.get(`/api/profile/items/${username}`)
+            api.get(`/api/profile/items/${username}`)
                     .then( res => {
                         const itemsSafe = Array.isArray(res.data?.items) ? res.data.items : [];
                         setItems(itemsSafe.reverse());

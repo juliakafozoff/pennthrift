@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Form from '../components/Form';
 import {useNavigate} from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/http';
 const Register = () =>{
     const navigate = useNavigate();
     const [error, setError] = useState();
@@ -14,7 +14,7 @@ const Register = () =>{
         };
 
 
-        axios.post(address, data).then(res =>{
+        api.post(address, data).then(res =>{
             if(res.data === "error"){
                 setError('Username has already been taken');
             }else{

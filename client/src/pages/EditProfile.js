@@ -1,6 +1,6 @@
 import Header from "../components/Header"
 import { useState, useRef, useEffect } from "react";
-import axios from "axios";
+import api from "../api/http";
 import { editUserProfile, getUserProfile } from "../api/ProfileAPI";
 import placeholder from '../assets/placeholder_user.png';
 import { useNavigate } from "react-router-dom";
@@ -22,7 +22,7 @@ const EditProfile = props => {
 
     const getUserInfo = async () => {
         if (!userInfo) {
-            const res = await axios.get('/api/auth/user');
+            const res = await api.get('/api/auth/user');
             setUser(res.data);
             if(user)setUserInfo(await getUserProfile(user));
         }
@@ -94,7 +94,7 @@ const EditProfile = props => {
             var formData = new FormData();
             formData.append("file", image);
 
-            axios.post('/api/file/upload', formData,{
+            api.post('/api/file/upload', formData,{
                 headers: {
                 'Content-Type': 'multipart/form-data'
                 }

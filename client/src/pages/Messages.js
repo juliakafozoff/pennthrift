@@ -3,7 +3,7 @@ import Header from '../components/Header';
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getUserChats, getUserProfile, getUserImage } from "../api/ProfileAPI";
-import axios from "axios";
+import api from "../api/http";
 import placeholder from '../assets/placeholder_user_sm.png'
 import { Link, useLocation } from 'react-router-dom';
 import ScrollableFeed from 'react-scrollable-feed'
@@ -59,7 +59,7 @@ const Messages = props => {
     async function setUp(){
        
         if(!user){
-            const res = await axios.get('/api/auth/user');
+            const res = await api.get('/api/auth/user');
             setUser(res.data)
         }
         if(chats.length === 0 && user ){
@@ -86,7 +86,7 @@ const Messages = props => {
             if(attachment){
                 var formData = new FormData();
                 formData.append("file", attachment);
-                axios.post('/api/file/upload', formData,{
+                api.post('/api/file/upload', formData,{
                     headers: {
                     'Content-Type': 'multipart/form-data'
                     }

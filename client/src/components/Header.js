@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from '../api/http';
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getUserProfile } from '../api/ProfileAPI';
@@ -15,13 +15,13 @@ const Header = props =>{
     const socketRef = useRef(null);
 
     function logOut(){
-        axios.post('/api/auth/logout').then(res => navigate('/login', { replace: true }))
+        api.post('/api/auth/logout').then(res => navigate('/login', { replace: true }))
         global.LOGGED_IN = false;
     }
     async function setUp(){
         try {
             if(!user){
-                const res = await axios.get('/api/auth/user').catch(e => {
+                const res = await api.get('/api/auth/user').catch(e => {
                     console.error('Error loading user:', e);
                     return {data: null};
                 });

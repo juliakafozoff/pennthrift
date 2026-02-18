@@ -9,7 +9,7 @@ import {
   Navigate,
   Outlet
 } from "react-router-dom";
-import axios from 'axios';
+import api from './api/http';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Welcome from './pages/Welcome';
@@ -23,14 +23,11 @@ import Item from './pages/Item';
 import Messages from './pages/Messages';
 import Favourites from './pages/Favourites';
 
-// Configure axios to send cookies for cross-domain authentication
-axios.defaults.withCredentials = true;
-
 function App() {
   const [loggedin, setLoggedin] = useState(null)
   function getAuthentication(){
     
-    axios.post('/api/auth/').then(res => {
+    api.post('/api/auth/').then(res => {
         global.LOGGED_IN = res.data[0];
         setLoggedin(res.data[0])
     });

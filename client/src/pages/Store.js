@@ -1,7 +1,7 @@
 import StoreItems from "../components/StoreItems";
 import Header from "../components/Header";
 import { Component } from "react";
-import axios from "axios";
+import api from "../api/http";
 import { getUserFavourites } from "../api/ProfileAPI";
 
 
@@ -25,7 +25,7 @@ export default class Store extends Component {
 
     loadItems = () => {
         if(this.state.items.length === 0){
-            axios.get('/api/item/all')
+            api.get('/api/item/all')
                     .then( res => {
                         const itemsSafe = Array.isArray(res.data) ? res.data : [];
                         this.setState({items: itemsSafe, loading: false});
@@ -45,7 +45,7 @@ export default class Store extends Component {
             const processed = this.state.processed;
             
             if(!currentUser && !processed ){
-                const res = await axios.get('/api/auth/user').catch(e => {
+                const res = await api.get('/api/auth/user').catch(e => {
                     console.error('Error loading user:', e);
                     return {data: null};
                 });

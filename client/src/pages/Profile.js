@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "../api/http";
 import { Component, useEffect, useState } from "react";
 import { Link, renderMatches } from "react-router-dom";
 import Header from "../components/Header";
@@ -27,14 +27,14 @@ export default class Profile extends Component {
         const processed = this.state.processed;
         const userInfo = this.state.userInfo;
         if(!user){
-            axios.get('/api/auth/user')
+            api.get('/api/auth/user')
                  .then( res => {
                     this.setState({ user: res.data});
             });
         }
         if(items.length === 0 && user){
     
-            axios.get(`/api/profile/items/${user}`)
+            api.get(`/api/profile/items/${user}`)
                     .then( res => {this.setState({items: res.data.items.reverse()})})
                     .catch(e => console.log(e))
 
@@ -63,7 +63,7 @@ export default class Profile extends Component {
         const processed = this.state.processed;
         const userInfo = this.state.userInfo;
         if(!user){
-            axios.get('/api/auth/user')
+            api.get('/api/auth/user')
                  .then( res => {
                     this.setState({ user: res.data});
             });
@@ -71,7 +71,7 @@ export default class Profile extends Component {
         }
         if(items.length === 0 && user){
     
-            axios.get(`/api/profile/items/${user}`)
+            api.get(`/api/profile/items/${user}`)
                     .then( res => {this.setState({items: res.data.items.reverse()})})
                     .catch(e => console.log(e))
 
@@ -87,7 +87,7 @@ export default class Profile extends Component {
     refresh = () =>{
         const user = this.state.user;
         if(user){
-            axios.get(`/api/profile/items/${user}`)
+            api.get(`/api/profile/items/${user}`)
                     .then( res => {this.setState({items: res.data.items.reverse()})})
                     .catch(e => console.log(e))
 

@@ -1,6 +1,6 @@
 import Header from "../components/Header";
 import { useState } from "react";
-import axios from "axios";
+import api from "../api/http";
 import { getUserProfile } from "../api/ProfileAPI";
 import placeholder from '../assets/placeholder_item.png';
 import 'chart.js/auto';
@@ -21,7 +21,7 @@ const Analytics = props => {
 
     const getUserInfo = async () => {
         if (!userInfo) {
-            const res = await axios.get('/api/auth/user');
+            const res = await api.get('/api/auth/user');
             setUser(res.data);
             if(user)setUserInfo(await getUserProfile(user));
         }
@@ -30,14 +30,14 @@ const Analytics = props => {
             setProcessed(true);
         }
         if(views.length == 0 && user ){
-            axios.get(`/api/analytics/profile/views/${user}`)
+            api.get(`/api/analytics/profile/views/${user}`)
             .then( res => {
                 setViews(res.data.profile_views)
 
             })
         }
         if(user && !items){
-            axios.get(`/api/profile/items/${user}`)
+            api.get(`/api/profile/items/${user}`)
                     .then( res => {setItems(res.data.items.reverse())})
                     .catch(e => console.log(e))
 

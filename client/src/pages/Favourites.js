@@ -1,7 +1,7 @@
 import StoreItems from "../components/StoreItems";
 import Header from "../components/Header";
 import { Component } from "react";
-import axios from "axios";
+import api from "../api/http";
 import { getUserFavourites, getUserProfile } from "../api/ProfileAPI";
 
 
@@ -33,7 +33,7 @@ export default class Favourites extends Component {
         const user = this.state.user;
         const processed = this.state.processed;
         if(!user){
-            const res = await axios.get('/api/auth/user');
+            const res = await api.get('/api/auth/user');
             this.setState({user:res.data})
         }
         if(user && this.state.favourites2.length == 0){

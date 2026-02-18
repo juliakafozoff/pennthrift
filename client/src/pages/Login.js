@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Form from '../components/Form';
 import {useNavigate} from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/http';
 import { editUserProfile, getUserProfile } from "../api/ProfileAPI";
 const moment = require('moment');
 
@@ -17,7 +17,7 @@ const Login = () =>{
             'email':username,
         };
 
-        axios.post(address, data).then(res =>{
+        api.post(address, data).then(res =>{
             if (res.status === 200) {
                 editUserProfile(username, { last_login: res.time }).then(res => {
                     if (res === 'Success! User updated.') {
