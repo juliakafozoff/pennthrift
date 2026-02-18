@@ -71,6 +71,9 @@ initializePassport(passport, username => {
 app.use(passport.initialize());
 app.use(passport.session());
 
+//root route
+app.get('/', (req, res) => res.status(200).send('PennThrift API running'));
+
 //health check endpoint
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
@@ -90,7 +93,7 @@ app.use('/api/analytics', analyticsRoutes);
 
 
 //initialization variables
-const port = process.env.PORT || 4000;
+const PORT = process.env.PORT || 4000;
 const website   = process.env.WEBSITE || 'http://localhost';
 const server  = require('http').Server(app);
 
@@ -112,5 +115,4 @@ require('./routes/messages')(io);
 
 
 //start server
-
-server.listen(process.env.PORT || port,() => console.log(`server is running on ${website}:${port}`));
+server.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
