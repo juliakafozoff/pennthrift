@@ -14,87 +14,110 @@ export default class Store extends Component {
         user:'',
         processed:false,
         favourites:[],
+        error: null,
+        loading: true,
     }
     
     componentDidMount(){
-        if(this.state.items.length === 0){
-    
-            axios.get('/api/item/all')
-                    .then( res => this.setState({items: res.data}))
-                    .catch(e => console.log(e))
-
-        }
-        this.setUp()
-
+        this.loadItems();
+        this.setUp();
     }
-    async setUp(){
-        const user = this.state.user;
-        const processed = this.state.processed;
-        if(!user && !processed ){
-            const res = await axios.get('/api/auth/user');
-            this.setState({user:res.data});
-            this.setState({processed:true});
-            
-        }
-        if(user && this.state.favourites.length == 0){
-            const favourites = await getUserFavourites(user);
-            favourites.map( f => {
-                this.setState({favourites: [...this.state.favourites, f._id]})
-            });
-            if(favourites.length == 0){
-                this.setState({favourites: ['']})
-            }
 
+    loadItems = () => {
+        if(this.state.items.length === 0){
+            axios.get('/api/item/all')
+                    .then( res => {
+                        const itemsSafe = Array.isArray(res.data) ? res.data : [];
+                        this.setState({items: itemsSafe, loading: false});
+                    })
+                    .catch(e => {
+                        console.error('Error loading items:', e);
+                        this.setState({items: [], loading: false, error: 'Failed to load items'});
+                    });
+        } else {
+            this.setState({loading: false});
         }
-        
+    }
+
+    async setUp(){
+        try {
+            let currentUser = this.state.user;
+            const processed = this.state.processed;
+            
+            if(!currentUser && !processed ){
+                const res = await axios.get('/api/auth/user').catch(e => {
+                    console.error('Error loading user:', e);
+                    return {data: null};
+                });
+                currentUser = res.data;
+                this.setState({user: currentUser, processed: true});
+            }
+            
+            if(currentUser && this.state.favourites.length === 0){
+                try {
+                    const favourites = await getUserFavourites(currentUser);
+                    const favouritesSafe = Array.isArray(favourites) ? favourites : [];
+                    const favouriteIds = favouritesSafe.map(f => f?._id).filter(Boolean);
+                    this.setState({favourites: favouriteIds.length > 0 ? favouriteIds : []});
+                } catch (e) {
+                    console.error('Error loading favourites:', e);
+                    this.setState({favourites: []});
+                }
+            } else if (!currentUser && !processed) {
+                this.setState({processed: true});
+            }
+        } catch (e) {
+            console.error('Error in setUp:', e);
+            this.setState({processed: true});
+        }
     }
 
     refresh = async() => {
         const user = this.state.user;
         if(user){
-            const favourites = await getUserFavourites(user);
-            favourites.map( f => {
-                this.setState({favourites: [...this.state.favourites, f._id]})
-            });
-            if(favourites.length == 0){
-                this.setState({favourites: ['']})
+            try {
+                const favourites = await getUserFavourites(user);
+                const favouritesSafe = Array.isArray(favourites) ? favourites : [];
+                const favouriteIds = favouritesSafe.map(f => f?._id).filter(Boolean);
+                this.setState({favourites: favouriteIds});
+            } catch (e) {
+                console.error('Error refreshing favourites:', e);
             }
         }
     }
     componentDidUpdate(){
-        if(this.state.items.length === 0){
-    
-            axios.get('/api/item/all')
-                    .then( res => {this.setState({items: res.data})})
-                    .catch(e => console.log(e))
+        if(this.state.items.length === 0 && !this.state.loading){
+            this.loadItems();
         }
-        this.setUp();
-
+        if(!this.state.processed){
+            this.setUp();
+        }
     }
 
     search(items){
+        const itemsSafe = Array.isArray(items) ? items : [];
+        if(itemsSafe.length === 0) return [];
+        
         let searchedItems = []
-        const keyword = this.state.keyword.toLowerCase();
-        const searchCategories = this.state.searchCategories;
+        const keyword = this.state.keyword ? this.state.keyword.toLowerCase() : '';
+        const searchCategories = Array.isArray(this.state.searchCategories) ? this.state.searchCategories : [];
+        
         if(searchCategories.length > 0){
-            items.map( item => {
-                if(searchCategories.includes(item.category)){
-                    if(keyword && !searchedItems.includes(item) && item.name.toLowerCase().includes(keyword) ){
-                        
+            itemsSafe.forEach( item => {
+                if(item && item.category && searchCategories.includes(item.category)){
+                    if(keyword && !searchedItems.includes(item) && item.name && item.name.toLowerCase().includes(keyword) ){
                         searchedItems.push(item)
                     }else if(!keyword && !searchedItems.includes(item)){
                         searchedItems.push(item)
                     }
-                }else{
                 }
             })
         }
         if(keyword){
-            items.map( item => {
-                if(item.name.toLowerCase().includes(keyword )){
-                    if(searchCategories.length > 0 && !searchedItems.includes(item) && searchCategories.includes(item.category)){
+            itemsSafe.forEach( item => {
+                if(item && item.name && item.name.toLowerCase().includes(keyword)){
+                    if(searchCategories.length > 0 && !searchedItems.includes(item) && item.category && searchCategories.includes(item.category)){
                         searchedItems.push(item)
-
                     }else if(searchCategories.length === 0 && !searchedItems.includes(item) ){
                         searchedItems.push(item)
                     }
@@ -102,7 +125,7 @@ export default class Store extends Component {
             })
         }
         const searched = !!keyword || searchCategories.length > 0 ;
-        return searchedItems.length > 0 || searched ? searchedItems : items;
+        return searchedItems.length > 0 || searched ? searchedItems : itemsSafe;
     }
     addSearchCategory(category){
         let searchCategories = [...this.state.searchCategories];
@@ -162,14 +185,24 @@ export default class Store extends Component {
                         </div>
                     </div>
                     <div className="">
-                        {
-                            this.state.processed && 
-                            <StoreItems
-                                refresh = {this.refresh}
-                                favourites={this.state.favourites}
-                                user={this.state.user}
-                                data={this.search(this.state.items)}/>
-                        }
+                        {this.state.loading && (
+                            <div className="text-center py-10">Loading...</div>
+                        )}
+                        {this.state.error && (
+                            <div className="text-center py-10 text-red-600">{this.state.error}</div>
+                        )}
+                        {!this.state.loading && !this.state.error && this.state.processed && (() => {
+                            const itemsSafe = Array.isArray(this.state.items) ? this.state.items : [];
+                            const searchResults = this.search(itemsSafe);
+                            const searchResultsSafe = Array.isArray(searchResults) ? searchResults : [];
+                            return (
+                                <StoreItems
+                                    refresh={this.refresh}
+                                    favourites={Array.isArray(this.state.favourites) ? this.state.favourites : []}
+                                    user={this.state.user}
+                                    data={searchResultsSafe}/>
+                            );
+                        })()}
                     </div>
                 </div>
                 

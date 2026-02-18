@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import Header from "../components/Header";
 import placeholder from '../assets/placeholder_user.png';
@@ -8,11 +8,6 @@ import { updateViews, getUserProfile } from "../api/ProfileAPI";
 import { useParams, useNavigate } from "react-router-dom";
 import io from 'socket.io-client';
 import { path } from "../api/ProfileAPI";
-
-const socket = io.connect(`${path}/api/messages`, {
-  withCredentials: true,
-  transports: ['websocket', 'polling']
-});
 
 const  User = props => {
     
@@ -29,6 +24,7 @@ const  User = props => {
     const [viewed, setViewed]               = useState(false);
     const { username } = useParams();
     const navigate = useNavigate();
+    const socketRef = useRef(null);
 
     const getUserInfo = async () => {
         if (!userInfo) {
@@ -59,29 +55,51 @@ const  User = props => {
 
     }
     async function processMessageRequest(){
-        if(viewer){
-            
+        if(viewer && socketRef.current){
             const users = [viewer, username];
-            socket.emit('get-open', users);
-            socket.on('message-navigate', id => {
+            socketRef.current.emit('get-open', users);
+            socketRef.current.on('message-navigate', id => {
                 navigate( `/profile/messages/${id}`)
             });
-        }else{
+        }else if(!viewer){
             navigate('/login')
         }
         
 
     }
+    
     useEffect(() => {
+        // Initialize socket inside useEffect
+        if (typeof window !== 'undefined' && path && !socketRef.current) {
+            try {
+                socketRef.current = io.connect(`${path}/api/messages`, {
+                    withCredentials: true,
+                    transports: ['websocket', 'polling']
+                });
+            } catch (e) {
+                console.error('Error initializing socket:', e);
+            }
+        }
         
         if(items.length === 0 && username){
-    
             axios.get(`/api/profile/items/${username}`)
-                    .then( res => {setItems(res.data.items.reverse())})
-                    .catch(e => console.log(e))
-
+                    .then( res => {
+                        const itemsSafe = Array.isArray(res.data?.items) ? res.data.items : [];
+                        setItems(itemsSafe.reverse());
+                    })
+                    .catch(e => {
+                        console.error('Error loading items:', e);
+                        setItems([]);
+                    })
         }
-    },[items, bio, interests, imageDisplay, venmo, year])
+        
+        // Cleanup on unmount
+        return () => {
+            if (socketRef.current) {
+                socketRef.current.off('message-navigate');
+            }
+        };
+    },[items, bio, interests, imageDisplay, venmo, year, username])
     
 
 
@@ -98,9 +116,9 @@ const  User = props => {
                         <div className="my-2 mt-5 self-start">Graduating Class : {year}</div>
                         <div className="my-2 lg:max-w-[250px] self-start">Interests: 
                             {
-                                interests.map((intr, index) => {
+                                Array.isArray(interests) && interests.map((intr, index) => {
                                     return(
-                                        <span> {intr} {index < interests.length - 1 ? ", " : ""}</span>
+                                        <span key={index}> {intr} {index < interests.length - 1 ? ", " : ""}</span>
                                     )
                                 })
                             }
@@ -137,7 +155,7 @@ const  User = props => {
                         </div>
                         <div className="">
                             <StoreItems
-                                data={items}/>
+                                data={Array.isArray(items) ? items : []}/>
                         </div>
                     </div>
                     

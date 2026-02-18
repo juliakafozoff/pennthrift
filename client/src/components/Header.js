@@ -1,15 +1,10 @@
 import axios from 'axios';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getUserProfile } from '../api/ProfileAPI';
 import io from 'socket.io-client';
 import React from 'react';
 import { path } from '../api/ProfileAPI';
-
-const socket = io.connect(`${path}/api/messages`, {
-  withCredentials: true,
-  transports: ['websocket', 'polling']
-});
 
 
 const Header = props =>{
@@ -17,40 +12,78 @@ const Header = props =>{
     const [user, setUser] = useState();
     const [unread, setUnread] = useState(0);
     const [processing , setProcessing] = useState(false)
+    const socketRef = useRef(null);
 
     function logOut(){
         axios.post('/api/auth/logout').then(res => navigate('/login', { replace: true }))
         global.LOGGED_IN = false;
     }
     async function setUp(){
-        if(!user){
-            const res = await axios.get('/api/auth/user');
-            setUser(res.data);
-            if(res.data){
-                const profile =  await getUserProfile(res.data);
-                setUnread(profile.unread.length)
+        try {
+            if(!user){
+                const res = await axios.get('/api/auth/user').catch(e => {
+                    console.error('Error loading user:', e);
+                    return {data: null};
+                });
+                setUser(res.data);
+                if(res.data){
+                    try {
+                        const profile = await getUserProfile(res.data);
+                        const unreadSafe = Array.isArray(profile?.unread) ? profile.unread : [];
+                        setUnread(unreadSafe.length);
+                    } catch (e) {
+                        console.error('Error loading profile:', e);
+                        setUnread(0);
+                    }
+                }
             }
+        } catch (e) {
+            console.error('Error in setUp:', e);
         }
-        
     }
 
     async function updateUnread(){
         if(user && !processing){
             setProcessing(true)
-            const profile =  await getUserProfile(user);
-            setUnread(profile.unread.length)
-            setProcessing(false);
+            try {
+                const profile = await getUserProfile(user);
+                const unreadSafe = Array.isArray(profile?.unread) ? profile.unread : [];
+                setUnread(unreadSafe.length);
+            } catch (e) {
+                console.error('Error updating unread:', e);
+            } finally {
+                setProcessing(false);
+            }
         }
-
     }
+    
     useEffect(() => {
         setUp();
         
-        socket.on('unread', () => {
-            updateUnread();
-        })
-
-    }, [user, unread])
+        // Initialize socket inside useEffect after component mounts
+        if (typeof window !== 'undefined' && path) {
+            try {
+                socketRef.current = io.connect(`${path}/api/messages`, {
+                    withCredentials: true,
+                    transports: ['websocket', 'polling']
+                });
+                
+                socketRef.current.on('unread', () => {
+                    updateUnread();
+                });
+                
+                // Cleanup on unmount
+                return () => {
+                    if (socketRef.current) {
+                        socketRef.current.disconnect();
+                        socketRef.current = null;
+                    }
+                };
+            } catch (e) {
+                console.error('Error initializing socket:', e);
+            }
+        }
+    }, [user])
 
    
     return(
