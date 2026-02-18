@@ -1,8 +1,9 @@
 [build]
   base = "client"
-  command = "npm ci --legacy-peer-deps && npm run build"
+  command = "node -v && npm -v && ls -la && npm ci --legacy-peer-deps && npm run build"
   publish = "build"
 
 [build.environment]
   NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"
 
