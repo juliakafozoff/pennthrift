@@ -5,6 +5,7 @@ import { getUserProfile } from '../api/ProfileAPI';
 import io from 'socket.io-client';
 import React from 'react';
 import { path } from '../api/ProfileAPI';
+import { Button } from './ui';
 
 
 const Header = props =>{
@@ -87,29 +88,95 @@ const Header = props =>{
 
    
     return(
-        <div data-testid="header" dataclassName="w-full bg-[#454545] py-2 flex justify-between h-12">
-            {
-                global.LOGGED_IN &&
-                 <div data-testid="logout" onClick={() => logOut()}className='h-full cursor-pointer w-40 flex mx-5 justify-center items-center bg-white'>Logout</div>
-            
-            }
-            {
-                !global.LOGGED_IN &&
-                <Link to='/login' className='h-full cursor-pointer w-40 flex mx-5 justify-center items-center bg-white'>Login</Link>
-            }
-            <div data-testid="flex" className='flex'>
-                <Link to='/store'><img className='mx-1 w-8 h-8' src={require('../assets/shop_bag.png')}/></Link>
-                <Link data-testid="relative" className='relative' to='/profile/messages'>
-                    <div data-testid="unread"className='flex justify-center items-center py-[2px] px-[3px] text-white text-xs right-0 absolute rounded-full bg-red-600'>
-                        {unread}
+        <header 
+            data-testid="header" 
+            className="w-full bg-[var(--color-surface)] border-b border-[var(--color-border)] shadow-sm sticky top-0 z-50"
+        >
+            <div className="container max-w-7xl mx-auto px-4">
+                <div className="flex items-center justify-between h-16">
+                    {/* Left side - Auth */}
+                    <div className="flex items-center">
+                        {global.LOGGED_IN ? (
+                            <Button
+                                data-testid="logout"
+                                variant="ghost"
+                                onClick={logOut}
+                                className="text-sm"
+                            >
+                                Logout
+                            </Button>
+                        ) : (
+                            <Link to="/login">
+                                <Button variant="primary" className="text-sm">
+                                    Login
+                                </Button>
+                            </Link>
+                        )}
                     </div>
-                    <img data-testid="image" className='mx-1 w-8 h-8' src={require('../assets/messages.png')}/>
-                </Link>
-                <Link to='/'><img className='mx-1 w-8 h-8' src={require('../assets/favourite.png')}/></Link>
-                <Link to='/profile'><img className='mx-1 w-8 h-8' src={require('../assets/placeholder_user_sm.png')}/></Link>
 
+                    {/* Right side - Navigation */}
+                    <nav data-testid="flex" className="flex items-center gap-2">
+                        <Link 
+                            to="/store"
+                            className="p-2 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+                            aria-label="Store"
+                        >
+                            <img 
+                                className="w-6 h-6" 
+                                src={require('../assets/shop_bag.png')}
+                                alt="Store"
+                            />
+                        </Link>
+                        
+                        <Link 
+                            data-testid="relative"
+                            className="relative p-2 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+                            to="/profile/messages"
+                            aria-label="Messages"
+                        >
+                            {unread > 0 && (
+                                <div 
+                                    data-testid="unread"
+                                    className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-xs font-semibold text-white bg-[var(--color-danger)] rounded-full"
+                                >
+                                    {unread > 9 ? '9+' : unread}
+                                </div>
+                            )}
+                            <img 
+                                data-testid="image"
+                                className="w-6 h-6" 
+                                src={require('../assets/messages.png')}
+                                alt="Messages"
+                            />
+                        </Link>
+                        
+                        <Link 
+                            to="/"
+                            className="p-2 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+                            aria-label="Favourites"
+                        >
+                            <img 
+                                className="w-6 h-6" 
+                                src={require('../assets/favourite.png')}
+                                alt="Favourites"
+                            />
+                        </Link>
+                        
+                        <Link 
+                            to="/profile"
+                            className="p-2 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+                            aria-label="Profile"
+                        >
+                            <img 
+                                className="w-6 h-6 rounded-full" 
+                                src={require('../assets/placeholder_user_sm.png')}
+                                alt="Profile"
+                            />
+                        </Link>
+                    </nav>
+                </div>
             </div>
-        </div>
+        </header>
     )
 
 }

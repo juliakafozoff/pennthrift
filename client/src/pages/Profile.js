@@ -5,6 +5,7 @@ import Header from "../components/Header";
 import ProfileListings from "../components/ProfileListings";
 import { getUserProfile } from "../api/ProfileAPI";
 import placeholder from '../assets/placeholder_user.png';
+import { PageHeader, Card, Badge, Button } from "../components/ui";
 
 
 export default class Profile extends Component {
@@ -98,62 +99,86 @@ export default class Profile extends Component {
     render(){
         
         return(
-            <div>
+            <div className="min-h-screen bg-[var(--color-bg)]">
                 <Header/>
-                <div className="grid grid-main justify-center w-full h-full px-5 md:px-10">
-                    <div className="col-span-8 mt-20 lg:gap-20 grid grid-cols-6">
-                        <div className="lg:col-span-2 col-span-6 flex flex-col  items-center">
-                            <img
-                                className="w-60 rounded-full h-60" 
-                                src={this.state.profile_pic || placeholder}/>
-                            <div className="my-2 mt-5 self-start">Graduating Class : {this.state.year}</div>
-                            <div className="my-2 lg:max-w-[250px] self-start">Interests: 
-                                {
-                                    this.state.interests.map((intr, index) => {
-                                        return(
-                                            <span> {intr} {index < this.state.interests.length - 1 ? ", " : ""}</span>
-                                        )
-                                    })
-                                }
-                            </div>
-                            <div className="border my-5 w-full p-10 border-gray-200">
-                                    {this.state.bio}
-                            </div>
-                        </div>
-                        <div className="lg:col-span-4 col-span-6  h-fit grid gap-5">
-                            <div className="flex justify-between">
-                                <div>
-                                    
-                                    <div className="text-4xl mb-10 h-fit font-semibold">{this.state.user}</div>
-                                    <div className="flex ">
-
-                                        <img className="w-8 h-5" src={require('../assets/vimeo.png')}/>
-                                        <div className="font-bold">{this.state.venmo}</div>
-                                    </div>
-                                </div>
+                <div className="container py-8 max-w-6xl">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Left Column - Profile Info */}
+                        <div className="lg:col-span-1">
+                            <Card className="text-center lg:text-left">
+                                <img
+                                    className="w-48 h-48 rounded-full mx-auto lg:mx-0 mb-6 object-cover border-4 border-[var(--color-surface-2)]" 
+                                    src={this.state.profile_pic || placeholder}
+                                    alt={this.state.user || 'Profile'}
+                                />
                                 
-                                <div className="h-ffull flex">
-                                    <Link to='/profile/analytics' className="p-1 border border-gray-400 h-fit font-semibold m-2 bg-gray-200">
-                                        View Analytics
-                                    </Link>
-                                    <Link to='/profile/edit' className="p-1 border border-gray-400 h-fit  m-2 font-semibold bg-gray-200">
-                                        Edit Profile
-                                    </Link>
+                                <div className="space-y-4">
+                                    {this.state.year && (
+                                        <div>
+                                            <span className="text-sm text-[var(--color-muted)]">Graduating Class</span>
+                                            <p className="text-base font-medium text-[var(--color-text)] mt-1">{this.state.year}</p>
+                                        </div>
+                                    )}
+                                    
+                                    {Array.isArray(this.state.interests) && this.state.interests.length > 0 && (
+                                        <div>
+                                            <span className="text-sm text-[var(--color-muted)] block mb-2">Interests</span>
+                                            <div className="flex flex-wrap gap-2">
+                                                {this.state.interests.map((intr, index) => (
+                                                    <Badge key={index} variant="primary">
+                                                        {intr}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {this.state.bio && (
+                                        <div className="pt-4 border-t border-[var(--color-border)]">
+                                            <span className="text-sm text-[var(--color-muted)] block mb-2">Bio</span>
+                                            <p className="text-sm text-[var(--color-text)] leading-relaxed">{this.state.bio}</p>
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
+                            </Card>
+                        </div>
+
+                        {/* Right Column - Listings */}
+                        <div className="lg:col-span-2 space-y-6">
+                            <PageHeader
+                                title={this.state.user || 'Profile'}
+                                subtitle={this.state.venmo && (
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <img className="w-5 h-5" src={require('../assets/vimeo.png')} alt="Venmo" />
+                                        <span className="text-base text-[var(--color-text)]">{this.state.venmo}</span>
+                                    </div>
+                                )}
+                                actions={
+                                    <div className="flex gap-3">
+                                        <Link to="/profile/analytics">
+                                            <Button variant="secondary">
+                                                View Analytics
+                                            </Button>
+                                        </Link>
+                                        <Link to="/profile/edit">
+                                            <Button variant="primary">
+                                                Edit Profile
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                }
+                            />
+                            
                             <div>
-                                Your listings:
-                            </div>
-                            <div className="">
+                                <h2 className="text-xl font-semibold text-[var(--color-text)] mb-4">Your listings</h2>
                                 <ProfileListings
                                     refresh={this.refresh}
-                                    data={this.state.items}/>
+                                    data={this.state.items}
+                                />
                             </div>
                         </div>
-                        
                     </div>
                 </div>
-
             </div>
         )
     }
