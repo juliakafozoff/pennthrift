@@ -1,7 +1,7 @@
-import axios from 'axios';
 import { Component } from 'react'
 import { Link } from 'react-router-dom';
 import React from 'react';
+import { Card, Badge } from './ui';
 
 export default class StoreItems extends Component{
 
@@ -72,49 +72,96 @@ export default class StoreItems extends Component{
 
         if(itemsSafe.length === 0){
             return (
-                <div className="text-center py-10">No items found</div>
+                <div className="flex flex-col items-center justify-center py-16 px-4">
+                    <svg 
+                        className="w-24 h-24 text-[var(--color-muted)] mb-4" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                    <h3 className="text-xl font-semibold text-[var(--color-text)] mb-2">No items found</h3>
+                    <p className="text-base text-[var(--color-muted)] text-center max-w-md">
+                        Try adjusting your search or filters to find what you're looking for.
+                    </p>
+                </div>
             );
         }
 
         return(
-            <div data-testid="storeitems" className='grid justify-center mt-20 sm:grid-cols-2 lg:grid-cols-3 gap-y-5 gap-2'>
+            <div data-testid="storeitems" className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
                 {
                     itemsSafe.map(item => {
                         if(!item || !item._id) return null;
                         
+                        const isFavourite = favouritesSafe.includes(item._id);
+                        
                         return(
-                            <div data-testid="itemid" key={item._id}  className="border-2 w-56 p-5 border-[#368481] w-fit">
-                                <Link to={`/store/item/${item._id}`}>
-                                    <img 
-                                        src={item.image || require('../assets/placeholder_item.png')} 
-                                        alt={item.name || 'Item'}
-                                        className='w-full border-[#368481] rounded-lg border-2 h-36'
-                                        onError={(e) => {
-                                            e.target.src = require('../assets/placeholder_item.png');
-                                        }}
-                                    />
+                            <Card 
+                                data-testid="itemid" 
+                                key={item._id}
+                                className="group hover:shadow-md transition-shadow duration-200 overflow-hidden"
+                                padding="none"
+                            >
+                                <Link to={`/store/item/${item._id}`} className="block">
+                                    <div className="relative aspect-square overflow-hidden bg-[var(--color-surface-2)]">
+                                        <img 
+                                            src={item.image || require('../assets/placeholder_item.png')} 
+                                            alt={item.name || 'Item'}
+                                            className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-200'
+                                            onError={(e) => {
+                                                e.target.src = require('../assets/placeholder_item.png');
+                                            }}
+                                        />
+                                    </div>
                                 </Link>
-                                <div className='flex mt-5 text-xs gap-5'>
-                                    <div className='font-bold'> 
-                                        {item.category || 'Uncategorized'}
+                                <div className='p-4 space-y-3'>
+                                    <div className="flex items-start justify-between gap-2">
+                                        {item.category && (
+                                            <Badge variant="default" className="text-xs">
+                                                {item.category}
+                                            </Badge>
+                                        )}
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                update(item._id);
+                                            }}
+                                            className="p-1.5 rounded-full hover:bg-[var(--color-surface-2)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                            aria-label={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
+                                        >
+                                            <img 
+                                                src={favourite(item._id)}  
+                                                className='w-5 h-5'
+                                                alt={isFavourite ? 'Favourite' : 'Not favourite'}
+                                            />
+                                        </button>
                                     </div>
-                                    <div className='flex gap-2 w-full flex-col'>
-                                        <div>{item.name || 'Untitled'}</div>
-                                        <div> ${item.price ? parseFloat(item.price).toFixed(2) : '0.00'}</div>
-                                       <div className='flex items-center  justify-between'> 
-                                           {item.owner && (
-                                               <Link to={`/user/${item.owner}`} className='text-blue-600 w-18 truncate overflow-ellipsis underline'>@{item.owner}</Link>
-                                           )}
-                                           <img 
-                                            onClick={() => update(item._id)}
-                                            src={favourite(item._id)}  
-                                            className='w-5 cursor-pointer h-5'
-                                            alt="favourite"
-                                           />
-                                        </div>
+                                    <div>
+                                        <h3 className="font-semibold text-[var(--color-text)] mb-1 min-h-[2.5rem] overflow-hidden" style={{
+                                            display: '-webkit-box',
+                                            WebkitLineClamp: 2,
+                                            WebkitBoxOrient: 'vertical'
+                                        }}>
+                                            {item.name || 'Untitled'}
+                                        </h3>
+                                        <p className="text-lg font-semibold text-[var(--color-primary)]">
+                                            ${item.price ? parseFloat(item.price).toFixed(2) : '0.00'}
+                                        </p>
                                     </div>
+                                    {item.owner && (
+                                        <Link 
+                                            to={`/user/${item.owner}`} 
+                                            className='text-sm text-[var(--color-primary)] hover:underline block truncate'
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            @{item.owner}
+                                        </Link>
+                                    )}
                                 </div>
-                            </div>
+                            </Card>
                         )
                     })
                 }
