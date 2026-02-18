@@ -1,8 +1,13 @@
 const multer = require("multer");
 const { GridFsStorage } = require("multer-gridfs-storage");
 
+const mongoUrl = process.env.DATABASE_ACCESS;
+if (!mongoUrl) {
+    throw new Error('DATABASE_ACCESS env var is missing. Please set it in your environment variables.');
+}
+
 const storage = new GridFsStorage({
-    url: process.env.DATABASE_ACCESS,
+    url: mongoUrl,
     options: { useNewUrlParser: true, useUnifiedTopology: true },
     file: (req, file) => {
         const match = [];

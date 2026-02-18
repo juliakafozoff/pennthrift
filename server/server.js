@@ -1,3 +1,6 @@
+// Load environment variables FIRST, before any imports that depend on them
+require('dotenv').config();
+
 const express       = require('express');
 const passport      = require('passport');
 const bcrypt        = require('bcrypt');
@@ -17,9 +20,6 @@ const connection    = require('./db-config');
 const upload        = require('./routes/upload');
 const { Server }    = require('socket.io')
 const initializePassport = require('./passport-config');
-if (process.env.NODE_ENV !== "production") {
-    require('dotenv').config();
-}
 
 
 
@@ -70,6 +70,9 @@ initializePassport(passport, username => {
 
 app.use(passport.initialize());
 app.use(passport.session());
+
+//health check endpoint
+app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 
 
