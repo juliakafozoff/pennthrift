@@ -11,7 +11,10 @@ import FileViewer from 'react-file-viewer';
 import io from 'socket.io-client';
 import { path } from '../api/ProfileAPI';
 
-const socket = io.connect(`${path}/api/messages`)
+const socket = io.connect(`${path}/api/messages`, {
+  withCredentials: true,
+  transports: ['websocket', 'polling']
+});
 
 const Messages = props => {
 

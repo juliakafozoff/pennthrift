@@ -1,5 +1,5 @@
 import axios from 'axios';
-export const path = process.env.NODE_ENV === "production" ? "https://penn-thrift-api.herokuapp.com" : "http://localhost:4000";
+export const path = process.env.REACT_APP_API_URL || "http://localhost:4000";
 const url = `${path}/api/profile/`;
 export const getAllUserProfiles = async () => {
     try {

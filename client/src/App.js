@@ -10,6 +10,8 @@ import {
   Outlet
 } from "react-router-dom";
 import axios from 'axios';
+axios.defaults.withCredentials = true;
+
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Welcome from './pages/Welcome';

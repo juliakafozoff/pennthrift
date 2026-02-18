@@ -9,7 +9,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import io from 'socket.io-client';
 import { path } from "../api/ProfileAPI";
 
-const socket = io.connect(`${path}/api/messages`);
+const socket = io.connect(`${path}/api/messages`, {
+  withCredentials: true,
+  transports: ['websocket', 'polling']
+});
 
 const  User = props => {
     

@@ -4,9 +4,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getUserProfile } from '../api/ProfileAPI';
 import io from 'socket.io-client';
 import React from 'react';
+import { path } from '../api/ProfileAPI';
 
-
-const socket = io.connect('http://localhost:4000/api/messages')
+const socket = io.connect(`${path}/api/messages`, {
+  withCredentials: true,
+  transports: ['websocket', 'polling']
+});
 
 
 const Header = props =>{
