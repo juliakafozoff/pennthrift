@@ -1,9 +1,18 @@
+// Load environment variables for local dev (Render sets them via env vars)
+require('dotenv').config();
+
 const multer = require("multer");
 const { GridFsStorage } = require("multer-gridfs-storage");
 
-const mongoUrl = process.env.DATABASE_ACCESS;
+const mongoUrl =
+  process.env.DATABASE_ACCESS ||
+  process.env.MONGODB_URI ||
+  process.env.MONGO_URI;
+
+console.log('GridFS mongoUrl set?', !!mongoUrl);
+
 if (!mongoUrl) {
-    throw new Error('DATABASE_ACCESS env var is missing. Please set it in your environment variables.');
+  throw new Error('Missing MongoDB URL. Set DATABASE_ACCESS (preferred) or MONGODB_URI/MONGO_URI');
 }
 
 const storage = new GridFsStorage({
