@@ -21,7 +21,6 @@ if (process.env.NODE_ENV !== "production") {
     require('dotenv').config();
 }
 
-const socketUrl = process.env.NODE_ENV !== "production" ? 'http://localhost:3000' : "https://penn-thrift.herokuapp.com"
 
 
 
@@ -29,35 +28,39 @@ const socketUrl = process.env.NODE_ENV !== "production" ? 'http://localhost:3000
 
 app.use(cookieParser())
 
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+}));
+
 
 
 //app sessions
 
 app.use(session({
-    key:'user_sid',
-    secret:process.env.SECRET_KEY,
-    resave:false,
-    saveUninitialized:true,
-    cookie:{
-        httpOnly:true,
-        expires:600000 // equals six days
-    },
-    store: MongoStore.create({
-        mongoUrl:process.env.DATABASE_ACCESS,
-        collectionName:'userSessions'
-    })
+  name: 'user_sid',
+  secret: process.env.SECRET_KEY,
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.DATABASE_ACCESS,
+    collectionName: 'userSessions'
+  }),
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    maxAge: 6 * 24 * 60 * 60 * 1000
+  }
 }));
 
 
 
 
 
-app.use(express.urlencoded({extended:true}));
+app.use(express.urlencoded({ extended: true }));
 
 app.use(express.json());
-app.use(cors({
-    credentials: true,
-}));
 
 //Passport
 
@@ -95,13 +98,13 @@ const server  = require('http').Server(app);
 
 
 //socket.io inititializtion for messages
-const io = require('socket.io')(server,{
-    // Specifying CORS 
-    cors: {
-        origin: socketUrl,
-        
-    }
-   })
+const io = require('socket.io')(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true,
+    methods: ['GET','POST','PUT','DELETE','OPTIONS']
+  }
+});
 require('./routes/messages')(io);
 
 
