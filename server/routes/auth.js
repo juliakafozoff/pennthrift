@@ -102,16 +102,29 @@ router.post('/register', async(request, response) =>{
                     // Log session after logIn
                     console.log('=== REGISTER PASSPORT LOGIN SUCCESS ===');
                     console.log('Session ID:', request.sessionID);
-                    console.log('Session Keys (after):', Object.keys(request.session));
+                    console.log('Session Keys (after logIn):', Object.keys(request.session));
+                    console.log('Passport session:', request.session.passport);
                     console.log('Is Authenticated:', request.isAuthenticated());
                     console.log('Passport User:', request.user?.username);
                     
-                    // Check Set-Cookie header before sending response
-                    const setCookieHeader = response.getHeader('set-cookie');
-                    console.log('Set-Cookie Header:', setCookieHeader || 'NOT SET YET');
-                    console.log('======================================');
-                    
-                    response.json("successful");
+                    // Explicitly save session to MongoDB before responding
+                    request.session.save((saveErr) => {
+                        if (saveErr) {
+                            console.error('=== REGISTER SESSION SAVE ERROR ===');
+                            console.error('Error:', saveErr);
+                            console.error('Session ID:', request.sessionID);
+                            console.error('==================================');
+                            return response.status(500).json("Error: Failed to save session");
+                        }
+                        
+                        // Check Set-Cookie header before sending response
+                        const setCookieHeader = response.getHeader('set-cookie');
+                        console.log('Set-Cookie Header:', setCookieHeader || 'NOT SET YET');
+                        console.log('Session saved to MongoDB successfully');
+                        console.log('======================================');
+                        
+                        response.json("successful");
+                    });
                 });
             })
             .catch((error) =>{
@@ -215,24 +228,38 @@ router.post('/login', userBruteforce.prevent, passport.authenticate('local', { f
             // Log session after logIn
             console.log('=== PASSPORT LOGIN SUCCESS ===');
             console.log('Session ID:', req.sessionID);
-            console.log('Session Keys (after):', Object.keys(req.session));
+            console.log('Session Keys (after logIn):', Object.keys(req.session));
+            console.log('Passport session:', req.session.passport);
             console.log('Is Authenticated (after logIn):', req.isAuthenticated());
             console.log('Passport User:', req.user?.username);
             
-            // Check Set-Cookie header before sending response
-            const setCookieHeader = res.getHeader('set-cookie');
-            console.log('Set-Cookie Header:', setCookieHeader || 'NOT SET YET');
-            console.log('=============================');
-            
-            if (!req.user.locked_out) {
-                const currentTimestamp = moment().unix(); // in seconds
-                const currentDatetime = moment(currentTimestamp * 1000).format(
-                        'YYYY-MM-DD HH:mm:ss'
-                );
-                res.status(200).send({ data: 'success', user: req.user, time: currentDatetime });
-            } else {
-                res.status(202).send({ data: 'lockedout', user: req.user });
-            }
+            // Explicitly save session to MongoDB before responding
+            // req.logIn() serializes but we need to ensure it's saved to store
+            req.session.save((saveErr) => {
+                if (saveErr) {
+                    console.error('=== SESSION SAVE ERROR AFTER LOGIN ===');
+                    console.error('Error:', saveErr);
+                    console.error('Session ID:', req.sessionID);
+                    console.error('=====================================');
+                    return res.status(500).send({ error: 'Failed to save session' });
+                }
+                
+                // Check Set-Cookie header before sending response
+                const setCookieHeader = res.getHeader('set-cookie');
+                console.log('Set-Cookie Header:', setCookieHeader || 'NOT SET YET');
+                console.log('Session saved to MongoDB successfully');
+                console.log('=============================');
+                
+                if (!req.user.locked_out) {
+                    const currentTimestamp = moment().unix(); // in seconds
+                    const currentDatetime = moment(currentTimestamp * 1000).format(
+                            'YYYY-MM-DD HH:mm:ss'
+                    );
+                    res.status(200).send({ data: 'success', user: req.user, time: currentDatetime });
+                } else {
+                    res.status(202).send({ data: 'lockedout', user: req.user });
+                }
+            });
         });
     },
     function(err, req, res, next) {
