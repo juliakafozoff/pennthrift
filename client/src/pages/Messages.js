@@ -10,10 +10,15 @@ import ScrollableFeed from 'react-scrollable-feed'
 import FileViewer from 'react-file-viewer';
 import io from 'socket.io-client';
 import { path } from '../api/ProfileAPI';
+import { normalizeImageUrl } from "../utils/imageUtils";
 
 const Messages = props => {
 
-    const {id} = useParams();
+    const {id: chatIdParam} = useParams();
+    // Fix: Ensure id is always a string, defensive guard against objects
+    const id = typeof chatIdParam === 'string' && chatIdParam !== '[object Object]' 
+        ? chatIdParam 
+        : (chatIdParam && typeof chatIdParam === 'object' ? String(chatIdParam) : (chatIdParam || null));
 
     const location = useLocation();
     const propsChat = location.state;
@@ -106,7 +111,29 @@ const Messages = props => {
                     'Content-Type': 'multipart/form-data'
                     }
                 }).then( async res => {
-                    const data = { sender:user, message:message, attachment:res.data, id:id, receiver:receiver.username }
+                    // Fix: Extract URL from response object, normalize to absolute URL
+                    // Upload endpoint returns: {path: '/api/file/...', url: 'https://...', filename: '...'}
+                    let attachmentUrl = null;
+                    if(res.data) {
+                        if(typeof res.data === 'string') {
+                            attachmentUrl = res.data;
+                        } else if(res.data.url) {
+                            attachmentUrl = res.data.url;
+                        } else if(res.data.path) {
+                            attachmentUrl = res.data.path;
+                        }
+                    }
+                    
+                    // Normalize to absolute URL if we have a string
+                    const normalizedUrl = attachmentUrl && typeof attachmentUrl === 'string'
+                        ? normalizeImageUrl(attachmentUrl) 
+                        : null;
+                    
+                    if(!normalizedUrl) {
+                        console.error('Failed to extract attachment URL from upload response:', res.data);
+                    }
+                    
+                    const data = { sender:user, message:message, attachment:normalizedUrl || '', id:id, receiver:receiver.username }
                     await socketRef.current.emit('send-message', data )
                     setAttachment('');
                     setAttachmentDisplay('')
@@ -124,44 +151,102 @@ const Messages = props => {
     }
 
  
+    // Helper to check if URL is an image
+    const isImageUrl = (url) => {
+        if(!url || typeof url !== 'string') return false;
+        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+        const urlLower = url.toLowerCase();
+        return imageExtensions.some(ext => urlLower.includes(`.${ext}`)) || 
+               urlLower.includes('image/') ||
+               urlLower.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?|#|$)/i);
+    };
+
     function getMessageType(user, text, attachment, msgSender, image  ){
-        // Defensive: Only render FileViewer if attachment exists and has valid fileType
-        const renderAttachment = (attachmentUrl) => {
+        // Normalize attachment URL to absolute URL
+        const normalizeAttachmentUrl = (attachmentData) => {
+            if(!attachmentData) return null;
+            
+            // Handle different attachment formats
+            let url = null;
+            if(typeof attachmentData === 'string') {
+                url = attachmentData;
+            } else if(attachmentData && typeof attachmentData === 'object') {
+                // Handle object with url or path property
+                url = attachmentData.url || attachmentData.path;
+                // If still no url and it's an object, try toString (defensive)
+                if(!url && attachmentData.toString && attachmentData.toString() !== '[object Object]') {
+                    url = attachmentData.toString();
+                }
+            }
+            
+            if(!url || typeof url !== 'string') return null;
+            
+            // Normalize to absolute URL
+            return normalizeImageUrl(url);
+        };
+        
+        const attachmentUrl = normalizeAttachmentUrl(attachment);
+        const isImage = attachmentUrl && isImageUrl(attachmentUrl);
+        
+        // Render attachment based on type
+        const renderAttachment = () => {
             if(!attachmentUrl) return null;
             
-            const fileType = getFileType(attachmentUrl, true);
-            if(!fileType || fileType === 'undefined' || fileType.includes('undefined')){
-                // Fallback: show a simple link instead of FileViewer
+            if(isImage) {
+                // Render image inline
+                return (
+                    <div className='my-2'>
+                        <img 
+                            src={attachmentUrl}
+                            alt="Attachment"
+                            className='max-w-[280px] md:max-w-[360px] rounded-lg cursor-pointer hover:opacity-90 transition-opacity'
+                            onClick={() => window.open(attachmentUrl, '_blank', 'noopener,noreferrer')}
+                            onError={(e) => {
+                                // Fallback if image fails to load
+                                e.target.style.display = 'none';
+                                e.target.nextSibling?.style?.removeProperty('display');
+                            }}
+                        />
+                        <a 
+                            href={attachmentUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className='hidden text-blue-600 hover:underline text-sm'
+                            onClick={(e) => {
+                                e.preventDefault();
+                                window.open(attachmentUrl, '_blank', 'noopener,noreferrer');
+                            }}
+                        >
+                            📎 View Image
+                        </a>
+                    </div>
+                );
+            } else {
+                // Non-image: show clickable link
                 return (
                     <div className='my-2'>
                         <a 
                             href={attachmentUrl} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className='text-blue-600 hover:underline'
+                            className='text-blue-600 hover:underline inline-flex items-center gap-1'
+                            onClick={(e) => {
+                                e.preventDefault();
+                                window.open(attachmentUrl, '_blank', 'noopener,noreferrer');
+                            }}
                         >
                             📎 View Attachment
                         </a>
                     </div>
                 );
             }
-            
-            return (
-                <div onClick={() => window.open(attachmentUrl,'_blank')} className='max-h-[240px] flex my-2 w-fit bg-white'>
-                    <FileViewer
-                        fileType={fileType}
-                        filePath={attachmentUrl}
-                        errorComponent={<div className='p-2 text-sm text-gray-500'>Unable to preview file</div>}
-                    />
-                </div>
-            );
         };
         
         if(msgSender == user && sender){
             return(
                 <div className='flex m-5 justify-end gap-2'>
                     <div style={{overflowWrap:'anywhere'}} className='p-5 max-w-[70%] flex-col  flex w-fit  rounded-2xl border border-black'>
-                        {renderAttachment(attachment)}
+                        {renderAttachment()}
                         {text}
                     </div>
                     
@@ -174,7 +259,7 @@ const Messages = props => {
                 <div className='flex m-5 gap-2'>
                     <img src={receiver.profile_pic || placeholder} className='rounded-full  h-10 w-10 h-full bg-black mx-2 '/>
                     <div style={{overflowWrap:'anywhere'}}  className='p-5 max-w-[70%] flex-col flex  rounded-2xl bg-gray-300'>
-                        {renderAttachment(attachment)}
+                        {renderAttachment()}
                         {text}
                     </div>
                 </div>            
@@ -192,11 +277,12 @@ const Messages = props => {
         }
     }
 
-    function loadMessages(){
-        if(messages.length == 0 && id && socketRef.current){
-            socketRef.current.emit('load', id);
+    function loadMessages(chatId = id){
+        // Defensive: Ensure chatId is a valid string
+        const validChatId = typeof chatId === 'string' && chatId !== '[object Object]' && chatId !== 'undefined' ? chatId : null;
+        if(messages.length == 0 && validChatId && socketRef.current){
+            socketRef.current.emit('load', validChatId);
         }
-    
     }
     function refresh(){
         setMessages([])
@@ -222,14 +308,21 @@ const Messages = props => {
             }
         }
         
-        if(!stateId && id){
-            setStateId(id)
+        // Defensive: Only proceed if id is a valid string
+        if(id && typeof id === 'string' && id !== '[object Object]' && id !== 'undefined'){
+            if(!stateId){
+                setStateId(id)
+            }
+            if(stateId !== id && stateId) {
+                setStateId(id)
+                refresh()
+            }
+            if(socketRef.current)loadMessages(id);
+        } else if(id && (typeof id === 'object' || id === '[object Object]')) {
+            console.error('Invalid chat ID detected (object instead of string):', id);
+            // Redirect to messages list if invalid ID
+            navigate('/profile/messages', { replace: true });
         }
-        if(stateId != id && stateId) {
-            setStateId(id)
-            refresh()
-        };
-        if(id && socketRef.current)loadMessages(id);
         
         if(socketRef.current){
             socketRef.current.on('allMessages', data => {
@@ -322,8 +415,14 @@ const Messages = props => {
                     { menuOpen &&
                         Array.isArray(chats) && chats.map( chat => {
                             if(!chat || !chat._id) return null;
+                            // Fix: Ensure chatId is always a string, never an object
+                            const chatId = typeof chat._id === 'string' ? chat._id : String(chat._id);
+                            if(!chatId || chatId === '[object Object]' || chatId === 'undefined') {
+                                console.error('Invalid chat ID:', chat._id);
+                                return null;
+                            }
                             return(
-                                <Link key={chat._id} to={`/profile/messages/${chat._id}`} state={chats}>
+                                <Link key={chatId} to={`/profile/messages/${chatId}`} state={chats}>
                                     <div>
                                     
                                         {
@@ -338,7 +437,7 @@ const Messages = props => {
                                                 if(user && usr != user){
                                                     return(
                                                     
-                                                        <div key={usr} className={`flex px-2 py-5 mb-1 items-center ${chat._id === id ? ' bg-blue-300 ' : ''}`  }>
+                                                        <div key={usr} className={`flex px-2 py-5 mb-1 items-center ${chatId === id ? ' bg-blue-300 ' : ''}`  }>
                                                             
                                                             <img src={ chat.image || placeholder} className='rounded-full  h-10 w-10 h-full bg-black mx-2 '/>
                                                             <div className=''>

@@ -107,7 +107,13 @@ const  User = props => {
             const users = [viewer, username];
             socketRef.current.emit('get-open', users);
             socketRef.current.on('message-navigate', id => {
-                navigate( `/profile/messages/${id}`)
+                // Defensive: Ensure id is a string, never an object
+                const chatId = typeof id === 'string' ? id : String(id);
+                if(chatId && chatId !== '[object Object]' && chatId !== 'undefined'){
+                    navigate(`/profile/messages/${chatId}`);
+                } else {
+                    console.error('Invalid chat ID received from socket:', id);
+                }
             });
         }else if(!viewer){
             navigate('/login')
