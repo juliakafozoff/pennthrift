@@ -1,80 +1,32 @@
-import Header from "../components/Header"
-import { useState, useRef, useEffect } from "react";
+import Header from "../components/Header";
+import { useState, useEffect } from "react";
 import api from "../api/http";
 import { editUserProfile, getUserProfile } from "../api/ProfileAPI";
 import placeholder from '../assets/placeholder_user.png';
 import { useNavigate } from "react-router-dom";
+import { PageHeader, Card, Field, Input, Textarea, Button, Badge, PhotoUpload } from "../components/ui";
 
-// TODO: pass user info through props instead of axios
 const EditProfile = props => {
-    const [bio, setBio]                     = useState('Edit description');
-    const [user, setUser]                   = useState('');
-    const [userInfo, setUserInfo]           = useState('');
-    const [image, setImage]                 = useState( );
-    const [imageDisplay, setImageDisplay]   = useState('');
-    const [year, setYear]                   = useState();
-    const [venmo, setVenmo]                 = useState();
-    const [interests, setInterests]         = useState([]);
-    const [processed, setProcessed]         = useState(false);
-    const [loading, setLoading]                           = useState(false);
-    const inputRef = useRef();
+    const [bio, setBio] = useState('');
+    const [user, setUser] = useState('');
+    const [userInfo, setUserInfo] = useState('');
+    const [image, setImage] = useState();
+    const [imageDisplay, setImageDisplay] = useState('');
+    const [year, setYear] = useState('');
+    const [venmo, setVenmo] = useState('');
+    const [interests, setInterests] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [initialLoading, setInitialLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
     const navigate = useNavigate();
-
-    const getUserInfo = async () => {
-        if (!userInfo) {
-            const res = await api.get('/api/auth/user');
-            setUser(res.data);
-            if(user)setUserInfo(await getUserProfile(user));
-        }
-        if(userInfo && !processed){
-            processUserInfo(userInfo);
-            setProcessed(true);
-
-        }
-    }
-
-    getUserInfo()
-   
-    useEffect(() =>{},[loading])
-
-    function processUserInfo(info){
-        const {class_year, bio, interests, venmo, profile_pic } = info;
-        setBio(bio);
-        setYear(class_year);
-        if(interests)setInterests(interests);
-        setVenmo(venmo);
-        setImageDisplay(profile_pic);
-
-    }
-
-    function handleClick(){
-        document.getElementById('selectImage').click()
-    }
-
-
-    function processImage(image){
-        setImage(image);
-        setImageDisplay(URL.createObjectURL(image));
-
-    }
-
-    function processInterests(val){
-        var intrs = [...interests];
-        if(interests.includes(val)){
-            intrs = intrs.filter( item => item !== val )
-            setInterests([...intrs])
-        }else{
-            intrs.push(val)
-            setInterests([...intrs])
-        }
-    }
 
     const uClassList = [
         {val:'2022'},
         {val:'2023'},
         {val:'2024'},
         {val:'2025'}
-    ]
+    ];
 
     const interestsList = [
         {val:'Clothes'},
@@ -83,167 +35,316 @@ const EditProfile = props => {
         {val:'Tickets'},
         {val:'Furniture'},
         {val:'Miscellaneous'}
+    ];
 
-    ]
-
-    
-
-    function save(){
-        setLoading(true);
-        if(image){
-            var formData = new FormData();
-            formData.append("file", image);
-
-            api.post('/api/file/upload', formData,{
-                headers: {
-                'Content-Type': 'multipart/form-data'
+    // BUGFIX C: Move getUserInfo into useEffect with proper dependencies
+    useEffect(() => {
+        const fetchUserInfo = async () => {
+            try {
+                setInitialLoading(true);
+                const res = await api.get('/api/auth/user');
+                const currentUser = res.data;
+                setUser(currentUser);
+                
+                if (currentUser) {
+                    const profileInfo = await getUserProfile(currentUser);
+                    setUserInfo(profileInfo);
+                    processUserInfo(profileInfo);
                 }
-            }).then( res => {
-                const imageUrl = res.data;
-                const data = {
-                    bio:bio,
-                    profile_pic:imageUrl,
-                    username:user,
-                    venmo:venmo,
-                    class_year:year,
-                    interests:interests,
-                }
-
-                editUserProfile(user, data).then(res =>{
-                    if(res === 'Success! User updated.'){
-                        navigate('/profile', {replace:true})
-                    }
-                })
-            
-
-            })
-        return;
-        }else if(imageDisplay && !image){
-            const data = {
-                bio:bio,
-                profile_pic:'',
-                username:user,
-                venmo:venmo,
-                class_year:year,
-                interests:interests,
-                profile_pic:imageDisplay
+            } catch (err) {
+                console.error('Error loading user info:', err);
+                setError('Failed to load profile. Please refresh the page.');
+            } finally {
+                setInitialLoading(false);
             }
+        };
 
-            editUserProfile(user, data).then(res =>{
-                if(res === 'Success! User updated.'){
-                    navigate('/profile', {replace:true})
-                }
-            })
-            return;
-        }else{
-            const data = {
-                bio:bio,
-                profile_pic:'',
-                username:user,
-                venmo:venmo,
-                class_year:year,
-                interests:interests,
-            }
+        fetchUserInfo();
+    }, []);
 
-            editUserProfile(user, data).then(res =>{
-                if(res === 'Success! User updated.'){
-                    navigate('/profile', {replace:true})
-                }
-            })
-
+    function processUserInfo(info){
+        const {class_year, bio, interests, venmo, profile_pic } = info;
+        // BUGFIX D: Default bio should be empty string or actual bio, not 'Edit description'
+        setBio(bio || '');
+        setYear(class_year || '');
+        if(interests && Array.isArray(interests)) {
+            setInterests(interests);
+        } else {
+            setInterests([]);
         }
-        setLoading(false);
-        return;
+        setVenmo(venmo || '');
+        setImageDisplay(profile_pic || '');
     }
-    return(
-        <div>
-            <Header/>
-            <div className="grid grid-main justify-center w-full h-full px-5 md:px-10">
-                <div className="col-span-8 gap-20 my-10 grid-cols-5 grid">
-                    <div className="lg:col-span-2 col-span-5 flex flex-col  items-center">
-                        <div className="flex mb-10 text-4xl"><div className="mr-2 h-fit font-semibold">{user}'s </div> profile</div>
-                        <img
-                            className="w-60 rounded-full h-60" 
-                            src={imageDisplay || placeholder}/>
-                        <div
-                            onClick={() => handleClick()} 
-                            className="text-blue-600 my-2 text-xs w-full flex justify-center cursor-pointer underline">
-                            Upload an image
-                            <input id='selectImage' 
-                                hidden type="file" 
-                                ref={inputRef}
-                                accept="image/png, image/gif, image/jpeg"
-                                onChange={event => processImage(inputRef.current.files[0]) } />
-                        </div>
-                        <textarea 
-                            onChange={event => setBio(event.target.value)} 
-                            value={bio} 
-                            style={{resize:"none"}}
-                            className="w-full border  h-20 p-5"/>
-                    </div>
-                    <div className="lg:col-span-3 col-span-5 h-fit grid gap-10 ">
-                        <div className="">
-                            <div className="font-semibold">My name is: <input value={user} className="bg-[#F8F8F8] ml-2 outline-0 border border-black px-2"/></div>
-                        </div>
-                        <div className="">
-                            
-                            <div className="font-semibold">I am class of:
-                                <span className="inline-grid ml-5 font-normal">
-                                    {
-                                        uClassList.map( uc =>{
-                                            return(
-                                                <span key={uc.val} onClick={() => {setYear(uc.val)}} className="my-1">
-                                                    <input className="mx-1" checked={uc.val === year} type='radio'/>
-                                                    <span className="">{uc.val}</span>
-                                                </span>
-                                            )
-                                        })
-                                    }
 
-                                </span>
-                            </div>
-                        </div>
-                        <div>
-                            <div className="font-semibold">
-                               <span className="w-16 inline-table"> I’m most interested in:</span>
-                                <span className="inline-grid grid-cols-2 gap-x-10 gap-y-2 grid-row-4 ml-5 font-normal">
-                                    {
-                                        interestsList.map( intr => {
-                                            return(
-                                                <span key={intr.val} onClick={() =>processInterests(intr.val)} className="">
-                                                    <input checked={interests.includes(intr.val)} type='checkbox' className="h-4 w-4" />
-                                                    <span className="ml-2">{intr.val}</span>
-                                                </span>                                          
-                                            )
-                                        })
-                                    }
-                                </span>
-                            </div>
-                        </div>
-                        <div className="">
-                            <div className="font-semibold">My venmo is:
-                            <input value={venmo} onChange={(e) => setVenmo(e.target.value)} className="bg-[#F8F8F8] ml-2 outline-0 border border-black px-2"/></div>
-                        </div>
-                        <div>
-                            {
-                                !loading && 
-                                    <div className="flex border-2 rounded w-fit px-5 cursor-pointer border-black flex" 
-                                    onClick={() => save()}>Save</div>
+    const handleImageSelect = (file) => {
+        // Validate file type
+        const validTypes = ['image/png', 'image/gif', 'image/jpeg', 'image/jpg'];
+        if (!validTypes.includes(file.type)) {
+            setError('Invalid file type. Please upload a PNG, GIF, or JPEG image.');
+            return;
+        }
+        setError('');
+        setImage(file);
+        setImageDisplay(URL.createObjectURL(file));
+    };
 
-                            }
-                            {
-                                loading && <img 
-                                className="w-8 h-10 right-0" 
-                                src={require('../assets/loading.gif')}/>
-                            }
-                        </div>
+    const handleImageRemove = () => {
+        setImage(null);
+        setImageDisplay('');
+    };
 
+    const processInterests = (val) => {
+        const intrs = [...interests];
+        if(intrs.includes(val)){
+            setInterests(intrs.filter(item => item !== val));
+        } else {
+            setInterests([...intrs, val]);
+        }
+    };
+
+    // BUGFIX A & B: Simplified save flow with try/catch/finally, no duplicate profile_pic key
+    const handleSave = async () => {
+        setLoading(true);
+        setError('');
+        setSuccessMessage('');
+
+        try {
+            let profilePicUrl = imageDisplay || '';
+
+            // If a new image file is selected, upload it first
+            if (image) {
+                const formData = new FormData();
+                formData.append("file", image);
+
+                const uploadRes = await api.post('/api/file/upload', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+                profilePicUrl = uploadRes.data;
+            }
+
+            // Build data object - BUGFIX A: Only ONE profile_pic field
+            const data = {
+                bio: bio || '',
+                profile_pic: profilePicUrl,
+                username: user,
+                venmo: venmo || '',
+                class_year: year || '',
+                interests: Array.isArray(interests) ? interests : []
+            };
+
+            const result = await editUserProfile(user, data);
+            
+            if (result === 'Success! User updated.') {
+                setSuccessMessage('Profile updated successfully!');
+                // Brief delay to show success message, then redirect
+                setTimeout(() => {
+                    navigate('/profile', { replace: true });
+                }, 1000);
+            } else {
+                setError('Failed to update profile. Please try again.');
+            }
+        } catch (err) {
+            console.error('Error saving profile:', err);
+            if (err.response?.status === 413) {
+                setError('File too large. Please choose a smaller image.');
+            } else if (err.message?.includes('file')) {
+                setError('Failed to upload image. Please try again.');
+            } else {
+                setError('Failed to save profile. Please try again.');
+            }
+        } finally {
+            // BUGFIX B: Always clear loading state
+            setLoading(false);
+        }
+    };
+
+    if (initialLoading) {
+        return (
+            <div className="min-h-screen bg-[var(--color-bg)]">
+                <Header/>
+                <div className="container py-8 max-w-6xl">
+                    <div className="flex items-center justify-center py-16">
+                        <div className="text-center">
+                            <svg 
+                                className="animate-spin h-8 w-8 text-[var(--color-primary)] mx-auto mb-4" 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                fill="none" 
+                                viewBox="0 0 24 24"
+                            >
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p className="text-base text-[var(--color-muted)]">Loading profile...</p>
+                        </div>
                     </div>
                 </div>
             </div>
+        );
+    }
 
+    return(
+        <div className="min-h-screen bg-[var(--color-bg)]">
+            <Header/>
+            <div className="container py-8 max-w-6xl">
+                <PageHeader 
+                    title="Edit Profile"
+                    subtitle="Update your profile information"
+                />
+
+                {/* Success Message */}
+                {successMessage && (
+                    <Card className="mb-6 border-green-200 bg-green-50">
+                        <div className="flex items-center gap-3">
+                            <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p className="text-base text-green-700">{successMessage}</p>
+                        </div>
+                    </Card>
+                )}
+
+                {/* Error Message */}
+                {error && (
+                    <Card className="mb-6 border-[var(--color-danger)] bg-red-50">
+                        <div className="flex items-center gap-3">
+                            <svg className="w-5 h-5 text-[var(--color-danger)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p className="text-base text-[var(--color-danger)]">{error}</p>
+                        </div>
+                    </Card>
+                )}
+
+                <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Left Column - Photo Upload */}
+                        <div>
+                            <PhotoUpload
+                                image={image}
+                                imageDisplay={imageDisplay || placeholder}
+                                onImageSelect={handleImageSelect}
+                                onImageRemove={handleImageRemove}
+                            />
+                        </div>
+
+                        {/* Right Column - Form Fields */}
+                        <div className="space-y-6">
+                            <Card>
+                                <div className="space-y-6">
+                                    {/* Username - Read Only */}
+                                    <Field label="Username" helperText="Your username cannot be changed">
+                                        <Input
+                                            value={user}
+                                            disabled={true}
+                                            className="bg-[var(--color-surface-2)] cursor-not-allowed"
+                                            readOnly
+                                        />
+                                    </Field>
+
+                                    {/* Bio */}
+                                    <Field label="Bio" helperText="Tell others about yourself">
+                                        <Textarea
+                                            value={bio}
+                                            onChange={(e) => setBio(e.target.value)}
+                                            placeholder="Write a short bio about yourself..."
+                                            rows={6}
+                                        />
+                                    </Field>
+
+                                    {/* Class Year */}
+                                    <Field label="Graduating Class" required>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {uClassList.map(uc => (
+                                                <label
+                                                    key={uc.val}
+                                                    className="flex items-center cursor-pointer group min-h-[44px] px-3 py-2 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors border border-[var(--color-border)]"
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name="class_year"
+                                                        value={uc.val}
+                                                        checked={year === uc.val}
+                                                        onChange={() => setYear(uc.val)}
+                                                        className="w-4 h-4 mr-3 text-[var(--color-primary)] border-[var(--color-border)] focus:ring-[var(--color-primary)] focus:ring-2"
+                                                    />
+                                                    <span className="text-sm text-[var(--color-text)] group-hover:text-[var(--color-primary)] transition-colors">
+                                                        {uc.val}
+                                                    </span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </Field>
+
+                                    {/* Venmo */}
+                                    <Field label="Venmo" helperText="Your Venmo username for payments">
+                                        <Input
+                                            type="text"
+                                            value={venmo}
+                                            onChange={(e) => setVenmo(e.target.value)}
+                                            placeholder="@username"
+                                        />
+                                    </Field>
+
+                                    {/* Interests */}
+                                    <Field label="Interests" helperText="Select all that apply">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {interestsList.map(intr => (
+                                                <label
+                                                    key={intr.val}
+                                                    className="flex items-center cursor-pointer group min-h-[44px] px-3 py-2 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors"
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={interests.includes(intr.val)}
+                                                        onChange={() => processInterests(intr.val)}
+                                                        className="w-4 h-4 mr-3 text-[var(--color-primary)] border-[var(--color-border)] rounded focus:ring-[var(--color-primary)] focus:ring-2"
+                                                    />
+                                                    <span className="text-sm text-[var(--color-text)] group-hover:text-[var(--color-primary)] transition-colors">
+                                                        {intr.val}
+                                                    </span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        {interests.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 mt-3">
+                                                {interests.map(intr => (
+                                                    <Badge key={intr} variant="primary">
+                                                        {intr}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </Field>
+                                </div>
+                            </Card>
+                        </div>
+                    </div>
+
+                    {/* Form Actions */}
+                    <div className="flex items-center justify-between pt-4 border-t border-[var(--color-border)]">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => navigate('/profile')}
+                            disabled={loading}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            loading={loading}
+                            disabled={loading || !user}
+                        >
+                            Save Changes
+                        </Button>
+                    </div>
+                </form>
+            </div>
         </div>
-    )
-}
+    );
+};
 
 export default EditProfile;
