@@ -23,13 +23,22 @@ const Login = () =>{
 
         api.post(address, data).then(res =>{
             if (res.status === 200) {
-                editUserProfile(username, { last_login: res.time }).then(res => {
-                    if (res === 'Success! User updated.') {
-                        global.LOGGED_IN = true;
-                        // Redirect to intended destination or /profile
-                        navigate(from, { replace: true });
+                // Set logged in state immediately
+                global.LOGGED_IN = true;
+                
+                // Try to update last_login, but don't block navigation if it fails
+                editUserProfile(username, { last_login: res.data?.time || res.time }).then(res => {
+                    // Log success/failure but don't block navigation
+                    if (res !== 'Success! User updated.') {
+                        console.warn('Failed to update last_login, but login was successful');
                     }
+                }).catch(err => {
+                    console.error('Error updating last_login:', err);
+                    // Don't block navigation on this error
                 });
+                
+                // Navigate immediately after successful login
+                navigate(from, { replace: true });
             } else if (res.status === 202) {
                 const currentTimestamp = moment().unix(); // in seconds
                 const currentDatetime = moment(currentTimestamp * 1000).format(
@@ -50,21 +59,31 @@ const Login = () =>{
                 }
             }
         }).catch(err => {
-            if (err.message.split(" ").pop() == '401' || err.message.split(" ").pop() == '429') {
+            console.error('Login error:', err);
+            const statusCode = err.response?.status || err.message?.split(" ").pop();
+            
+            if (statusCode == '401' || statusCode == '429') {
                 getUserProfile(username).then(res => {
                     if (res != null) {
                         editUserProfile(username, { locked_out: true }).then(res => {
                             console.log(res)
                             if (res === 'Success! User updated.') {
-                                return setError('You have been locked out for too many failed attempts. Please try again later.')
+                                setError('You have been locked out for too many failed attempts. Please try again later.')
                             } else {
-                                return null;
+                                setError('Login failed. Please try again.')
                             }
+                        }).catch(() => {
+                            setError('Login failed. Please try again.')
                         });
                     } else {
-                        return setError('We don’t recognize that username and password. Please try again.')
+                        setError('We don't recognize that username and password. Please try again.')
                     }
+                }).catch(() => {
+                    setError('We don't recognize that username and password. Please try again.')
                 });   
+            } else {
+                // Generic error message for other failures
+                setError('Login failed. Please check your credentials and try again.')
             }
         });
     }
