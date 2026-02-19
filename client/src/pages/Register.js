@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Form from '../components/Form';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/http';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -70,6 +70,14 @@ const Register = () => {
     return (
         <div className='grid grid-main justify-center w-full h-full items-center'>
             <div className='col-span-8 flex flex-col justify-center'>
+                {/* Back to Home link */}
+                <Link 
+                    to="/" 
+                    className="self-start mb-4 text-sm text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+                >
+                    ← Back to Home
+                </Link>
+                
                 <div className='my-5 text-center text-5xl'>Welcome!</div>
                 <div className='w-full my-10 h-[1px] bg-[gray]'></div>
                 <Form
@@ -79,6 +87,17 @@ const Register = () => {
                     loading={loading}
                     name='Register'
                 />
+                
+                {/* Login link */}
+                <div className='mt-6 text-center text-sm text-[var(--color-muted)]'>
+                    Already have an account?{' '}
+                    <Link 
+                        to="/login" 
+                        className="text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+                    >
+                        Log in
+                    </Link>
+                </div>
             </div>
         </div>
     );
