@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import Form from '../components/Form';
-import {useNavigate} from 'react-router-dom';
+import {useNavigate, useLocation} from 'react-router-dom';
 import api from '../api/http';
 import { editUserProfile, getUserProfile } from "../api/ProfileAPI";
 const moment = require('moment');
 
 const Login = () =>{
-    const navigate = useNavigate()
+    const navigate = useNavigate();
+    const location = useLocation();
     const [error, setError] = useState();
-    const address = '/api/auth/login'; 
+    const address = '/api/auth/login';
+    
+    // Get the intended destination from state, or default to /profile
+    const from = location.state?.from?.pathname || '/profile'; 
     
     function userDetails(username,password){
         const data = {
@@ -22,7 +26,8 @@ const Login = () =>{
                 editUserProfile(username, { last_login: res.time }).then(res => {
                     if (res === 'Success! User updated.') {
                         global.LOGGED_IN = true;
-                        navigate('/profile', { replace: true })
+                        // Redirect to intended destination or /profile
+                        navigate(from, { replace: true });
                     }
                 });
             } else if (res.status === 202) {

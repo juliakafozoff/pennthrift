@@ -151,7 +151,7 @@ const Header = props =>{
                         </Link>
                         
                         <Link 
-                            to="/"
+                            to="/profile/favourites"
                             className="p-2 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
                             aria-label="Favourites"
                         >

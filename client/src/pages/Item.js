@@ -22,14 +22,29 @@ const Item = props => {
     const [processed, setProcessed] = useState(false)
     const navigate = useNavigate()
 
-    const getInfo = async () => {
-        if (!item || !viewer) {
-            const resU = await api.get('/api/auth/user');
-            setViewer(resU.data);
-            const resI = await api.get(`/api/item/${id}`);
-            setItem(resI.data)
+    // Redirect to store if no ID provided
+    useEffect(() => {
+        if (!id) {
+            navigate('/store', { replace: true });
         }
-        if(viewer && !viewed){
+    }, [id, navigate]);
+
+    const getInfo = async () => {
+        if (!id) return; // Safety check
+        
+        if (!item || !viewer) {
+            try {
+                const resU = await api.get('/api/auth/user');
+                setViewer(resU.data);
+                const resI = await api.get(`/api/item/${id}`);
+                setItem(resI.data)
+            } catch (error) {
+                console.error('Error loading item:', error);
+                // Redirect to store if item not found
+                navigate('/store', { replace: true });
+            }
+        }
+        if(viewer && !viewed && id){
             setViewed(true)
             updateViews(id)
         }
@@ -41,7 +56,13 @@ const Item = props => {
         let views = res.data.views + 1;
         api.put(url,{views:views})
     }
-    getInfo();
+    
+    // Load item data when component mounts or id changes
+    useEffect(() => {
+        if (id) {
+            getInfo();
+        }
+    }, [id]);
 
     
     const update = async(id) =>{
