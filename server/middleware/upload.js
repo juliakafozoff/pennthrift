@@ -21,14 +21,21 @@ const storage = new GridFsStorage({
     file: (req, file) => {
         const match = [];
 
+        // Sanitize filename: remove spaces, special chars, keep only alphanumeric, dots, hyphens, underscores
+        const sanitizedOriginal = file.originalname
+            .replace(/\s+/g, '-')  // Replace spaces with hyphens
+            .replace(/[^a-zA-Z0-9.\-_]/g, '')  // Remove special characters except dots, hyphens, underscores
+            .toLowerCase();
+        
+        const sanitizedFilename = `${Date.now()}-pennthrift-${sanitizedOriginal}`;
+
         if (match.indexOf(file.mimetype) != -1) {
-            const filename = `${Date.now()}-pennthrift-${file.originalname}`;
-            return filename;
+            return sanitizedFilename;
         }
 
         return {
             bucketName: "photos",
-            filename: `${Date.now()}-pennthrift-${file.originalname}`,
+            filename: sanitizedFilename,
         };
     },
 });

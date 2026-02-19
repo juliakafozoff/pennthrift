@@ -8,6 +8,38 @@ import placeholder from '../assets/placeholder_user.png';
 import { PageHeader, Card, Badge, Button } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
 
+// Helper function to normalize image URLs
+const normalizeImageUrl = (url) => {
+    if (!url || typeof url !== 'string') {
+        return null;
+    }
+    
+    // If it's a relative path (starts with /api), prefix with API base URL
+    if (url.startsWith('/api/')) {
+        const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+        return `${apiBaseUrl}${url}`;
+    }
+    
+    // Backward compatibility: replace localhost URLs with production URL
+    if (url.includes('localhost')) {
+        // Replace any localhost URL with production URL
+        const productionUrl = process.env.REACT_APP_API_URL || 'https://pennthrift.onrender.com';
+        // Extract the path from the localhost URL
+        const urlMatch = url.match(/\/api\/file\/(.+)$/);
+        if (urlMatch) {
+            const filename = urlMatch[1];
+            // URL encode spaces and special characters
+            const encodedFilename = encodeURIComponent(filename);
+            return `${productionUrl}/api/file/${encodedFilename}`;
+        }
+        // Fallback: replace localhost host with production host
+        return url.replace(/https?:\/\/[^\/]+/, productionUrl);
+    }
+    
+    // Already a valid absolute URL
+    return url;
+};
+
 
 class Profile extends Component {
     
@@ -145,8 +177,12 @@ class Profile extends Component {
                             <Card className="text-center lg:text-left">
                                 <img
                                     className="w-48 h-48 rounded-full mx-auto lg:mx-0 mb-6 object-cover border-4 border-[var(--color-surface-2)]" 
-                                    src={this.state.profile_pic || placeholder}
+                                    src={normalizeImageUrl(this.state.profile_pic) || placeholder}
                                     alt={user}
+                                    onError={(e) => {
+                                        // Fallback to placeholder if image fails to load
+                                        e.target.src = placeholder;
+                                    }}
                                 />
                                 
                                 <div className="space-y-4">

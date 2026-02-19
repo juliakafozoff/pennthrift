@@ -7,6 +7,33 @@ import { useNavigate } from "react-router-dom";
 import { PageHeader, Card, Field, Input, Textarea, Button, Badge, PhotoUpload } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
 
+// Helper function to normalize image URLs (same as Profile.js)
+const normalizeImageUrl = (url) => {
+    if (!url || typeof url !== 'string') {
+        return null;
+    }
+    
+    // If it's a relative path (starts with /api), prefix with API base URL
+    if (url.startsWith('/api/')) {
+        const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+        return `${apiBaseUrl}${url}`;
+    }
+    
+    // Backward compatibility: replace localhost URLs with production URL
+    if (url.includes('localhost')) {
+        const productionUrl = process.env.REACT_APP_API_URL || 'https://pennthrift.onrender.com';
+        const urlMatch = url.match(/\/api\/file\/(.+)$/);
+        if (urlMatch) {
+            const filename = urlMatch[1];
+            const encodedFilename = encodeURIComponent(filename);
+            return `${productionUrl}/api/file/${encodedFilename}`;
+        }
+        return url.replace(/https?:\/\/[^\/]+/, productionUrl);
+    }
+    
+    return url;
+};
+
 const EditProfile = props => {
     const auth = useAuth();
     const [bio, setBio] = useState('');
@@ -153,7 +180,9 @@ const EditProfile = props => {
                         'Content-Type': 'multipart/form-data'
                     }
                 });
-                profilePicUrl = uploadRes.data;
+                // Backend now returns JSON: { path, url, filename }
+                // Prefer relative path for storage (works in both dev and prod)
+                profilePicUrl = uploadRes.data?.path || uploadRes.data?.url || uploadRes.data;
             }
 
             // Build data object - BUGFIX A: Only ONE profile_pic field
@@ -255,7 +284,13 @@ const EditProfile = props => {
                         <div>
                             <PhotoUpload
                                 image={image}
-                                imageDisplay={imageDisplay || placeholder}
+                                imageDisplay={
+                                    imageDisplay 
+                                        ? (imageDisplay.startsWith('blob:') 
+                                            ? imageDisplay 
+                                            : normalizeImageUrl(imageDisplay))
+                                        : placeholder
+                                }
                                 onImageSelect={handleImageSelect}
                                 onImageRemove={handleImageRemove}
                             />
