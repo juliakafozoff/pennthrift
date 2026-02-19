@@ -24,18 +24,40 @@ const Login = () => {
         setLoading(true);
         
         try {
+            console.log('🔵 [LOGIN] Starting login request...');
+            console.log('🔵 [LOGIN] Cookies before request:', document.cookie || 'NO COOKIES');
+            
             const res = await api.post('/api/auth/login', {
                 username,
                 password,
                 email: username
             });
             
+            console.log('🟢 [LOGIN] Login response received:', res.status, res.data);
+            console.log('🟢 [LOGIN] Response headers:', res.headers);
+            console.log('🟢 [LOGIN] Cookies after response:', document.cookie || 'NO COOKIES');
+            
             // Success - wait for cookie to be set before navigating
             if (res.status === 200) {
-                // Small delay to ensure cookie is set before navigation
-                setTimeout(() => {
+                // Check cookie status before navigating
+                const checkCookie = () => {
+                    const hasCookie = document.cookie.includes('user_sid');
+                    console.log('🟡 [LOGIN] Cookie check before navigation:', {
+                        hasCookie,
+                        allCookies: document.cookie || 'NO COOKIES',
+                        cookieIncludesUserSid: document.cookie.includes('user_sid')
+                    });
+                    
+                    if (!hasCookie) {
+                        console.warn('⚠️ [LOGIN] WARNING: user_sid cookie not found before navigation!');
+                    }
+                    
+                    console.log('🟡 [LOGIN] Navigating to:', from);
                     navigate(from, { replace: true });
-                }, 300);
+                };
+                
+                // Small delay to ensure cookie is set before navigation
+                setTimeout(checkCookie, 300);
             } 
             // Account locked
             else if (res.status === 202) {

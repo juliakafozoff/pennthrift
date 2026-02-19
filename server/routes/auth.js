@@ -24,11 +24,25 @@ const userBruteforce = new ExpressBrute(store, {
     failCallback: lockoutCallback,
 });
 
-// Simple auth check endpoint
+// Auth check endpoint with detailed logging
 router.get('/', (req, res) => {
+    console.log('🔵 [AUTH CHECK] ============================================');
+    console.log('🔵 [AUTH CHECK] Request received');
+    console.log('🔵 [AUTH CHECK] Origin:', req.headers.origin);
+    console.log('🔵 [AUTH CHECK] Cookie header:', req.headers.cookie || 'NO COOKIE HEADER');
+    console.log('🔵 [AUTH CHECK] Session ID:', req.sessionID || 'NO SESSION ID');
+    console.log('🔵 [AUTH CHECK] Session exists:', !!req.session);
+    console.log('🔵 [AUTH CHECK] Session keys:', req.session ? Object.keys(req.session) : 'NO SESSION');
+    console.log('🔵 [AUTH CHECK] Passport session:', req.session?.passport || 'NO PASSPORT SESSION');
+    console.log('🔵 [AUTH CHECK] req.user:', req.user ? { username: req.user.username, id: req.user._id } : 'NO USER');
+    console.log('🔵 [AUTH CHECK] req.isAuthenticated exists:', typeof req.isAuthenticated === 'function');
+    
     const authenticated = req.isAuthenticated && req.isAuthenticated();
+    console.log('🔵 [AUTH CHECK] req.isAuthenticated() result:', authenticated);
     
     if (authenticated && req.user) {
+        console.log('✅ [AUTH CHECK] AUTHENTICATED - User:', req.user.username);
+        console.log('🔵 [AUTH CHECK] ============================================');
         res.json({
             authenticated: true,
             user: {
@@ -37,6 +51,16 @@ router.get('/', (req, res) => {
             }
         });
     } else {
+        console.log('❌ [AUTH CHECK] NOT AUTHENTICATED');
+        console.log('❌ [AUTH CHECK] Reason:', {
+            hasIsAuthenticated: typeof req.isAuthenticated === 'function',
+            authenticatedResult: authenticated,
+            hasUser: !!req.user,
+            hasSession: !!req.session,
+            hasPassportSession: !!req.session?.passport,
+            cookieHeader: req.headers.cookie ? 'PRESENT' : 'MISSING'
+        });
+        console.log('🔵 [AUTH CHECK] ============================================');
         res.json({
             authenticated: false,
             user: null
@@ -152,25 +176,54 @@ router.post('/login',
     
     // Success handler - called when authentication succeeds
     (req, res) => {
+        console.log('🟢 [LOGIN] ============================================');
+        console.log('🟢 [LOGIN] Authentication successful');
+        console.log('🟢 [LOGIN] User:', req.user.username);
+        console.log('🟢 [LOGIN] Session ID:', req.sessionID);
+        console.log('🟢 [LOGIN] Origin:', req.headers.origin);
+        console.log('🟢 [LOGIN] Cookie header before logIn:', req.headers.cookie || 'NO COOKIE');
+        
         // Reset brute force counter
         req.brute.reset();
         
         // Establish session
         req.logIn(req.user, (err) => {
             if (err) {
+                console.error('❌ [LOGIN] req.logIn() failed:', err);
                 return res.status(500).json({ error: 'Failed to establish session' });
             }
+            
+            console.log('🟢 [LOGIN] req.logIn() successful');
+            console.log('🟢 [LOGIN] Session after logIn:', {
+                sessionID: req.sessionID,
+                passport: req.session.passport,
+                keys: Object.keys(req.session)
+            });
+            console.log('🟢 [LOGIN] req.isAuthenticated():', req.isAuthenticated());
             
             // Save session to MongoDB, then respond
             req.session.save((saveErr) => {
                 if (saveErr) {
+                    console.error('❌ [LOGIN] Session save failed:', saveErr);
                     return res.status(500).json({ error: 'Failed to save session' });
                 }
                 
+                console.log('🟢 [LOGIN] Session saved to MongoDB');
+                
+                // Check Set-Cookie header
+                const setCookieHeader = res.getHeader('set-cookie');
+                console.log('🟢 [LOGIN] Set-Cookie header:', setCookieHeader || 'NOT SET YET');
+                console.log('🟢 [LOGIN] Response will be sent with cookie');
+                
                 // Check if account is locked
                 if (req.user.locked_out) {
+                    console.log('⚠️ [LOGIN] Account is locked');
+                    console.log('🟢 [LOGIN] ============================================');
                     return res.status(202).json({ error: 'Account locked' });
                 }
+                
+                console.log('✅ [LOGIN] Login complete - sending 200 response');
+                console.log('🟢 [LOGIN] ============================================');
                 
                 // Success - send 200
                 res.status(200).json({ success: true });

@@ -35,15 +35,37 @@ const ProtectedRoute = ({ children }) => {
     let retryAttempted = false;
 
     const checkAuth = async () => {
+      const attempt = retryAttempted ? 'RETRY' : 'INITIAL';
+      console.log(`🔵 [AUTH CHECK ${attempt}] Checking authentication for:`, location.pathname);
+      console.log(`🔵 [AUTH CHECK ${attempt}] Cookies before request:`, document.cookie || 'NO COOKIES');
+      console.log(`🔵 [AUTH CHECK ${attempt}] Cookie includes user_sid:`, document.cookie.includes('user_sid'));
+      
       try {
         const res = await api.get('/api/auth/');
+        console.log(`🟢 [AUTH CHECK ${attempt}] Response received:`, {
+          authenticated: res.data.authenticated,
+          user: res.data.user,
+          fullResponse: res.data
+        });
+        
         if (mounted) {
           setIsAuthenticated(res.data.authenticated === true);
           setIsLoading(false);
           
+          if (!res.data.authenticated) {
+            console.warn(`⚠️ [AUTH CHECK ${attempt}] NOT AUTHENTICATED!`, {
+              pathname: location.pathname,
+              retryAttempted,
+              cookies: document.cookie || 'NO COOKIES'
+            });
+          } else {
+            console.log(`✅ [AUTH CHECK ${attempt}] AUTHENTICATED! User:`, res.data.user);
+          }
+          
           // If not authenticated and we haven't retried, wait and retry once
           // This handles the case where cookie hasn't propagated yet
           if (!res.data.authenticated && !retryAttempted && location.pathname === '/profile') {
+            console.log('🟡 [AUTH CHECK] Will retry in 500ms...');
             retryAttempted = true;
             setTimeout(() => {
               if (mounted) {
@@ -54,10 +76,18 @@ const ProtectedRoute = ({ children }) => {
           }
         }
       } catch (error) {
-        console.error('Auth check failed:', error);
+        console.error(`❌ [AUTH CHECK ${attempt}] Request failed:`, error);
+        console.error(`❌ [AUTH CHECK ${attempt}] Error details:`, {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          cookies: document.cookie || 'NO COOKIES'
+        });
+        
         if (mounted) {
           // Retry once on error if we haven't already
           if (!retryAttempted && location.pathname === '/profile') {
+            console.log('🟡 [AUTH CHECK] Will retry after error in 500ms...');
             retryAttempted = true;
             setTimeout(() => {
               if (mounted) {
