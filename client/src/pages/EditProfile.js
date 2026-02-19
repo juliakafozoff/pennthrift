@@ -74,6 +74,16 @@ const EditProfile = props => {
         }
     }, [auth?.user?.username, auth?.isLoading]); // Re-run if auth user changes
 
+    // Cleanup object URLs on unmount
+    useEffect(() => {
+        return () => {
+            // Clean up object URL if it exists and was created from a file
+            if (image && imageDisplay && imageDisplay.startsWith('blob:')) {
+                URL.revokeObjectURL(imageDisplay);
+            }
+        };
+    }, [image, imageDisplay]);
+
     function processUserInfo(info){
         const {class_year, bio, interests, venmo, profile_pic } = info;
         // BUGFIX D: Default bio should be empty string or actual bio, not 'Edit description'
@@ -96,11 +106,21 @@ const EditProfile = props => {
             return;
         }
         setError('');
+        
+        // Clean up previous object URL if it exists and was created from a file
+        if (image && imageDisplay && imageDisplay.startsWith('blob:')) {
+            URL.revokeObjectURL(imageDisplay);
+        }
+        
         setImage(file);
         setImageDisplay(URL.createObjectURL(file));
     };
 
     const handleImageRemove = () => {
+        // Clean up object URL if it exists
+        if (image && imageDisplay && imageDisplay.startsWith('blob:')) {
+            URL.revokeObjectURL(imageDisplay);
+        }
         setImage(null);
         setImageDisplay('');
     };

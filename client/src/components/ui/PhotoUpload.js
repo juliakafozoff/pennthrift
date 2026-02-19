@@ -23,10 +23,24 @@ export const PhotoUpload = ({
     if (file) {
       onImageSelect(file);
     }
+    // Reset input value so the same file can be selected again
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
   };
   
   return (
     <Card className={className}>
+      {/* Hidden file input - always rendered so "Change photo" button works */}
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        onChange={handleFileChange}
+        className="hidden"
+        aria-label="Upload photo"
+      />
+      
       {imageDisplay ? (
         <div className="space-y-4">
           <div className="relative group">
@@ -84,14 +98,6 @@ export const PhotoUpload = ({
           <p className="text-sm text-[var(--color-muted)]">
             PNG, GIF, or JPEG
           </p>
-          <input
-            ref={inputRef}
-            type="file"
-            accept={accept}
-            onChange={handleFileChange}
-            className="hidden"
-            aria-label="Upload photo"
-          />
         </div>
       )}
     </Card>
