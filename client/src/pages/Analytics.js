@@ -82,8 +82,106 @@ const Analytics = props => {
                     </p>
                 </div>
 
-                {/* Quick Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                {/* Your Activity Stats - Always visible, useful for new users */}
+                <div className="mb-8">
+                    <h2 className="text-xl font-semibold text-[var(--color-text)] mb-4">
+                        Your Activity
+                    </h2>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <Card className="p-4">
+                            <div className="text-xs font-medium text-[var(--color-muted)] mb-1">
+                                Profile Views
+                            </div>
+                            <div className="text-2xl font-bold text-[var(--color-text)]">
+                                {statsSafe.totalProfileViews || 0}
+                            </div>
+                            <div className="text-xs text-[var(--color-muted)] mt-1">
+                                {statsSafe.currentMonthViews || 0} this month
+                            </div>
+                        </Card>
+
+                        <Card className="p-4">
+                            <div className="text-xs font-medium text-[var(--color-muted)] mb-1">
+                                Items Saved
+                            </div>
+                            <div className="text-2xl font-bold text-[var(--color-text)]">
+                                {statsSafe.itemsFavorited || 0}
+                            </div>
+                            <div className="text-xs text-[var(--color-muted)] mt-1">
+                                <Link to="/profile/favourites" className="hover:underline text-[var(--color-primary)]">
+                                    View favorites
+                                </Link>
+                            </div>
+                        </Card>
+
+                        <Card className="p-4">
+                            <div className="text-xs font-medium text-[var(--color-muted)] mb-1">
+                                Conversations
+                            </div>
+                            <div className="text-2xl font-bold text-[var(--color-text)]">
+                                {statsSafe.conversations || 0}
+                            </div>
+                            <div className="text-xs text-[var(--color-muted)] mt-1">
+                                <Link to="/profile/messages" className="hover:underline text-[var(--color-primary)]">
+                                    View messages
+                                </Link>
+                            </div>
+                        </Card>
+
+                        <Card className="p-4">
+                            <div className="text-xs font-medium text-[var(--color-muted)] mb-1">
+                                Member Since
+                            </div>
+                            <div className="text-lg font-bold text-[var(--color-text)]">
+                                {statsSafe.memberSince || 'Recently'}
+                            </div>
+                            <div className="text-xs text-[var(--color-muted)] mt-1">
+                                {statsSafe.daysSinceJoined > 0 ? `${statsSafe.daysSinceJoined} days` : 'New member'}
+                            </div>
+                        </Card>
+                    </div>
+                </div>
+
+                {/* Welcome message for new users without listings */}
+                {statsSafe.totalItems === 0 && (
+                    <Card className="p-6 mb-8 bg-[var(--color-primary)]/5 border-2 border-[var(--color-primary)]/20">
+                        <div className="flex items-start gap-4">
+                            <div className="text-4xl">👋</div>
+                            <div className="flex-1">
+                                <h3 className="text-lg font-semibold text-[var(--color-text)] mb-2">
+                                    Welcome to PennThrift!
+                                </h3>
+                                <p className="text-sm text-[var(--color-muted)] mb-4">
+                                    Start by exploring items and saving your favorites. When you're ready, list your first item to see seller analytics here!
+                                </p>
+                                <div className="flex gap-3">
+                                    <Link 
+                                        to="/store"
+                                        className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 transition-opacity text-sm font-medium"
+                                    >
+                                        Browse Store
+                                    </Link>
+                                    <Link 
+                                        to="/profile/newitem"
+                                        className="px-4 py-2 bg-[var(--color-surface-2)] text-[var(--color-text)] rounded-lg hover:bg-[var(--color-surface)] transition-colors text-sm font-medium"
+                                    >
+                                        List an Item
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    </Card>
+                )}
+
+                {/* Seller Stats - Only show if user has items */}
+                {(statsSafe.totalItems > 0) && (
+                    <>
+                        <div className="mb-4">
+                            <h2 className="text-xl font-semibold text-[var(--color-text)]">
+                                Seller Performance
+                            </h2>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                     <Card className="p-6">
                         <div className="text-sm font-medium text-[var(--color-muted)] mb-1">
                             Active Listings
@@ -131,28 +229,30 @@ const Analytics = props => {
                             Buyer inquiries
                         </div>
                     </Card>
-                </div>
-
-                {/* Engagement Rate */}
-                {statsSafe.averageEngagement && (
-                    <Card className="p-6 mb-8">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <div className="text-sm font-medium text-[var(--color-muted)] mb-1">
-                                    Average Engagement Rate
-                                </div>
-                                <div className="text-2xl font-bold text-[var(--color-primary)]">
-                                    {statsSafe.averageEngagement}%
-                                </div>
-                                <div className="text-xs text-[var(--color-muted)] mt-1">
-                                    (Favorites + Requests) / Views
-                                </div>
-                            </div>
-                            <div className="text-6xl opacity-20">
-                                📈
-                            </div>
                         </div>
-                    </Card>
+
+                        {/* Engagement Rate */}
+                        {statsSafe.averageEngagement && (
+                            <Card className="p-6 mb-8">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <div className="text-sm font-medium text-[var(--color-muted)] mb-1">
+                                            Average Engagement Rate
+                                        </div>
+                                        <div className="text-2xl font-bold text-[var(--color-primary)]">
+                                            {statsSafe.averageEngagement}%
+                                        </div>
+                                        <div className="text-xs text-[var(--color-muted)] mt-1">
+                                            (Favorites + Requests) / Views
+                                        </div>
+                                    </div>
+                                    <div className="text-6xl opacity-20">
+                                        📈
+                                    </div>
+                                </div>
+                            </Card>
+                        )}
+                    </>
                 )}
 
                 {/* Top Performing Items */}

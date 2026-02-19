@@ -35,13 +35,26 @@ router.route('/seller/:username').get(async (req, res) => {
         const { username } = req.params;
         
         // Get user and their items
-        const user = await User.findOne({username}).populate('items');
+        const user = await User.findOne({username}).populate('items').populate('favourites').populate('chats');
         if (!user) {
             return res.status(404).json('Error! User not found');
         }
         
         const items = user.items || [];
         const itemIds = items.map(item => item._id);
+        
+        // Calculate user activity stats (useful for new users)
+        const profileViews = user.profile_views || [];
+        const totalProfileViews = profileViews.reduce((sum, views) => sum + views, 0);
+        const currentMonthViews = profileViews[new Date().getMonth()] || 0;
+        
+        const itemsFavorited = user.favourites ? user.favourites.length : 0;
+        const conversations = user.chats ? user.chats.length : 0;
+        
+        // Calculate account age
+        const accountCreated = user.date || new Date();
+        const daysSinceJoined = Math.floor((new Date() - new Date(accountCreated)) / (1000 * 60 * 60 * 24));
+        const memberSince = new Date(accountCreated).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         
         // Count favorites per item (users who favorited each item)
         const allUsers = await User.find({}, {favourites: 1, username: 1});
@@ -98,6 +111,7 @@ router.route('/seller/:username').get(async (req, res) => {
         
         res.json({
             stats: {
+                // Seller stats
                 totalItems: items.length,
                 activeItems,
                 soldItems,
@@ -106,7 +120,14 @@ router.route('/seller/:username').get(async (req, res) => {
                 totalRequests,
                 averageEngagement: items.length > 0 
                     ? ((totalFavorites + totalRequests) / Math.max(totalViews, 1) * 100).toFixed(1)
-                    : 0
+                    : 0,
+                // User activity stats (useful for new users)
+                totalProfileViews,
+                currentMonthViews,
+                itemsFavorited,
+                conversations,
+                daysSinceJoined,
+                memberSince
             },
             items: itemsWithAnalytics,
             recentActivity: [] // Can be enhanced later with timestamps
