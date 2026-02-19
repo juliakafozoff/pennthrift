@@ -1,19 +1,19 @@
 import api from "../api/http";
-import { Component, useEffect, useState } from "react";
-import { Link, renderMatches } from "react-router-dom";
+import { Component } from "react";
+import { Link } from "react-router-dom";
 import Header from "../components/Header";
 import ProfileListings from "../components/ProfileListings";
 import { getUserProfile } from "../api/ProfileAPI";
 import placeholder from '../assets/placeholder_user.png';
 import { PageHeader, Card, Badge, Button } from "../components/ui";
+import { useAuth } from "../contexts/AuthContext";
 
 
-export default class Profile extends Component {
+class Profile extends Component {
     
 
     state = {
         items:[],
-        user:global.USER,
         bio:'',
         profile_pic:'',
         venmo:'',
@@ -21,68 +21,82 @@ export default class Profile extends Component {
         processed:false,
         userInfo:'',
         interests:[],
+        dataLoaded: false, // Track if initial data load is complete
     }
-    componentDidMount(){
-        const user = this.state.user;
-        const items = this.state.items;
-        const processed = this.state.processed;
-        const userInfo = this.state.userInfo;
-        if(!user){
-            api.get('/api/auth/user')
-                 .then( res => {
-                    this.setState({ user: res.data});
-            });
-        }
-        if(items.length === 0 && user){
     
-            api.get(`/api/profile/items/${user}`)
-                    .then( res => {this.setState({items: res.data.items.reverse()})})
-                    .catch(e => console.log(e))
+    componentDidMount(){
+        this.loadProfileData();
+    }
 
+    componentDidUpdate(prevProps){
+        // Only reload if auth user changes (e.g., after login/logout)
+        const prevUser = prevProps.auth?.user?.username;
+        const currentUser = this.props.auth?.user?.username;
+        
+        if (prevUser !== currentUser) {
+            // Reset state and reload if user changed
+            this.setState({
+                items: [],
+                processed: false,
+                userInfo: '',
+                dataLoaded: false
+            });
+            this.loadProfileData();
+        }
+    }
+
+    loadProfileData = () => {
+        const user = this.props.auth?.user?.username;
+        const { items, processed, userInfo, dataLoaded } = this.state;
+        
+        // Don't reload if already loaded
+        if (dataLoaded) return;
+        
+        if (!user) {
+            // If no user, mark as loaded to prevent infinite loops
+            this.setState({ dataLoaded: true });
+            return;
         }
         
-        if(user)getUserProfile(user).then(info => this.setState({userInfo:info}))
-        if(user && userInfo && !processed){
-            this.processUserInfo(userInfo);
-            this.setState({processed:true})
+        // Load items if empty
+        if (items.length === 0) {
+            api.get(`/api/profile/items/${user}`)
+                .then(res => {
+                    this.setState({
+                        items: Array.isArray(res.data?.items) ? res.data.items.reverse() : [],
+                        dataLoaded: true
+                    });
+                })
+                .catch(e => {
+                    console.error('Error loading items:', e);
+                    this.setState({ items: [], dataLoaded: true });
+                });
         }
-
+        
+        // Load user profile info if not loaded
+        if (!userInfo) {
+            getUserProfile(user)
+                .then(info => {
+                    this.setState({ userInfo: info });
+                    if (info && !processed) {
+                        this.processUserInfo(info);
+                        this.setState({ processed: true });
+                    }
+                })
+                .catch(e => {
+                    console.error('Error loading profile:', e);
+                    this.setState({ dataLoaded: true });
+                });
+        } else if (userInfo && !processed) {
+            this.processUserInfo(userInfo);
+            this.setState({ processed: true });
+        }
     }
 
     processUserInfo(info){
         const {class_year, bio, interests, venmo, profile_pic } = info;
         this.setState({bio:bio, year:class_year, venmo:venmo, profile_pic:profile_pic});
         if(interests)this.setState({interests:interests});
-
-    }
-
-
-
-    componentDidUpdate(){
-        const user = this.state.user;
-        const items = this.state.items;
-        const processed = this.state.processed;
-        const userInfo = this.state.userInfo;
-        if(!user){
-            api.get('/api/auth/user')
-                 .then( res => {
-                    this.setState({ user: res.data});
-            });
-            
-        }
-        if(items.length === 0 && user){
-    
-            api.get(`/api/profile/items/${user}`)
-                    .then( res => {this.setState({items: res.data.items.reverse()})})
-                    .catch(e => console.log(e))
-
-        }
-        if(user)getUserProfile(user).then(info => this.setState({userInfo:info}))
-        if(user && userInfo && !processed){
-            this.processUserInfo(userInfo);
-            this.setState({processed:true})
-        }
-
     }
 
     refresh = () =>{
@@ -97,6 +111,7 @@ export default class Profile extends Component {
     }
 
     render(){
+        const user = this.props.auth?.user?.username || 'Profile';
         
         return(
             <div className="min-h-screen bg-[var(--color-bg)]">
@@ -109,7 +124,7 @@ export default class Profile extends Component {
                                 <img
                                     className="w-48 h-48 rounded-full mx-auto lg:mx-0 mb-6 object-cover border-4 border-[var(--color-surface-2)]" 
                                     src={this.state.profile_pic || placeholder}
-                                    alt={this.state.user || 'Profile'}
+                                    alt={user}
                                 />
                                 
                                 <div className="space-y-4">
@@ -155,7 +170,7 @@ export default class Profile extends Component {
                         {/* Right Column - Listings */}
                         <div className="lg:col-span-2 space-y-6">
                             <PageHeader
-                                title={this.state.user || 'Profile'}
+                                title={user}
                                 subtitle={this.state.venmo && (
                                     <div className="flex items-center gap-2 mt-2">
                                         <img className="w-5 h-5" src={require('../assets/vimeo.png')} alt="Venmo" />
@@ -196,3 +211,11 @@ export default class Profile extends Component {
     
 
 }
+
+// HOC to inject auth context
+const ProfileWithAuth = (props) => {
+    const auth = useAuth();
+    return <Profile {...props} auth={auth} />;
+};
+
+export default ProfileWithAuth;

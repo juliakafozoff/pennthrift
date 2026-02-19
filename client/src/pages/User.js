@@ -8,6 +8,7 @@ import { updateViews, getUserProfile } from "../api/ProfileAPI";
 import { useParams, useNavigate } from "react-router-dom";
 import io from 'socket.io-client';
 import { path } from "../api/ProfileAPI";
+import { useAuth } from "../contexts/AuthContext";
 
 const  User = props => {
     
@@ -25,25 +26,62 @@ const  User = props => {
     const { username } = useParams();
     const navigate = useNavigate();
     const socketRef = useRef(null);
+    const { isAuthenticated, user: authUser } = useAuth();
 
-    const getUserInfo = async () => {
-        if (!userInfo) {
-            const res = await api.get('/api/auth/user');
-            setViewer(res.data);
-            if(username)setUserInfo(await getUserProfile(username));
-        }
-        if(userInfo && !processed){
+    // Load user info only once when component mounts or username changes
+    useEffect(() => {
+        let mounted = true;
+        
+        const getUserInfo = async () => {
+            if (!mounted) return;
+            
+            // Only fetch if we don't have userInfo yet
+            if (!userInfo && username) {
+                try {
+                    // Get viewer (current user) from auth context instead of API
+                    if (authUser) {
+                        setViewer(authUser.username);
+                    } else if (isAuthenticated) {
+                        // Fallback to API if auth context doesn't have user yet
+                        const res = await api.get('/api/auth/user');
+                        if (mounted && res.data) {
+                            setViewer(res.data);
+                        }
+                    }
+                    
+                    // Get profile info for the viewed user
+                    const profileInfo = await getUserProfile(username);
+                    if (mounted && profileInfo) {
+                        setUserInfo(profileInfo);
+                    }
+                } catch (error) {
+                    console.error('Error loading user info:', error);
+                }
+            }
+        };
+        
+        getUserInfo();
+        
+        return () => {
+            mounted = false;
+        };
+    }, [username, authUser, isAuthenticated]); // Only re-run if username or auth changes
+
+    // Process user info when it's loaded
+    useEffect(() => {
+        if (userInfo && !processed) {
             processUserInfo(userInfo);
             setProcessed(true);
-
         }
-        if(viewer && !viewed){
-            setViewed(true)
+    }, [userInfo, processed]);
+
+    // Update views when viewer is set
+    useEffect(() => {
+        if (viewer && !viewed && username) {
+            setViewed(true);
             updateViews(username);
         }
-    }
-
-    getUserInfo();
+    }, [viewer, viewed, username]);
 
     function processUserInfo(info){
         const {class_year, bio, interests, venmo, profile_pic } = info;
@@ -68,9 +106,12 @@ const  User = props => {
 
     }
     
+    // Initialize socket and load items - only when authenticated and username changes
     useEffect(() => {
-        // Initialize socket inside useEffect
-        if (typeof window !== 'undefined' && path && !socketRef.current) {
+        let mounted = true;
+        
+        // Only initialize socket if authenticated
+        if (typeof window !== 'undefined' && path && isAuthenticated && !socketRef.current) {
             try {
                 socketRef.current = io.connect(`${path}/api/messages`, {
                     withCredentials: true,
@@ -81,25 +122,36 @@ const  User = props => {
             }
         }
         
-        if(items.length === 0 && username){
+        // Load items only once when username is available and items are empty
+        if (items.length === 0 && username && isAuthenticated) {
             api.get(`/api/profile/items/${username}`)
-                    .then( res => {
+                .then(res => {
+                    if (mounted) {
                         const itemsSafe = Array.isArray(res.data?.items) ? res.data.items : [];
                         setItems(itemsSafe.reverse());
-                    })
-                    .catch(e => {
-                        console.error('Error loading items:', e);
+                    }
+                })
+                .catch(e => {
+                    console.error('Error loading items:', e);
+                    if (mounted) {
                         setItems([]);
-                    })
+                    }
+                });
         }
         
-        // Cleanup on unmount
+        // Cleanup on unmount or when auth changes
         return () => {
+            mounted = false;
             if (socketRef.current) {
                 socketRef.current.off('message-navigate');
+                if (!isAuthenticated) {
+                    // Disconnect socket if user logs out
+                    socketRef.current.disconnect();
+                    socketRef.current = null;
+                }
             }
         };
-    },[items, bio, interests, imageDisplay, venmo, year, username])
+    }, [username, isAuthenticated]); // Only re-run when username or auth changes, NOT on every state change
     
 
 
