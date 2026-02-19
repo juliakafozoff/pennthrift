@@ -2,10 +2,12 @@ import { useState } from 'react';
 import Form from '../components/Form';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api/http';
+import { useAuth } from '../contexts/AuthContext';
 
 const Login = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { checkAuth } = useAuth();
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     
@@ -33,12 +35,19 @@ const Login = () => {
                 email: username
             });
             
-            console.log('🟢 [LOGIN] Login response received:', res.status, res.data);
-            console.log('🟢 [LOGIN] Response headers:', res.headers);
-            console.log('🟢 [LOGIN] Cookies after response:', document.cookie || 'NO COOKIES');
+            console.log('[LOGIN] status', res.status, 'data', res.data);
             
-            // Success - wait for cookie to be set before navigating
-            if (res.status === 200) {
+            // Robust success check: accept 200 with either { success: true } or { data: 'success' }
+            const ok = res.status === 200 && (res.data?.success === true || res.data?.data === 'success');
+            console.log('[LOGIN] ok?', ok);
+            
+            if (ok) {
+                // Update auth context
+                await checkAuth();
+                
+                const target = from;
+                console.log('[LOGIN] navigating to', target);
+                
                 // Check cookie status before navigating
                 const checkCookie = () => {
                     const hasCookie = document.cookie.includes('user_sid');
@@ -52,8 +61,7 @@ const Login = () => {
                         console.warn('⚠️ [LOGIN] WARNING: user_sid cookie not found before navigation!');
                     }
                     
-                    console.log('🟡 [LOGIN] Navigating to:', from);
-                    navigate(from, { replace: true });
+                    navigate(target, { replace: true });
                 };
                 
                 // Small delay to ensure cookie is set before navigation
@@ -62,6 +70,10 @@ const Login = () => {
             // Account locked
             else if (res.status === 202) {
                 setError('Your account is locked. Please try again later.');
+                setLoading(false);
+            } else {
+                // Unexpected response
+                setError('Login failed. Please try again.');
                 setLoading(false);
             }
         } catch (err) {

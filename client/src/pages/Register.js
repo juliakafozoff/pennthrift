@@ -2,9 +2,11 @@ import { useState } from 'react';
 import Form from '../components/Form';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/http';
+import { useAuth } from '../contexts/AuthContext';
 
 const Register = () => {
     const navigate = useNavigate();
+    const { checkAuth } = useAuth();
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -25,13 +27,28 @@ const Register = () => {
                 password
             });
             
-            // Success - wait for cookie to be set before navigating
-            if (res.data === 'successful') {
+            console.log('[REGISTER] status', res.status, 'data', res.data);
+            
+            // Robust success check: accept 200 with either { success: true }, { data: 'success' }, or res.data === 'successful'
+            const ok = res.status === 200 && (
+                res.data?.success === true || 
+                res.data?.data === 'success' || 
+                res.data === 'successful'
+            );
+            console.log('[REGISTER] ok?', ok);
+            
+            if (ok) {
+                // Update auth context
+                await checkAuth();
+                
+                const target = '/profile';
+                console.log('[REGISTER] navigating to', target);
+                
                 // Small delay to ensure cookie is set before navigation
                 setTimeout(() => {
-                    navigate('/profile', { replace: true });
+                    navigate(target, { replace: true });
                 }, 300);
-            } else if (res.data && res.data.includes('Error')) {
+            } else if (res.data && typeof res.data === 'string' && res.data.includes('Error')) {
                 setError('Username has already been taken');
                 setLoading(false);
             } else {
@@ -40,7 +57,13 @@ const Register = () => {
             }
         } catch (err) {
             setLoading(false);
-            setError('Registration failed. Please check your connection and try again.');
+            const statusCode = err.response?.status;
+            
+            if (statusCode === 409) {
+                setError('Username has already been taken');
+            } else {
+                setError('Registration failed. Please check your connection and try again.');
+            }
         }
     }
     
