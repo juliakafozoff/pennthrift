@@ -18,9 +18,9 @@ const lockoutCallback = function(req, res, next, nextValidRequestDate) {
 
 // Start slowing requests after 5 failed attempts to do something for the same user
 const userBruteforce = new ExpressBrute(store, {
-    freeRetries: 1,
-    minWait: 1*60*1000, // 5 minutes
-    maxWait: 60*60*1000, // 1 hour,
+    freeRetries: 5, // Allow 5 free attempts before rate limiting kicks in
+    minWait: 1*60*1000, // 1 minute minimum wait
+    maxWait: 60*60*1000, // 1 hour maximum wait
     failCallback: lockoutCallback,
 });
 
@@ -212,6 +212,8 @@ router.post('/login', userBruteforce.prevent, passport.authenticate('local', { f
         console.log('Is Authenticated (before logIn):', typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : 'N/A');
         console.log('====================');
         
+        // Reset brute force counter on successful authentication
+        // This must be called before responding to clear any rate limiting
         req.brute.reset();
         
         // Use Passport's req.logIn() to establish session

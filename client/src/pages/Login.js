@@ -80,30 +80,18 @@ const Login = () =>{
         }).catch(err => {
             setLoading(false);
             console.error('Login error:', err);
-            const statusCode = err.response?.status || err.message?.split(" ").pop();
+            const statusCode = err.response?.status;
             
-            if (statusCode == '401' || statusCode == '429') {
-                getUserProfile(username).then(res => {
-                    if (res != null) {
-                        editUserProfile(username, { locked_out: true }).then(res => {
-                            console.log(res)
-                            if (res === 'Success! User updated.') {
-                                setError('You have been locked out for too many failed attempts. Please try again later.')
-                            } else {
-                                setError('Login failed. Please try again.')
-                            }
-                        }).catch(() => {
-                            setError('Login failed. Please try again.')
-                        });
-                    } else {
-                        setError("We don't recognize that username and password. Please try again.")
-                    }
-                }).catch(() => {
-                    setError("We don't recognize that username and password. Please try again.")
-                });   
+            // Handle different error status codes
+            if (statusCode === 429) {
+                // Rate limiting from express-brute - temporary, don't set permanent lockout
+                setError('Too many login attempts. Please wait a moment and try again.');
+            } else if (statusCode === 401) {
+                // Authentication failed - invalid credentials
+                setError("We don't recognize that username and password. Please try again.");
             } else {
                 // Generic error message for other failures
-                setError('Login failed. Please check your credentials and try again.')
+                setError('Login failed. Please check your credentials and try again.');
             }
         });
     }
