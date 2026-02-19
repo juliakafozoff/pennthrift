@@ -11,35 +11,44 @@ import { Button } from './ui';
 const Header = props =>{
     const navigate = useNavigate()
     const [user, setUser] = useState();
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [unread, setUnread] = useState(0);
     const [processing , setProcessing] = useState(false)
     const socketRef = useRef(null);
 
     function logOut(){
-        api.post('/api/auth/logout').then(res => navigate('/login', { replace: true }))
-        global.LOGGED_IN = false;
+        api.post('/api/auth/logout').then(res => {
+            setIsAuthenticated(false);
+            navigate('/login', { replace: true });
+        });
     }
     async function setUp(){
         try {
-            if(!user){
-                const res = await api.get('/api/auth/user').catch(e => {
-                    console.error('Error loading user:', e);
-                    return {data: null};
-                });
-                setUser(res.data);
-                if(res.data){
-                    try {
-                        const profile = await getUserProfile(res.data);
-                        const unreadSafe = Array.isArray(profile?.unread) ? profile.unread : [];
-                        setUnread(unreadSafe.length);
-                    } catch (e) {
-                        console.error('Error loading profile:', e);
-                        setUnread(0);
-                    }
+            // Check authentication status using GET /api/auth
+            const authRes = await api.get('/api/auth/').catch(e => {
+                console.error('Error checking auth:', e);
+                return {data: {authenticated: false, user: null}};
+            });
+            
+            const { authenticated, user: authUser } = authRes.data;
+            setIsAuthenticated(authenticated);
+            
+            if(authenticated && authUser){
+                setUser(authUser.username);
+                try {
+                    const profile = await getUserProfile(authUser.username);
+                    const unreadSafe = Array.isArray(profile?.unread) ? profile.unread : [];
+                    setUnread(unreadSafe.length);
+                } catch (e) {
+                    console.error('Error loading profile:', e);
+                    setUnread(0);
                 }
+            } else {
+                setUser(null);
             }
         } catch (e) {
             console.error('Error in setUp:', e);
+            setIsAuthenticated(false);
         }
     }
 
@@ -60,31 +69,35 @@ const Header = props =>{
     
     useEffect(() => {
         setUp();
-        
-        // Initialize socket inside useEffect after component mounts
-        if (typeof window !== 'undefined' && path) {
+    }, []); // Run once on mount to check auth
+    
+    useEffect(() => {
+        // Initialize socket only when authenticated and user is available
+        if (typeof window !== 'undefined' && path && isAuthenticated && user) {
             try {
-                socketRef.current = io.connect(`${path}/api/messages`, {
-                    withCredentials: true,
-                    transports: ['websocket', 'polling']
-                });
-                
-                socketRef.current.on('unread', () => {
-                    updateUnread();
-                });
-                
-                // Cleanup on unmount
-                return () => {
-                    if (socketRef.current) {
-                        socketRef.current.disconnect();
-                        socketRef.current = null;
-                    }
-                };
+                if (!socketRef.current) {
+                    socketRef.current = io.connect(`${path}/api/messages`, {
+                        withCredentials: true,
+                        transports: ['websocket', 'polling']
+                    });
+                    
+                    socketRef.current.on('unread', () => {
+                        updateUnread();
+                    });
+                }
             } catch (e) {
                 console.error('Error initializing socket:', e);
             }
         }
-    }, [user])
+        
+        // Cleanup on unmount or when auth/user changes
+        return () => {
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+                socketRef.current = null;
+            }
+        };
+    }, [isAuthenticated, user])
 
    
     return(
@@ -96,7 +109,7 @@ const Header = props =>{
                 <div className="flex items-center justify-between h-16">
                     {/* Left side - Auth */}
                     <div className="flex items-center">
-                        {global.LOGGED_IN ? (
+                        {isAuthenticated ? (
                             <Button
                                 data-testid="logout"
                                 variant="ghost"

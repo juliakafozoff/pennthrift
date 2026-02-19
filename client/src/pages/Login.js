@@ -39,8 +39,8 @@ const Login = () =>{
             console.log('Login response:', res.status, res.data);
             setLoading(false);
             if (res.status === 200) {
-                // Set logged in state immediately
-                global.LOGGED_IN = true;
+                // Passport session is now established via req.logIn()
+                // No need to set global.LOGGED_IN - ProtectedRoute will check auth via GET /api/auth
                 
                 // Try to update last_login, but don't block navigation if it fails
                 editUserProfile(username, { last_login: res.data?.time || res.time }).then(res => {
@@ -53,11 +53,11 @@ const Login = () =>{
                     // Don't block navigation on this error
                 });
                 
-                // Wait for session cookie to be set before navigating
-                // Session is now explicitly saved on server, but cookies still need time to propagate
+                // Wait briefly for session cookie to propagate, then navigate
+                // ProtectedRoute will check auth and handle redirect if needed
                 setTimeout(() => {
                     navigate(from, { replace: true });
-                }, 300);
+                }, 200);
             } else if (res.status === 202) {
                 const currentTimestamp = moment().unix(); // in seconds
                 const currentDatetime = moment(currentTimestamp * 1000).format(

@@ -30,12 +30,14 @@ const Register = () =>{
             if (res.data && (res.data.includes("Error") || res.data.includes("error"))) {
                 setError('Username has already been taken');
             } else if (res.data === "successful") {
-                global.LOGGED_IN = true;
-                // Wait for session cookie to be set before navigating
-                // Session is now explicitly saved on server, but cookies still need time to propagate
+                // Passport session is now established via req.logIn()
+                // No need to set global.LOGGED_IN - ProtectedRoute will check auth via GET /api/auth
+                
+                // Wait briefly for session cookie to propagate, then navigate
+                // ProtectedRoute will check auth and handle redirect if needed
                 setTimeout(() => {
                     navigate('/profile', { replace: true });
-                }, 300);
+                }, 200);
             } else {
                 setError('Registration failed. Please try again.');
             }

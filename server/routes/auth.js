@@ -24,8 +24,8 @@ const userBruteforce = new ExpressBrute(store, {
     failCallback: lockoutCallback,
 });
 
-// Auth check endpoint - simplified to use session OR passport
-router.post('/', async(req, res) =>{
+// Auth check endpoint - uses Passport sessions correctly
+router.get('/', async(req, res) =>{
     // Detailed logging for auth check
     console.log('=== AUTH CHECK REQUEST ===');
     console.log('Method:', req.method);
@@ -34,18 +34,32 @@ router.post('/', async(req, res) =>{
     console.log('Cookie Header:', req.headers.cookie || 'NONE');
     console.log('Session ID:', req.sessionID);
     console.log('Session Keys:', req.session ? Object.keys(req.session) : 'NO SESSION');
-    console.log('Session User:', req.session?.user || 'NOT SET');
     console.log('Passport User:', req.user || 'NOT SET');
     console.log('Is Authenticated:', typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : 'N/A');
     console.log('Cookies Parsed:', req.cookies);
     console.log('========================');
     
-    // Simplified check: use session.user OR passport authentication
-    const isAuthenticated = req.session?.user || (typeof req.isAuthenticated === 'function' && req.isAuthenticated());
-    const username = req.session?.user || req.user?.username;
+    // Use Passport's isAuthenticated() as single source of truth
+    const authenticated = typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : false;
     
-    if (isAuthenticated && username) {
-        res.json([true, username]);
+    // Return safe user fields if authenticated
+    if (authenticated && req.user) {
+        const safeUserFields = {
+            username: req.user.username,
+            id: req.user._id || req.user.id
+        };
+        res.json({ authenticated: true, user: safeUserFields });
+    } else {
+        res.json({ authenticated: false, user: null });
+    }
+});
+
+// Keep POST endpoint for backward compatibility during transition
+router.post('/', async(req, res) =>{
+    const authenticated = typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : false;
+    
+    if (authenticated && req.user) {
+        res.json([true, req.user.username]);
     } else {
         res.json([false, null]);
     }
@@ -75,27 +89,27 @@ router.post('/register', async(request, response) =>{
             
             newUser.save()
             .then((data) =>{
-                request.session.user = username;
-                // Explicitly save the session before responding
-                request.session.save((err) => {
+                // Use Passport's req.logIn() to establish session after registration
+                request.logIn(data, (err) => {
                     if (err) {
-                        console.error('=== REGISTER SESSION SAVE ERROR ===');
+                        console.error('=== REGISTER PASSPORT LOGIN ERROR ===');
                         console.error('Error:', err);
                         console.error('Session ID:', request.sessionID);
-                        console.error('===================================');
-                        return response.status(500).json("Error: Failed to save session");
+                        console.error('====================================');
+                        return response.status(500).json("Error: Failed to establish session");
                     }
                     
-                    // Log session after save
-                    console.log('=== REGISTER SESSION SAVED ===');
+                    // Log session after logIn
+                    console.log('=== REGISTER PASSPORT LOGIN SUCCESS ===');
                     console.log('Session ID:', request.sessionID);
-                    console.log('Session User:', request.session.user);
                     console.log('Session Keys (after):', Object.keys(request.session));
+                    console.log('Is Authenticated:', request.isAuthenticated());
+                    console.log('Passport User:', request.user?.username);
                     
                     // Check Set-Cookie header before sending response
                     const setCookieHeader = response.getHeader('set-cookie');
                     console.log('Set-Cookie Header:', setCookieHeader || 'NOT SET YET');
-                    console.log('================================');
+                    console.log('======================================');
                     
                     response.json("successful");
                 });
@@ -121,11 +135,15 @@ router.post('/register', async(request, response) =>{
 
 router.get('/user', (req, res) => {
     try{
-        const user = req.session.user;
-        user ? res.json(user) : res.json(null)
-
+        // Use Passport's req.user instead of req.session.user
+        if (req.isAuthenticated() && req.user) {
+            res.json(req.user.username);
+        } else {
+            res.json(null);
+        }
     }catch(err){
-
+        console.error('Error getting user:', err);
+        res.json(null);
     }
 })
 
@@ -137,10 +155,11 @@ router.get('/debug/session', (req, res) => {
         cookieHeader: req.headers.cookie ? 'PRESENT' : 'MISSING',
         cookiesParsed: req.cookies ? Object.keys(req.cookies) : [],
         sessionID: req.sessionID || 'NO SESSION ID',
-        sessionUser: req.session?.user || null,
         passportUser: req.user?.username || null,
+        passportUserId: req.user?._id || req.user?.id || null,
         isAuthenticated: typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : false,
-        sessionKeys: req.session ? Object.keys(req.session) : []
+        sessionKeys: req.session ? Object.keys(req.session) : [],
+        passportSessionKey: req.session?.passport || null
     };
     
     console.log('=== DEBUG SESSION ENDPOINT ===');
@@ -151,8 +170,18 @@ router.get('/debug/session', (req, res) => {
 })
 
 router.post('/logout', (req, res) =>{
-    req.session.destroy();
-    res.json('Logged out')
+    // Use Passport's req.logout() for proper cleanup
+    req.logout((err) => {
+        if (err) {
+            console.error('Logout error:', err);
+        }
+        req.session.destroy((err) => {
+            if (err) {
+                console.error('Session destroy error:', err);
+            }
+            res.json('Logged out');
+        });
+    });
 })
 
 router.post('/login', userBruteforce.prevent, passport.authenticate('local', { failWithError: true }),
@@ -167,32 +196,33 @@ router.post('/login', userBruteforce.prevent, passport.authenticate('local', { f
         console.log('Session ID:', req.sessionID);
         console.log('Session Keys (before):', req.session ? Object.keys(req.session) : 'NO SESSION');
         console.log('Passport User:', req.user || 'NOT SET');
-        console.log('Is Authenticated:', typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : 'N/A');
+        console.log('Is Authenticated (before logIn):', typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : 'N/A');
         console.log('====================');
         
-        req.session.user = req.user.username;
         req.brute.reset();
         
-        // Explicitly save the session before responding
-        req.session.save((err) => {
+        // Use Passport's req.logIn() to establish session
+        // This properly serializes the user and stores in session
+        req.logIn(req.user, (err) => {
             if (err) {
-                console.error('=== SESSION SAVE ERROR ===');
+                console.error('=== PASSPORT LOGIN ERROR ===');
                 console.error('Error:', err);
                 console.error('Session ID:', req.sessionID);
-                console.error('========================');
-                return res.status(500).send({ error: 'Failed to save session' });
+                console.error('===========================');
+                return res.status(500).send({ error: 'Failed to establish session' });
             }
             
-            // Log session after save
-            console.log('=== SESSION SAVED ===');
+            // Log session after logIn
+            console.log('=== PASSPORT LOGIN SUCCESS ===');
             console.log('Session ID:', req.sessionID);
-            console.log('Session User:', req.session.user);
             console.log('Session Keys (after):', Object.keys(req.session));
+            console.log('Is Authenticated (after logIn):', req.isAuthenticated());
+            console.log('Passport User:', req.user?.username);
             
             // Check Set-Cookie header before sending response
             const setCookieHeader = res.getHeader('set-cookie');
             console.log('Set-Cookie Header:', setCookieHeader || 'NOT SET YET');
-            console.log('===================');
+            console.log('=============================');
             
             if (!req.user.locked_out) {
                 const currentTimestamp = moment().unix(); // in seconds

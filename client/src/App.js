@@ -25,94 +25,51 @@ import Messages from './pages/Messages';
 import Favourites from './pages/Favourites';
 import NotFound from './pages/NotFound';
 
-// ProtectedRoute component - properly handles async auth check with retry logic
+// ProtectedRoute component - uses Passport sessions via GET /api/auth
 const ProtectedRoute = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(null); // null = checking, true = auth, false = not auth
   const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState(null);
   const location = useLocation();
 
   useEffect(() => {
     let mounted = true;
-    let retries = 0;
-    const maxRetries = 3; // Reduced since session is now explicitly saved
-    const retryDelay = 300; // Reduced delay since session save is explicit
     
     const checkAuth = async () => {
       try {
-        const res = await api.post('/api/auth/');
-        const authenticated = res.data[0] === true;
+        // Use GET endpoint with new response format: {authenticated: boolean, user: object|null}
+        const res = await api.get('/api/auth/');
+        const { authenticated, user: userData } = res.data;
         
         if (mounted) {
-          // If not authenticated but we think we should be logged in, retry
-          // This handles race condition where session cookie might not be set yet
-          if (!authenticated && retries < maxRetries && global.LOGGED_IN === true) {
-            retries++;
-            console.log(`Auth check failed, retrying (${retries}/${maxRetries})...`);
-            setTimeout(checkAuth, retryDelay);
-            return;
-          }
-          
-          // If we've exhausted retries but still think we're logged in, 
-          // give it one more moment before giving up
-          if (!authenticated && retries >= maxRetries && global.LOGGED_IN === true) {
-            console.log('Max retries reached, waiting one more moment...');
-            setTimeout(() => {
-              if (mounted) {
-                api.post('/api/auth/').then(finalRes => {
-                  if (mounted) {
-                    const finalAuth = finalRes.data[0] === true;
-                    global.LOGGED_IN = finalAuth;
-                    setIsAuthenticated(finalAuth);
-                    setIsLoading(false);
-                  }
-                }).catch(() => {
-                  if (mounted) {
-                    global.LOGGED_IN = false;
-                    setIsAuthenticated(false);
-                    setIsLoading(false);
-                  }
-                });
-              }
-            }, 500);
-            return;
-          }
-          
-          global.LOGGED_IN = authenticated;
           setIsAuthenticated(authenticated);
+          setUser(userData);
           setIsLoading(false);
         }
       } catch (error) {
         console.error('Auth check failed:', error);
         if (mounted) {
-          // Retry on network errors if we think we should be logged in
-          if (retries < maxRetries && global.LOGGED_IN === true) {
-            retries++;
-            console.log(`Auth check error, retrying (${retries}/${maxRetries})...`);
-            setTimeout(checkAuth, retryDelay);
-            return;
-          }
-          global.LOGGED_IN = false;
           setIsAuthenticated(false);
+          setUser(null);
           setIsLoading(false);
         }
       }
     };
 
-    // If we think we're logged in, add a small initial delay to let cookies propagate
-    if (global.LOGGED_IN === true) {
-      setTimeout(checkAuth, 100);
-    } else {
-      checkAuth();
-    }
+    checkAuth();
 
     return () => {
       mounted = false;
     };
   }, [location.pathname]); // Re-check when route changes
 
-  // Show nothing while checking (prevents flash)
+  // Show loading state while checking
   if (isLoading || isAuthenticated === null) {
-    return null;
+    return (
+      <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center">
+        <div className="text-[var(--color-muted)]">Loading...</div>
+      </div>
+    );
   }
 
   // Redirect to login with return path if not authenticated
