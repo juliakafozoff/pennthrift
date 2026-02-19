@@ -44,12 +44,11 @@ const NewItem = props => {
             setError('');
             var formData = new FormData();
             formData.append("file", image);
-            api.post('/api/file/upload', formData,{
-                headers: {
-                'Content-Type': 'multipart/form-data'
-                }
-            }).then( res => {
-                let imageUrl = res.data; 
+            // Don't set Content-Type header - browser must set it with boundary parameter
+            api.post('/api/file/upload', formData).then( res => {
+                // Backend returns JSON: { path, url, filename }
+                // Use path (relative) for storage, fallback to url or old format
+                let imageUrl = res.data?.path || res.data?.url || res.data; 
                 const data = {
                     name:itemName,
                     description:description,

@@ -39,8 +39,8 @@ const allowedOrigins = [
   'http://localhost:3000'
 ].filter(Boolean);
 
-// CORS middleware with strict origin checking
-app.use(cors({
+// CORS options object - reused for both middleware and OPTIONS handler
+const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl requests) only in development
     if (!origin) {
@@ -59,10 +59,14 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   exposedHeaders: ['Set-Cookie']
-}));
+};
 
-// Handle preflight requests explicitly
-app.options('*', cors());
+// Handle preflight requests explicitly BEFORE other middleware
+// This ensures OPTIONS requests are handled with correct CORS headers
+app.options('*', cors(corsOptions));
+
+// CORS middleware with strict origin checking
+app.use(cors(corsOptions));
 
 // Session middleware - MUST be after cookieParser and CORS
 const sessionStore = MongoStore.create({
