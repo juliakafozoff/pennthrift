@@ -12,6 +12,7 @@ const userSchema = new Schema({
         type: String,
         required: true,
         minLength: 1,
+        select: false, // Never include password in queries by default
     },
     email: {
         type: String,

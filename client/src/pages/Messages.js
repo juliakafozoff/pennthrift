@@ -67,19 +67,34 @@ const Messages = props => {
         } 
     
 
-        if((!receiver || !sender) && users && user && allowed){
-            users.map( async usr => {
-                if(user != usr){
-                    if(!receiver)setReceiver( await getUserProfile(usr))
-                }else{
-                    if(!sender)setSender( await getUserProfile(user))
+        // Fix: Only fetch receiver profile when we have users array and current user
+        if((!receiver || !sender) && Array.isArray(users) && users.length > 0 && user && allowed){
+            // Find the other user (not the current user)
+            const otherUser = users.find(usr => usr !== user);
+            if(otherUser && !receiver){
+                try {
+                    const receiverProfile = await getUserProfile(otherUser);
+                    setReceiver(receiverProfile);
+                } catch (error) {
+                    console.error('Error fetching receiver profile:', error);
                 }
-            })
-
+            }
+            // Set sender profile if not set
+            if(!sender && user){
+                try {
+                    const senderProfile = await getUserProfile(user);
+                    setSender(senderProfile);
+                } catch (error) {
+                    console.error('Error fetching sender profile:', error);
+                }
+            }
         }
         
     }
-    setUp()
+    
+    useEffect(() => {
+        setUp();
+    }, [users, user, allowed, receiver, sender]);
     
     async function sendMessage(user, message, attachment){
         if(allowed && receiver && socketRef.current){
@@ -110,18 +125,43 @@ const Messages = props => {
 
  
     function getMessageType(user, text, attachment, msgSender, image  ){
+        // Defensive: Only render FileViewer if attachment exists and has valid fileType
+        const renderAttachment = (attachmentUrl) => {
+            if(!attachmentUrl) return null;
+            
+            const fileType = getFileType(attachmentUrl, true);
+            if(!fileType || fileType === 'undefined' || fileType.includes('undefined')){
+                // Fallback: show a simple link instead of FileViewer
+                return (
+                    <div className='my-2'>
+                        <a 
+                            href={attachmentUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className='text-blue-600 hover:underline'
+                        >
+                            📎 View Attachment
+                        </a>
+                    </div>
+                );
+            }
+            
+            return (
+                <div onClick={() => window.open(attachmentUrl,'_blank')} className='max-h-[240px] flex my-2 w-fit bg-white'>
+                    <FileViewer
+                        fileType={fileType}
+                        filePath={attachmentUrl}
+                        errorComponent={<div className='p-2 text-sm text-gray-500'>Unable to preview file</div>}
+                    />
+                </div>
+            );
+        };
+        
         if(msgSender == user && sender){
             return(
                 <div className='flex m-5 justify-end gap-2'>
                     <div style={{overflowWrap:'anywhere'}} className='p-5 max-w-[70%] flex-col  flex w-fit  rounded-2xl border border-black'>
-                    {
-                            attachment && 
-                            <div onClick={() => window.open(attachment,'_blank')} className='max-h-[240px] flex  my-2 w-fit bg-white'>
-                                <FileViewer
-                                        fileType={getFileType(attachment, true)}
-                                        filePath={attachment}/>
-                            </div>
-                        }
+                        {renderAttachment(attachment)}
                         {text}
                     </div>
                     
@@ -134,14 +174,7 @@ const Messages = props => {
                 <div className='flex m-5 gap-2'>
                     <img src={receiver.profile_pic || placeholder} className='rounded-full  h-10 w-10 h-full bg-black mx-2 '/>
                     <div style={{overflowWrap:'anywhere'}}  className='p-5 max-w-[70%] flex-col flex  rounded-2xl bg-gray-300'>
-                    {
-                            attachment && 
-                            <div onClick={() => window.open(attachment,'_blank')} className='max-h-[240px] flex  my-2  bg-white'>
-                                <FileViewer
-                                        fileType={getFileType(attachment, true)}
-                                        filePath={attachment}/>
-                            </div>
-                        }
+                        {renderAttachment(attachment)}
                         {text}
                     </div>
                 </div>            
@@ -247,15 +280,20 @@ const Messages = props => {
     }
     function getFileType(src, url){
         try{
+            if(!src) return null;
+            
             if(!url && src){
                 var parts = src.split('/')
-                return parts[parts.length - 1];
+                const filename = parts[parts.length - 1];
+                if(!filename || !filename.includes('.')) return null;
+                return filename.split('.').pop().trim();
             }else{
-                return src.split(/[#?]/)[0].split('.').pop().trim()
+                const cleanPath = src.split(/[#?]/)[0];
+                if(!cleanPath || !cleanPath.includes('.')) return null;
+                return cleanPath.split('.').pop().trim();
             }
-
         }catch{
-
+            return null;
         }
     }
 
@@ -348,12 +386,26 @@ const Messages = props => {
                     </div>
                     <div className='h-fit px-10  mb-10 bg-black'>
                         {
-                            attachmentDisplay && 
-                            <div className='h-40 my-2 w-40 bg-white'>
-                                <FileViewer
-                                        fileType={getFileType(attachment.type, false)}
-                                        filePath={attachmentDisplay}/>
-                            </div>
+                            attachmentDisplay && attachment && attachment.type && 
+                            (() => {
+                                const fileType = getFileType(attachment.type, false);
+                                if(!fileType || fileType === 'undefined' || fileType.includes('undefined')){
+                                    return (
+                                        <div className='h-40 my-2 w-40 bg-white p-2 text-xs'>
+                                            Attachment ready
+                                        </div>
+                                    );
+                                }
+                                return (
+                                    <div className='h-40 my-2 w-40 bg-white'>
+                                        <FileViewer
+                                            fileType={fileType}
+                                            filePath={attachmentDisplay}
+                                            errorComponent={<div className='p-2 text-sm text-gray-500'>Preview unavailable</div>}
+                                        />
+                                    </div>
+                                );
+                            })()
                         }
                         <div className='flex  h-32 bg-black items-center bg-white w-full justify-self-end gap-2'>
                             <div className='w-fit h-fit' onClick={() => handleClick()}>

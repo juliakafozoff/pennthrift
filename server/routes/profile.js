@@ -5,14 +5,14 @@ const router = require('express').Router();
 // get all profiles/users
 router.route('/').get((req, res) => {
     // using .find() without a parameter will match on all user instances
-    User.find()
+    User.find().select('-password')
         .then(allUsers => res.json(allUsers))
         .catch(err => res.status(400).json('Error! ' + err))
 });
 
 // get profile/ user info by username
 router.route('/:username').get((req, res) => {
-    User.findOne({username: req.params.username})
+    User.findOne({username: req.params.username}).select('-password')
     .then(user => res.json(user))
     .catch(err => res.status(400).json('Error! ' + err))
 });
@@ -72,7 +72,7 @@ router.route('/favourites/update').post(( req, res) => {
                     { $pull: {favourites: itemID } }
                 ).then(() => {
                     // Return updated user with populated favourites
-                    User.findOne({username:username}).populate('favourites').then( updatedUser => {
+                    User.findOne({username:username}).select('-password').populate('favourites').then( updatedUser => {
                         res.json(updatedUser.favourites);
                     }).catch(err => res.status(400).json('Error! ' + err));
                 }).catch(err => res.status(400).json('Error! ' + err));
@@ -83,7 +83,7 @@ router.route('/favourites/update').post(( req, res) => {
                     { $addToSet: {favourites: itemID } }
                 ).then(() => {
                     // Return updated user with populated favourites
-                    User.findOne({username:username}).populate('favourites').then( updatedUser => {
+                    User.findOne({username:username}).select('-password').populate('favourites').then( updatedUser => {
                         res.json(updatedUser.favourites);
                     }).catch(err => res.status(400).json('Error! ' + err));
                 }).catch(err => res.status(400).json('Error! ' + err));
@@ -97,7 +97,7 @@ router.route('/favourites').post( (req, res) => {
     if(!username){
         return res.status(400).json('Error! username is required');
     }
-    User.findOne({username:username}).populate('favourites').then( user => {
+    User.findOne({username:username}).select('-password').populate('favourites').then( user => {
         if(!user){
             return res.json([]);
         }

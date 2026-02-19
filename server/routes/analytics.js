@@ -35,7 +35,7 @@ router.route('/seller/:username').get(async (req, res) => {
         const { username } = req.params;
         
         // Get user and their items
-        const user = await User.findOne({username}).populate('items').populate('favourites').populate('chats');
+        const user = await User.findOne({username}).select('-password').populate('items').populate('favourites').populate('chats');
         if (!user) {
             return res.status(404).json('Error! User not found');
         }
@@ -57,7 +57,7 @@ router.route('/seller/:username').get(async (req, res) => {
         const memberSince = new Date(accountCreated).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
         
         // Count favorites per item (users who favorited each item)
-        const allUsers = await User.find({}, {favourites: 1, username: 1});
+        const allUsers = await User.find({}, {favourites: 1, username: 1}).select('-password');
         const favoritesCount = {};
         allUsers.forEach(u => {
             if (u.favourites && Array.isArray(u.favourites)) {
