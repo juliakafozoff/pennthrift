@@ -19,38 +19,77 @@ const Header = props =>{
 
     async function logOut(){
         // Prevent multiple simultaneous logout attempts
-        if (loggingOut) return;
+        if (loggingOut) {
+            console.log('⚠️ [LOGOUT] Logout already in progress, ignoring click');
+            return;
+        }
         
+        console.log('🔴 [LOGOUT] ============================================');
+        console.log('🔴 [LOGOUT] Logout click handler triggered');
+        console.log('🔴 [LOGOUT] Setting loggingOut state to true');
         setLoggingOut(true);
+        console.log('🔴 [LOGOUT] loggingOut state:', true);
         
         try {
-            console.log('🔴 [LOGOUT] Starting logout...');
+            console.log('🔴 [LOGOUT] Starting logout process...');
             
             // Disconnect socket before logout
             if (socketRef.current) {
+                console.log('🔴 [LOGOUT] Disconnecting socket...');
                 socketRef.current.disconnect();
                 socketRef.current = null;
-                console.log('🟢 [LOGOUT] Socket disconnected');
+                console.log('🟢 [LOGOUT] Socket disconnected successfully');
+            } else {
+                console.log('🔴 [LOGOUT] No socket to disconnect');
             }
             
-            // Call logout endpoint
-            const res = await api.post('/api/auth/logout', {}, { withCredentials: true });
+            // Prepare API call
+            const logoutUrl = '/api/auth/logout';
+            const logoutMethod = 'POST';
+            const fullUrl = `${api.defaults.baseURL}${logoutUrl}`;
+            console.log('🔴 [LOGOUT] About to make API call');
+            console.log('🔴 [LOGOUT] Method:', logoutMethod);
+            console.log('🔴 [LOGOUT] URL:', fullUrl);
+            console.log('🔴 [LOGOUT] withCredentials:', true);
+            console.log('🔴 [LOGOUT] Cookies before request:', document.cookie || 'NO COOKIES');
             
-            console.log('🟢 [LOGOUT] Logout response:', res.data);
+            // Call logout endpoint
+            const res = await api.post(logoutUrl, {}, { withCredentials: true });
+            
+            console.log('🟢 [LOGOUT] Promise resolved successfully');
+            console.log('🟢 [LOGOUT] Response status:', res.status);
+            console.log('🟢 [LOGOUT] Response data:', res.data);
+            console.log('🟢 [LOGOUT] Response headers:', res.headers);
             
             // Clear auth state
+            console.log('🔴 [LOGOUT] Clearing local auth state...');
             setIsAuthenticated(false);
             setUser(null);
+            console.log('🟢 [LOGOUT] Local auth state cleared');
+            console.log('🔴 [LOGOUT] isAuthenticated state:', false);
+            console.log('🔴 [LOGOUT] user state:', null);
             
             // Navigate to login
+            console.log('🔴 [LOGOUT] About to navigate to /login');
             navigate('/login', { replace: true });
+            console.log('🟢 [LOGOUT] Navigate() called - navigation should occur');
         } catch (error) {
-            console.error('❌ [LOGOUT] Logout error:', error);
+            console.error('❌ [LOGOUT] Promise rejected - error caught');
+            console.error('❌ [LOGOUT] Error object:', error);
+            console.error('❌ [LOGOUT] Error message:', error.message);
+            console.error('❌ [LOGOUT] Error response:', error.response);
+            console.error('❌ [LOGOUT] Error response status:', error.response?.status);
+            console.error('❌ [LOGOUT] Error response data:', error.response?.data);
+            console.error('❌ [LOGOUT] Error request:', error.request);
+            console.error('❌ [LOGOUT] Is CORS error?', !error.response && error.message?.includes('CORS'));
+            console.error('❌ [LOGOUT] Is network error?', !error.response && !error.request);
             
             // Even if request fails, clear local state and navigate
             // The session may still be cleared server-side
+            console.log('🔴 [LOGOUT] Clearing local auth state despite error...');
             setIsAuthenticated(false);
             setUser(null);
+            console.log('🟢 [LOGOUT] Local auth state cleared');
             
             // Show minimal error message (optional - you can remove this if you prefer silent failure)
             if (error.response?.status !== 500) {
@@ -59,9 +98,15 @@ const Header = props =>{
             }
             
             // Navigate to login regardless - if session is still active, ProtectedRoute will handle it
+            console.log('🔴 [LOGOUT] About to navigate to /login (error case)');
             navigate('/login', { replace: true });
+            console.log('🟢 [LOGOUT] Navigate() called - navigation should occur');
         } finally {
+            console.log('🔴 [LOGOUT] Finally block executing');
+            console.log('🔴 [LOGOUT] Setting loggingOut state to false');
             setLoggingOut(false);
+            console.log('🟢 [LOGOUT] loggingOut state:', false);
+            console.log('🔴 [LOGOUT] ============================================');
         }
     }
     async function setUp(){

@@ -154,34 +154,57 @@ router.get('/debug/session', (req, res) => {
     res.json(debugInfo);
 })
 
+// Diagnostic endpoint to check authentication status after logout
+router.get('/debug/whoami', (req, res) => {
+    const authenticated = typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : false;
+    const user = req.user || null;
+    const sessionID = req.sessionID || null;
+    
+    console.log('🔍 [DEBUG WHOAMI] Request received');
+    console.log('🔍 [DEBUG WHOAMI] authenticated:', authenticated);
+    console.log('🔍 [DEBUG WHOAMI] user:', user);
+    console.log('🔍 [DEBUG WHOAMI] sessionID:', sessionID);
+    
+    res.json({
+        authenticated: authenticated,
+        user: user ? { username: user.username, id: user._id || user.id } : null,
+        sessionID: sessionID
+    });
+})
+
 router.post('/logout', (req, res) => {
-    console.log('🔴 [LOGOUT] ============================================');
-    console.log('🔴 [LOGOUT] Logout request received');
-    console.log('🔴 [LOGOUT] Session ID:', req.sessionID || 'NO SESSION ID');
-    console.log('🔴 [LOGOUT] req.user:', req.user ? { username: req.user.username, id: req.user._id } : 'NO USER');
-    console.log('🔴 [LOGOUT] req.isAuthenticated():', typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : 'NOT AVAILABLE');
-    console.log('🔴 [LOGOUT] Cookie header:', req.headers.cookie || 'NO COOKIE HEADER');
+    console.log('🔴 [LOGOUT_START] ============================================');
+    console.log('🔴 [LOGOUT_START] Method:', req.method);
+    console.log('🔴 [LOGOUT_START] URL:', req.url);
+    console.log('🔴 [LOGOUT_START] Original URL:', req.originalUrl);
+    console.log('🔴 [LOGOUT_START] Origin:', req.headers.origin || 'NO ORIGIN');
+    console.log('🔴 [LOGOUT_START] Cookie header present:', !!req.headers.cookie);
+    console.log('🔴 [LOGOUT_START] Cookie header:', req.headers.cookie || 'NO COOKIE HEADER');
+    console.log('🔴 [LOGOUT_START] Session ID:', req.sessionID || 'NO SESSION ID');
+    console.log('🔴 [LOGOUT_START] req.user:', req.user ? { username: req.user.username, id: req.user._id } : 'NO USER');
+    console.log('🔴 [LOGOUT_START] req.isAuthenticated exists:', typeof req.isAuthenticated === 'function');
+    console.log('🔴 [LOGOUT_START] req.isAuthenticated():', typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : 'NOT AVAILABLE');
     
-    // Store session ID for logging after destroy
-    const sessionIdBefore = req.sessionID;
-    
-    // Use Passport's req.logout() for proper cleanup
-    req.logout((err) => {
-        if (err) {
-            console.error('❌ [LOGOUT] req.logout() error:', err);
-        } else {
-            console.log('🟢 [LOGOUT] req.logout() successful');
+    // Flag to prevent double response sending
+    let responseSent = false;
+    const sendResponse = (success, error = null) => {
+        if (responseSent) {
+            console.warn('⚠️ [LOGOUT] Attempted to send response twice, ignoring');
+            return;
         }
+        responseSent = true;
         
-        // Destroy the session
-        req.session.destroy((destroyErr) => {
-            if (destroyErr) {
-                console.error('❌ [LOGOUT] Session destroy error:', destroyErr);
-                return res.status(500).json({ success: false, error: 'Failed to destroy session' });
-            }
-            
-            console.log('🟢 [LOGOUT] Session destroyed successfully');
-            console.log('🔴 [LOGOUT] Session ID after destroy:', req.sessionID || 'NO SESSION ID');
+        if (error) {
+            console.error('❌ [LOGOUT_RESPONSE_SENT] Sending error response:', error);
+            res.status(500).json({ success: false, error: error });
+        } else {
+            console.log('🔴 [LOGOUT_BEFORE_CLEAR_COOKIE] About to clear cookie: user_sid');
+            console.log('🔴 [LOGOUT_BEFORE_CLEAR_COOKIE] Cookie attributes:', {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'none',
+                path: '/'
+            });
             
             // Clear the session cookie with the SAME attributes used when setting it
             res.clearCookie('user_sid', {
@@ -191,12 +214,90 @@ router.post('/logout', (req, res) => {
                 path: '/'
             });
             
-            console.log('🟢 [LOGOUT] Cookie cleared');
-            console.log('🔴 [LOGOUT] ============================================');
+            console.log('🟢 [LOGOUT_BEFORE_CLEAR_COOKIE] Cookie cleared');
+            console.log('🔴 [LOGOUT_RESPONSE_SENT] About to send response');
+            console.log('🔴 [LOGOUT_RESPONSE_SENT] Response will be: { success: true }');
             
             res.json({ success: true });
+            
+            console.log('🟢 [LOGOUT_RESPONSE_SENT] Response sent successfully');
+            console.log('🔴 [LOGOUT_START] ============================================');
+        }
+    };
+    
+    console.log('🔴 [LOGOUT_BEFORE_LOGOUT_CALL] About to call req.logout()');
+    
+    // Use Passport's req.logout() for proper cleanup
+    // Handle both callback and no-callback versions of Passport
+    try {
+        if (req.logout.length === 0) {
+            // req.logout() doesn't accept callback (newer Passport versions)
+            console.log('🟢 [LOGOUT_AFTER_LOGOUT_CALL] req.logout() called synchronously (no callback)');
+            req.logout();
+        } else {
+            // req.logout() accepts callback (older Passport versions)
+            req.logout((err) => {
+                if (err) {
+                    console.error('❌ [LOGOUT_AFTER_LOGOUT_CALL] req.logout() callback error:', err);
+                } else {
+                    console.log('🟢 [LOGOUT_AFTER_LOGOUT_CALL] req.logout() callback executed successfully');
+                    console.log('🟢 [LOGOUT_AFTER_LOGOUT_CALL] req.user after logout:', req.user || 'NO USER (expected)');
+                    console.log('🟢 [LOGOUT_AFTER_LOGOUT_CALL] req.isAuthenticated() after logout:', typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : 'NOT AVAILABLE');
+                }
+                
+                // Continue with session destroy regardless of logout callback result
+                destroySession();
+            });
+            // If callback version, return early - destroySession will be called from callback
+            return;
+        }
+    } catch (err) {
+        console.error('❌ [LOGOUT_AFTER_LOGOUT_CALL] req.logout() threw error:', err);
+        // Continue with session destroy even if logout fails
+    }
+    
+    // Function to destroy session (called after logout)
+    const destroySession = () => {
+        console.log('🔴 [LOGOUT_BEFORE_SESSION_DESTROY] About to call req.session.destroy()');
+        
+        // Ensure we have a session to destroy
+        if (!req.session) {
+            console.warn('⚠️ [LOGOUT_BEFORE_SESSION_DESTROY] No session to destroy');
+            sendResponse(true);
+            return;
+        }
+        
+        // Destroy the session with timeout safeguard
+        const destroyTimeout = setTimeout(() => {
+            if (!responseSent) {
+                console.error('❌ [LOGOUT_AFTER_SESSION_DESTROY] Session destroy callback timeout - forcing response');
+                sendResponse(true); // Send success even if destroy hangs - session may still be cleared
+            }
+        }, 5000); // 5 second timeout
+        
+        req.session.destroy((destroyErr) => {
+            clearTimeout(destroyTimeout);
+            
+            if (destroyErr) {
+                console.error('❌ [LOGOUT_AFTER_SESSION_DESTROY] Session destroy callback error:', destroyErr);
+                console.error('❌ [LOGOUT_AFTER_SESSION_DESTROY] Error details:', {
+                    message: destroyErr.message,
+                    stack: destroyErr.stack
+                });
+                sendResponse(false, 'Failed to destroy session');
+                return;
+            }
+            
+            console.log('🟢 [LOGOUT_AFTER_SESSION_DESTROY] Session destroy callback executed successfully');
+            console.log('🟢 [LOGOUT_AFTER_SESSION_DESTROY] Session ID after destroy:', req.sessionID || 'NO SESSION ID (expected)');
+            console.log('🟢 [LOGOUT_AFTER_SESSION_DESTROY] req.session exists:', !!req.session);
+            
+            sendResponse(true);
         });
-    });
+    };
+    
+    // If logout was synchronous, proceed to destroy session
+    destroySession();
 })
 
 // Simple login handler
