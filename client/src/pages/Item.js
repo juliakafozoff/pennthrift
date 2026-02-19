@@ -6,6 +6,7 @@ import StoreItems from '../components/StoreItems';
 import placeholder from '../assets/placeholder_item.png';
 import { getUserFavourites } from "../api/ProfileAPI";
 import { normalizeImageUrl } from "../utils/imageUtils";
+import { Card, Badge } from "../components/ui";
 
 
 
@@ -146,52 +147,119 @@ const Item = props => {
     }
 
 
-    return(
-        <div>
-            <Header/>
-            <div className="grid grid-m justify-center w-full h-full px-5 md:px-10">
-                <div className="col-span-8 mt-20 lg:gap-20 grid grid-cols-6">
-                    <div key={item._id}  className="border-2 h-[300px] w-full lg:col-span-2 col-span-6 p-5 border-[#368481]  ">
-                        <img 
-                            src={item.image ? normalizeImageUrl(item.image) : placeholder} 
-                            className='w-full border-[#368481] rounded-lg border-2 h-[200px]'
-                            onError={(e) => {
-                                e.target.src = placeholder;
-                            }}
-                        />
-                        <div className='flex mt-5 text-xs gap-5'>
-                            <div className='font-bold'> 
-                                {item.category}
-                            </div>
-                            <div className='flex gap-2 w-full flex-col'>
-                                <div>{item.name}</div>
-                                <div> ${parseFloat(item.price)}</div>
-                                <div className='flex items-center  justify-between'> 
-                                    <Link to={`/user/${item.owner}`} className='text-blue-600 w-18 truncate overflow-ellipsis underline'>@{item.owner}</Link>
-                                    <img 
-                                    onClick={() => update(item._id)}
-                                    src={favourite(item._id)}  
-                                    className='w-5 cursor-pointer h-5'/>
-                                </div>
-                            </div>
+    if (!item || !item._id) {
+        return (
+            <div className="min-h-screen bg-[var(--color-bg)]">
+                <Header/>
+                <div className="container py-8 max-w-6xl">
+                    <div className="flex items-center justify-center py-16">
+                        <div className="text-center">
+                            <svg 
+                                className="animate-spin h-8 w-8 text-[var(--color-primary)] mx-auto mb-4" 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                fill="none" 
+                                viewBox="0 0 24 24"
+                            >
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p className="text-base text-[var(--color-muted)]">Loading item...</p>
                         </div>
-                    </div>
-                    <div className="lg:col-span-4 col-span-6">
-                        <div className="font-semibold text-lg">
-                            Similar Items
-                        </div>
-                        <StoreItems 
-                            favourites={ favourites }
-                            refresh= {refresh}
-                            user={viewer}
-                            data={similarItems}/>
                     </div>
                 </div>
+            </div>
+        );
+    }
 
+    return(
+        <div className="min-h-screen bg-[var(--color-bg)]">
+            <Header/>
+            <div className="container py-8 max-w-6xl">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Left Column - Item Details */}
+                    <div className="lg:col-span-1">
+                        <Card className="overflow-hidden">
+                            <div className="aspect-square overflow-hidden bg-[var(--color-surface-2)] rounded-t-lg">
+                                <img 
+                                    src={item.image ? normalizeImageUrl(item.image) : placeholder} 
+                                    alt={item.name || 'Item'}
+                                    className='w-full h-full object-cover'
+                                    onError={(e) => {
+                                        e.target.src = placeholder;
+                                    }}
+                                />
+                            </div>
+                            
+                            <div className="p-6 space-y-4">
+                                {/* Category Badge */}
+                                {item.category && (
+                                    <Badge variant="primary" className="text-sm">
+                                        {item.category}
+                                    </Badge>
+                                )}
+                                
+                                {/* Item Name */}
+                                <h1 className="text-2xl font-bold text-[var(--color-text)]">
+                                    {item.name || 'Untitled Item'}
+                                </h1>
+                                
+                                {/* Price */}
+                                <div className="text-3xl font-semibold text-[var(--color-primary)]">
+                                    ${item.price ? parseFloat(item.price).toFixed(2) : '0.00'}
+                                </div>
+                                
+                                {/* Description */}
+                                {item.description && (
+                                    <div className="pt-4 border-t border-[var(--color-border)]">
+                                        <h2 className="text-sm font-medium text-[var(--color-muted)] mb-2">Description</h2>
+                                        <p className="text-base text-[var(--color-text)] leading-relaxed whitespace-pre-wrap">
+                                            {item.description}
+                                        </p>
+                                    </div>
+                                )}
+                                
+                                {/* Owner and Favorite */}
+                                <div className='flex items-center justify-between pt-4 border-t border-[var(--color-border)]'>
+                                    <Link 
+                                        to={`/user/${item.owner}`} 
+                                        className='text-[var(--color-primary)] hover:underline font-medium truncate max-w-[200px]'
+                                    >
+                                        @{item.owner}
+                                    </Link>
+                                    <button
+                                        onClick={() => update(item._id)}
+                                        className="p-2 hover:bg-[var(--color-surface-2)] rounded-lg transition-colors"
+                                        aria-label={favourites.includes(item._id) ? 'Remove from favorites' : 'Add to favorites'}
+                                    >
+                                        <img 
+                                            src={favourite(item._id)}  
+                                            className='w-6 h-6'
+                                            alt=""
+                                        />
+                                    </button>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+                    
+                    {/* Right Column - Similar Items */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <div>
+                            <h2 className="text-2xl font-semibold text-[var(--color-text)] mb-6">
+                                Similar Items
+                            </h2>
+                            <StoreItems 
+                                favourites={favourites}
+                                refresh={refresh}
+                                user={viewer}
+                                data={similarItems}
+                                showEmptyState={true}
+                            />
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        
-        
     )
 }
 

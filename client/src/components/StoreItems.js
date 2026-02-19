@@ -72,6 +72,14 @@ export default class StoreItems extends Component{
         const favouritesSafe = Array.isArray(this.state.favourites) ? this.state.favourites : [];
 
         if(itemsSafe.length === 0){
+            // Check if this is being used for similar items (has showEmptyState prop)
+            const isSimilarItems = this.props.showEmptyState;
+            
+            // Choose icon path based on context
+            const iconPath = isSimilarItems 
+                ? "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"  // Shopping bag
+                : "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4";  // Box
+            
             return (
                 <div className="flex flex-col items-center justify-center py-16 px-4">
                     <svg 
@@ -81,11 +89,15 @@ export default class StoreItems extends Component{
                         viewBox="0 0 24 24"
                         aria-hidden="true"
                     >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d={iconPath} />
                     </svg>
-                    <h3 className="text-xl font-semibold text-[var(--color-text)] mb-2">No items found</h3>
+                    <h3 className="text-xl font-semibold text-[var(--color-text)] mb-2">
+                        {isSimilarItems ? 'No similar items yet' : 'No items found'}
+                    </h3>
                     <p className="text-base text-[var(--color-muted)] text-center max-w-md">
-                        Try adjusting your search or filters to find what you're looking for.
+                        {isSimilarItems 
+                            ? 'Check back later or browse the store to discover more items.' 
+                            : 'Try adjusting your search or filters to find what you are looking for.'}
                     </p>
                 </div>
             );
