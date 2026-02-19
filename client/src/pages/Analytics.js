@@ -5,6 +5,7 @@ import { getUserProfile } from "../api/ProfileAPI";
 import placeholder from '../assets/placeholder_item.png';
 import 'chart.js/auto';
 import { Chart } from 'react-chartjs-2';
+import { normalizeImageUrl } from "../utils/imageUtils";
 
 
 
@@ -103,7 +104,13 @@ const Analytics = props => {
                                     return(
                                         <div className="flex items-center justify-between">
                                             <div className="flex  gap-5 items-center">
-                                                <img className="w-10 rounded-lg h-10" src={item.image} />
+                                                <img 
+                                                    className="w-10 rounded-lg h-10" 
+                                                    src={item.image ? normalizeImageUrl(item.image) : require('../assets/placeholder_item.png')}
+                                                    onError={(e) => {
+                                                        e.target.src = require('../assets/placeholder_item.png');
+                                                    }}
+                                                />
                                                 <div className="text-lg w-28 truncate text-ellipsis font-semibold">{item.name}</div>
 
                                             </div>

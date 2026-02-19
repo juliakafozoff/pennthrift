@@ -3,6 +3,7 @@ import React from 'react';
 import { Component } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, Badge } from './ui';
+import { normalizeImageUrl } from '../utils/imageUtils';
 const placeholder = require('../assets/placeholder_item.png');
 export default class ProfileListings extends Component {
   state = {
@@ -74,9 +75,13 @@ export default class ProfileListings extends Component {
               
               <Link to={`/store/item/${item._id}`}>
                 <img
-                  src={item.image || placeholder}
+                  src={item.image ? normalizeImageUrl(item.image) : placeholder}
                   alt={item.name || 'Item'}
                   className="w-full h-48 object-cover rounded-lg mb-4 border border-[var(--color-border)]"
+                  onError={(e) => {
+                    // Fallback to placeholder if image fails to load
+                    e.target.src = placeholder;
+                  }}
                 />
               </Link>
               

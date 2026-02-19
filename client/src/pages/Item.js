@@ -5,6 +5,7 @@ import Header from "../components/Header";
 import StoreItems from '../components/StoreItems';
 import placeholder from '../assets/placeholder_item.png';
 import { getUserFavourites } from "../api/ProfileAPI";
+import { normalizeImageUrl } from "../utils/imageUtils";
 
 
 
@@ -151,7 +152,13 @@ const Item = props => {
             <div className="grid grid-m justify-center w-full h-full px-5 md:px-10">
                 <div className="col-span-8 mt-20 lg:gap-20 grid grid-cols-6">
                     <div key={item._id}  className="border-2 h-[300px] w-full lg:col-span-2 col-span-6 p-5 border-[#368481]  ">
-                        <img src={item.image || placeholder} className='w-full border-[#368481] rounded-lg border-2 h-[200px]'/>
+                        <img 
+                            src={item.image ? normalizeImageUrl(item.image) : placeholder} 
+                            className='w-full border-[#368481] rounded-lg border-2 h-[200px]'
+                            onError={(e) => {
+                                e.target.src = placeholder;
+                            }}
+                        />
                         <div className='flex mt-5 text-xs gap-5'>
                             <div className='font-bold'> 
                                 {item.category}

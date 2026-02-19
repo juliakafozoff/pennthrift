@@ -2,6 +2,7 @@ import { Component } from 'react'
 import { Link } from 'react-router-dom';
 import React from 'react';
 import { Card, Badge } from './ui';
+import { normalizeImageUrl } from '../utils/imageUtils';
 
 export default class StoreItems extends Component{
 
@@ -108,7 +109,7 @@ export default class StoreItems extends Component{
                                 <Link to={`/store/item/${item._id}`} className="block">
                                     <div className="relative aspect-square overflow-hidden bg-[var(--color-surface-2)]">
                                         <img 
-                                            src={item.image || require('../assets/placeholder_item.png')} 
+                                            src={item.image ? normalizeImageUrl(item.image) : require('../assets/placeholder_item.png')} 
                                             alt={item.name || 'Item'}
                                             className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-200'
                                             onError={(e) => {

@@ -47,8 +47,9 @@ const NewItem = props => {
             // Don't set Content-Type header - browser must set it with boundary parameter
             api.post('/api/file/upload', formData).then( res => {
                 // Backend returns JSON: { path, url, filename }
-                // Use path (relative) for storage, fallback to url or old format
-                let imageUrl = res.data?.path || res.data?.url || res.data; 
+                // Use url (full URL) for better compatibility, fallback to path or old format
+                // The normalizeImageUrl utility will handle both relative paths and full URLs
+                let imageUrl = res.data?.url || res.data?.path || res.data; 
                 const data = {
                     name:itemName,
                     description:description,
