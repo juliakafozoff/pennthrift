@@ -111,82 +111,83 @@ a:focus-visible {
   }
 }
 
-/* Button component styles - stable CSS classes to avoid Tailwind purge issues */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 0.625rem 1.5rem;
-  border-radius: var(--radius-lg);
-  font-weight: 500;
-  font-size: var(--font-size-base);
-  transition: all var(--transition-base);
-  border: none;
-  cursor: pointer;
+/* Button component styles - stable CSS classes with scoped prefix to override Semantic UI */
+/* Using .pt-button prefix ensures our styles win over Semantic UI and Tailwind preflight */
+.pt-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 44px !important;
+  padding: 0.625rem 1.5rem !important;
+  border-radius: var(--radius-lg) !important;
+  font-weight: 500 !important;
+  font-size: var(--font-size-base) !important;
+  transition: all var(--transition-base) !important;
+  border: none !important;
+  cursor: pointer !important;
 }
 
-.btn:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+.pt-button:focus-visible {
+  outline: 2px solid var(--color-primary) !important;
+  outline-offset: 2px !important;
 }
 
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.pt-button:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
 }
 
-/* Button variants */
-.btn-primary {
-  background-color: var(--color-primary);
-  color: #ffffff;
+/* Button variants - using !important to override Semantic UI button resets */
+.pt-button--primary {
+  background-color: var(--color-primary) !important;
+  color: #ffffff !important;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background-color: var(--color-primary-hover);
+.pt-button--primary:hover:not(:disabled) {
+  background-color: var(--color-primary-hover) !important;
 }
 
-.btn-primary:focus-visible {
-  outline-color: var(--color-primary);
+.pt-button--primary:focus-visible {
+  outline-color: var(--color-primary) !important;
 }
 
-.btn-secondary {
-  background-color: var(--color-surface-2);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
+.pt-button--secondary {
+  background-color: var(--color-surface-2) !important;
+  color: var(--color-text) !important;
+  border: 1px solid var(--color-border) !important;
 }
 
-.btn-secondary:hover:not(:disabled) {
-  background-color: var(--color-border);
+.pt-button--secondary:hover:not(:disabled) {
+  background-color: var(--color-border) !important;
 }
 
-.btn-secondary:focus-visible {
-  outline-color: var(--color-primary);
+.pt-button--secondary:focus-visible {
+  outline-color: var(--color-primary) !important;
 }
 
-.btn-ghost {
-  background-color: transparent;
-  color: var(--color-text);
+.pt-button--ghost {
+  background-color: transparent !important;
+  color: var(--color-text) !important;
 }
 
-.btn-ghost:hover:not(:disabled) {
-  background-color: var(--color-surface-2);
+.pt-button--ghost:hover:not(:disabled) {
+  background-color: var(--color-surface-2) !important;
 }
 
-.btn-ghost:focus-visible {
-  outline-color: var(--color-primary);
+.pt-button--ghost:focus-visible {
+  outline-color: var(--color-primary) !important;
 }
 
-.btn-danger {
-  background-color: var(--color-danger);
-  color: #ffffff;
+.pt-button--danger {
+  background-color: var(--color-danger) !important;
+  color: #ffffff !important;
 }
 
-.btn-danger:hover:not(:disabled) {
-  background-color: var(--color-danger-hover);
+.pt-button--danger:hover:not(:disabled) {
+  background-color: var(--color-danger-hover) !important;
 }
 
-.btn-danger:focus-visible {
-  outline-color: var(--color-danger);
+.pt-button--danger:focus-visible {
+  outline-color: var(--color-danger) !important;
 }
 

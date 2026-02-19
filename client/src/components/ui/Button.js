@@ -14,12 +14,13 @@ export const Button = ({
   className = '',
   ...props 
 }) => {
-  // Use stable CSS classes instead of Tailwind arbitrary values to avoid purge issues
+  // Use stable CSS classes with scoped prefix to avoid conflicts with Semantic UI
+  // pt-button prefix ensures our styles override Semantic UI and Tailwind preflight
   const variantClasses = {
-    primary: 'btn btn-primary',
-    secondary: 'btn btn-secondary',
-    ghost: 'btn btn-ghost',
-    danger: 'btn btn-danger'
+    primary: 'pt-button pt-button--primary',
+    secondary: 'pt-button pt-button--secondary',
+    ghost: 'pt-button pt-button--ghost',
+    danger: 'pt-button pt-button--danger'
   };
   
   return (
