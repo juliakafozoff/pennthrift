@@ -5,8 +5,10 @@ import { editUserProfile, getUserProfile } from "../api/ProfileAPI";
 import placeholder from '../assets/placeholder_user.png';
 import { useNavigate } from "react-router-dom";
 import { PageHeader, Card, Field, Input, Textarea, Button, Badge, PhotoUpload } from "../components/ui";
+import { useAuth } from "../contexts/AuthContext";
 
 const EditProfile = props => {
+    const auth = useAuth();
     const [bio, setBio] = useState('');
     const [user, setUser] = useState('');
     const [userInfo, setUserInfo] = useState('');
@@ -42,20 +44,20 @@ const EditProfile = props => {
         const fetchUserInfo = async () => {
             try {
                 setInitialLoading(true);
-                // Use canonical /api/auth/me endpoint to get current authenticated user from session
-                const res = await api.get('/api/auth/me');
-                console.log('[EDIT PROFILE] /api/auth/me response:', res.data);
+                // Use auth context user instead of making separate /api/auth/me call
+                const authUser = auth?.user;
                 
-                if (res.data.authenticated && res.data.user) {
-                    const currentUser = res.data.user.username;
-                    console.log('[EDIT PROFILE] Current authenticated user:', currentUser);
+                if (authUser && authUser.username) {
+                    const currentUser = authUser.username;
+                    console.log('[EDIT PROFILE] Current authenticated user:', currentUser, '(from auth context)');
                     setUser(currentUser);
                     
                     const profileInfo = await getUserProfile(currentUser);
                     console.log('[EDIT PROFILE] Profile info loaded for:', currentUser);
                     setUserInfo(profileInfo);
                     processUserInfo(profileInfo);
-                } else {
+                } else if (!auth?.isLoading) {
+                    // Only show error if auth context has finished loading
                     setError('Not authenticated. Please log in.');
                 }
             } catch (err) {
@@ -66,8 +68,11 @@ const EditProfile = props => {
             }
         };
         
-        fetchUserInfo();
-    }, []);
+        // Only fetch if auth context has loaded (not loading)
+        if (!auth?.isLoading) {
+            fetchUserInfo();
+        }
+    }, [auth?.user?.username, auth?.isLoading]); // Re-run if auth user changes
 
     function processUserInfo(info){
         const {class_year, bio, interests, venmo, profile_pic } = info;

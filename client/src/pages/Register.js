@@ -38,8 +38,8 @@ const Register = () => {
             console.log('[REGISTER] ok?', ok);
             
             if (ok) {
-                // Update auth context
-                await checkAuth();
+                // Update auth context (force refresh after registration)
+                await checkAuth(true);
                 
                 const target = '/profile';
                 console.log('[REGISTER] navigating to', target);

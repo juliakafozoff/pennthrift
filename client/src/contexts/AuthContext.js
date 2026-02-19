@@ -8,8 +8,17 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const checkAuthTimeoutRef = useRef(null);
+  const checkAuthInFlightRef = useRef(false); // Guard to prevent concurrent requests
 
-  const checkAuth = async () => {
+  const checkAuth = async (force = false) => {
+    // If a check is already in flight and not forced, return early
+    if (checkAuthInFlightRef.current && !force) {
+      console.log('🔵 [AUTH CONTEXT] Auth check already in flight, skipping...');
+      return { authenticated: isAuthenticated, user };
+    }
+
+    checkAuthInFlightRef.current = true;
+    
     try {
       console.log('🔵 [AUTH CONTEXT] Checking authentication...');
       // Use canonical /api/auth/me endpoint to get current authenticated user from session
@@ -34,6 +43,8 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setIsLoading(false);
       return { authenticated: false, user: null };
+    } finally {
+      checkAuthInFlightRef.current = false;
     }
   };
 
@@ -58,8 +69,8 @@ export const AuthProvider = ({ children }) => {
       // Still clear local state even if API call fails
     }
     
-    // Force a fresh auth check to confirm logout
-    await checkAuth();
+    // Force a fresh auth check to confirm logout (force=true to bypass in-flight guard)
+    await checkAuth(true);
   };
 
   // Check auth on mount
