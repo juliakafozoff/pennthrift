@@ -21,7 +21,9 @@ class Form extends Component{
 
     render(){
         const {name, error, userDetails, reset, loading} = this.props;
-        const error_class = (error !=null ? 'border-[#B31212]' : 'border-black');
+        // Only show error styling when error exists and is not empty
+        const hasError = error && error.trim() !== '';
+        const error_class = hasError ? 'border-[#B31212]' : 'border-black';
         const classes = `w-fit  flex-col items-center text-start flex border-2 rounded-3xl pt-10 pb-2 px-16 ${error_class}`
         return(
             <div data-testid="form" className="flex items-center flex-col">
@@ -61,14 +63,16 @@ class Form extends Component{
                     </div>
                     
                 </div>
-                {error != null && <div  className="bg-[#B312120D] my-10 border-[#B31212] border h-10 flex justify-center items-center p-5  text-center flex-row">
-                                        <div data-testid="error" className="text-[#B31212]">{error}</div>
-                                        <div 
-                                        onClick={() => reset()}
-                                            className="mx-5 cursor-pointer">
-                                            <div  className="text-[#B31212]">x</div>
-                                        </div>
-                                    </div>}
+                {hasError && (
+                    <div className="bg-[#B312120D] my-10 border-[#B31212] border h-10 flex justify-center items-center p-5 text-center flex-row">
+                        <div data-testid="error" className="text-[#B31212]">{error}</div>
+                        <div 
+                            onClick={() => reset()}
+                            className="mx-5 cursor-pointer">
+                            <div className="text-[#B31212]">x</div>
+                        </div>
+                    </div>
+                )}
             </div>
             
         )
