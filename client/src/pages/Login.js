@@ -53,11 +53,11 @@ const Login = () =>{
                     // Don't block navigation on this error
                 });
                 
-                // Wait longer for session cookie to be set before navigating
-                // Session cookies need time to propagate, especially in cross-domain scenarios
+                // Wait for session cookie to be set before navigating
+                // Session is now explicitly saved on server, but cookies still need time to propagate
                 setTimeout(() => {
                     navigate(from, { replace: true });
-                }, 500);
+                }, 300);
             } else if (res.status === 202) {
                 const currentTimestamp = moment().unix(); // in seconds
                 const currentDatetime = moment(currentTimestamp * 1000).format(

@@ -48,7 +48,14 @@ router.post('/register', async(request, response) =>{
             newUser.save()
             .then((data) =>{
                 request.session.user = username;
-                response.json("successful");
+                // Explicitly save the session before responding
+                request.session.save((err) => {
+                    if (err) {
+                        console.error('Session save error:', err);
+                        return response.status(500).json("Error: Failed to save session");
+                    }
+                    response.json("successful");
+                });
             })
             .catch((error) =>{
                 response.json(error);
@@ -84,15 +91,24 @@ router.post('/login', userBruteforce.prevent, passport.authenticate('local', { f
     function(req, res, next) {
         req.session.user = req.user.username;
         req.brute.reset();
-        if (!req.user.locked_out) {
-            const currentTimestamp = moment().unix(); // in seconds
-            const currentDatetime = moment(currentTimestamp * 1000).format(
-                    'YYYY-MM-DD HH:mm:ss'
-            );
-            res.status(200).send({ data: 'success', user: req.user, time: currentDatetime });
-        } else {
-            res.status(202).send({ data: 'lockedout', user: req.user });
-        }
+        
+        // Explicitly save the session before responding
+        req.session.save((err) => {
+            if (err) {
+                console.error('Session save error:', err);
+                return res.status(500).send({ error: 'Failed to save session' });
+            }
+            
+            if (!req.user.locked_out) {
+                const currentTimestamp = moment().unix(); // in seconds
+                const currentDatetime = moment(currentTimestamp * 1000).format(
+                        'YYYY-MM-DD HH:mm:ss'
+                );
+                res.status(200).send({ data: 'success', user: req.user, time: currentDatetime });
+            } else {
+                res.status(202).send({ data: 'lockedout', user: req.user });
+            }
+        });
     },
     function(err, req, res, next) {
         // handle error

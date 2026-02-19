@@ -31,11 +31,11 @@ const Register = () =>{
                 setError('Username has already been taken');
             } else if (res.data === "successful") {
                 global.LOGGED_IN = true;
-                // Wait longer for session cookie to be set before navigating
-                // Session cookies need time to propagate, especially in cross-domain scenarios
+                // Wait for session cookie to be set before navigating
+                // Session is now explicitly saved on server, but cookies still need time to propagate
                 setTimeout(() => {
                     navigate('/profile', { replace: true });
-                }, 500);
+                }, 300);
             } else {
                 setError('Registration failed. Please try again.');
             }

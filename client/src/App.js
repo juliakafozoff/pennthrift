@@ -34,8 +34,8 @@ const ProtectedRoute = ({ children }) => {
   useEffect(() => {
     let mounted = true;
     let retries = 0;
-    const maxRetries = 5; // Increased retries
-    const retryDelay = 500; // Increased delay between retries
+    const maxRetries = 3; // Reduced since session is now explicitly saved
+    const retryDelay = 300; // Reduced delay since session save is explicit
     
     const checkAuth = async () => {
       try {
@@ -100,7 +100,7 @@ const ProtectedRoute = ({ children }) => {
 
     // If we think we're logged in, add a small initial delay to let cookies propagate
     if (global.LOGGED_IN === true) {
-      setTimeout(checkAuth, 200);
+      setTimeout(checkAuth, 100);
     } else {
       checkAuth();
     }
