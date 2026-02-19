@@ -32,6 +32,7 @@ const ProtectedRoute = ({ children }) => {
 
   useEffect(() => {
     let mounted = true;
+    let retryAttempted = false;
 
     const checkAuth = async () => {
       try {
@@ -39,10 +40,32 @@ const ProtectedRoute = ({ children }) => {
         if (mounted) {
           setIsAuthenticated(res.data.authenticated === true);
           setIsLoading(false);
+          
+          // If not authenticated and we haven't retried, wait and retry once
+          // This handles the case where cookie hasn't propagated yet
+          if (!res.data.authenticated && !retryAttempted && location.pathname === '/profile') {
+            retryAttempted = true;
+            setTimeout(() => {
+              if (mounted) {
+                checkAuth();
+              }
+            }, 500);
+            return;
+          }
         }
       } catch (error) {
         console.error('Auth check failed:', error);
         if (mounted) {
+          // Retry once on error if we haven't already
+          if (!retryAttempted && location.pathname === '/profile') {
+            retryAttempted = true;
+            setTimeout(() => {
+              if (mounted) {
+                checkAuth();
+              }
+            }, 500);
+            return;
+          }
           setIsAuthenticated(false);
           setIsLoading(false);
         }

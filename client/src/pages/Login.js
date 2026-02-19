@@ -30,9 +30,12 @@ const Login = () => {
                 email: username
             });
             
-            // Success - navigate immediately
+            // Success - wait for cookie to be set before navigating
             if (res.status === 200) {
-                navigate(from, { replace: true });
+                // Small delay to ensure cookie is set before navigation
+                setTimeout(() => {
+                    navigate(from, { replace: true });
+                }, 300);
             } 
             // Account locked
             else if (res.status === 202) {

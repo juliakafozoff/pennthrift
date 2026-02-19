@@ -25,9 +25,12 @@ const Register = () => {
                 password
             });
             
-            // Success - navigate immediately
+            // Success - wait for cookie to be set before navigating
             if (res.data === 'successful') {
-                navigate('/profile', { replace: true });
+                // Small delay to ensure cookie is set before navigation
+                setTimeout(() => {
+                    navigate('/profile', { replace: true });
+                }, 300);
             } else if (res.data && res.data.includes('Error')) {
                 setError('Username has already been taken');
                 setLoading(false);
