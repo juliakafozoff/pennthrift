@@ -382,8 +382,16 @@ router.post('/login',
     
     // Error handler - called when authentication fails
     (err, req, res, next) => {
-        // Passport sends 401 for auth failures
-        res.status(401).json({ error: err.message || 'Authentication failed' });
+        // Log the actual error server-side for debugging
+        console.error('[AUTH] Login error:', err.message || err);
+        
+        // Return safe error message to client (don't expose internal errors)
+        // Passport sends specific messages like 'Invalid username or password' from authenticateUser
+        const safeMessage = err.message && err.message.includes('Invalid username or password') 
+            ? 'Invalid username or password'
+            : 'Invalid username or password'; // Always return same message for security
+        
+        res.status(401).json({ error: safeMessage });
     }
 );
 
