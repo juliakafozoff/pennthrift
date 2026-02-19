@@ -26,47 +26,73 @@ const initializePassport = require('./passport-config');
 
 
 
+// Trust proxy for production (Render uses proxies)
+app.set('trust proxy', 1);
+
+// Cookie parser MUST be before session middleware
 app.use(cookieParser())
 
+// CORS configuration - tightened for production
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   'https://pennthrift.netlify.app',
   'http://localhost:3000'
 ].filter(Boolean);
 
+// CORS middleware with strict origin checking
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    // Allow requests with no origin (like mobile apps or curl requests) only in development
+    if (!origin) {
+      if (process.env.NODE_ENV === 'production') {
+        return callback(new Error('No origin header in production'));
+      }
+      return callback(null, true);
+    }
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(null, true); // Allow all origins in development, restrict in production if needed
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Set-Cookie']
 }));
 
+// Handle preflight requests explicitly
+app.options('*', cors());
 
+// Session middleware - MUST be after cookieParser and CORS
+const sessionStore = MongoStore.create({
+  mongoUrl: process.env.DATABASE_ACCESS,
+  collectionName: 'userSessions'
+});
 
-//app sessions
+// Log session store errors
+sessionStore.on('error', (error) => {
+  console.error('=== SESSION STORE ERROR ===');
+  console.error('Error:', error);
+  console.error('===========================');
+});
+
+sessionStore.on('connected', () => {
+  console.log('Session store connected to MongoDB');
+});
 
 app.use(session({
   name: 'user_sid',
   secret: process.env.SECRET_KEY,
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.DATABASE_ACCESS,
-    collectionName: 'userSessions'
-  }),
+  store: sessionStore,
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    maxAge: 6 * 24 * 60 * 60 * 1000
+    maxAge: 6 * 24 * 60 * 60 * 1000,
+    path: '/'
   }
 }));
 
