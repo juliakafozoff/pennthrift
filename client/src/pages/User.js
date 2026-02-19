@@ -9,6 +9,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import io from 'socket.io-client';
 import { path } from "../api/ProfileAPI";
 import { useAuth } from "../contexts/AuthContext";
+import { Card, Badge, Button } from "../components/ui";
+import { normalizeImageUrl } from "../utils/imageUtils";
 
 const  User = props => {
     
@@ -23,6 +25,8 @@ const  User = props => {
     const [items, setItems]                 = useState([]);
     const [viewer, setViewer]               = useState('');
     const [viewed, setViewed]               = useState(false);
+    const [loading, setLoading]             = useState(true);
+    const [itemsLoading, setItemsLoading]   = useState(true);
     const { username } = useParams();
     const navigate = useNavigate();
     const socketRef = useRef(null);
@@ -53,9 +57,15 @@ const  User = props => {
                     const profileInfo = await getUserProfile(username);
                     if (mounted && profileInfo) {
                         setUserInfo(profileInfo);
+                        setLoading(false);
+                    } else if (mounted) {
+                        setLoading(false);
                     }
                 } catch (error) {
                     console.error('Error loading user info:', error);
+                    if (mounted) {
+                        setLoading(false);
+                    }
                 }
             }
         };
@@ -106,7 +116,7 @@ const  User = props => {
 
     }
     
-    // Initialize socket and load items - only when authenticated and username changes
+    // Initialize socket and load items when username changes
     useEffect(() => {
         let mounted = true;
         
@@ -123,20 +133,26 @@ const  User = props => {
         }
         
         // Load items only once when username is available and items are empty
-        if (items.length === 0 && username && isAuthenticated) {
+        // Allow viewing items even if not authenticated
+        if (items.length === 0 && username) {
+            setItemsLoading(true);
             api.get(`/api/profile/items/${username}`)
                 .then(res => {
                     if (mounted) {
                         const itemsSafe = Array.isArray(res.data?.items) ? res.data.items : [];
                         setItems(itemsSafe.reverse());
+                        setItemsLoading(false);
                     }
                 })
                 .catch(e => {
                     console.error('Error loading items:', e);
                     if (mounted) {
                         setItems([]);
+                        setItemsLoading(false);
                     }
                 });
+        } else if (items.length > 0) {
+            setItemsLoading(false);
         }
         
         // Cleanup on unmount or when auth changes
@@ -151,69 +167,191 @@ const  User = props => {
                 }
             }
         };
-    }, [username, isAuthenticated]); // Only re-run when username or auth changes, NOT on every state change
+    }, [username, isAuthenticated]); // Re-run when username or auth changes
     
 
 
 
-    return(
-        <div>
-            <Header/>
-            <div className="grid grid-main justify-center w-full h-full px-5 md:px-10">
-                <div className="col-span-8 mt-20 lg:gap-20 grid grid-cols-6">
-                    <div className="lg:col-span-2 col-span-6 flex flex-col  items-center">
-                        <img
-                            className="w-60 rounded-full h-60" 
-                            src={imageDisplay || placeholder}/>
-                        <div className="my-2 mt-5 self-start">Graduating Class : {year}</div>
-                        <div className="my-2 lg:max-w-[250px] self-start">Interests: 
-                            {
-                                Array.isArray(interests) && interests.map((intr, index) => {
-                                    return(
-                                        <span key={index}> {intr} {index < interests.length - 1 ? ", " : ""}</span>
-                                    )
-                                })
-                            }
-                        </div>
-                        <div className="border my-5 w-full p-10 border-gray-200">
-                                {bio}
-                        </div>
-                    </div>
-                    <div className="lg:col-span-4 col-span-6  h-fit grid gap-5">
-                        <div className="flex justify-between">
-                            <div>
-                                
-                                <div className="text-4xl mb-10 h-fit font-semibold">{username}</div>
-                                <div className="flex ">
+    const isOwnProfile = viewer === username;
+    const interestsSafe = Array.isArray(interests) ? interests : [];
+    const itemsSafe = Array.isArray(items) ? items : [];
 
-                                    <img className="w-8 h-5" src={require('../assets/vimeo.png')}/>
-                                    <div className="font-bold">{venmo}</div>
-                                </div>
-                            </div>
-                            {
-                                    viewer != username && <div className="h-full text-white flex">
-                                    <div className="p-3 justify-center cursor-pointer flex w-28 rounded-3xl h-fit font-semibold m-2 bg-[#3289FF]">
-                                        Follow
-                                    </div>
-                                    
-                                    <div
-                                        onClick={() => processMessageRequest()} 
-                                        className="p-3 h-fit cursor-pointer justify-center flex rounded-3xl w-28 m-2  font-semibold bg-[#3289FF]">
-                                        Message
-                                    </div>
-                                </div>
-                            }
-                            
-                        </div>
-                        <div className="">
-                            <StoreItems
-                                data={Array.isArray(items) ? items : []}/>
+    // Loading state
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[var(--color-bg)]">
+                <Header/>
+                <div className="container py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center justify-center py-16">
+                        <div className="text-center">
+                            <svg 
+                                className="animate-spin h-8 w-8 text-[var(--color-primary)] mx-auto mb-4" 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                fill="none" 
+                                viewBox="0 0 24 24"
+                            >
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p className="text-base text-[var(--color-muted)]">Loading profile...</p>
                         </div>
                     </div>
-                    
                 </div>
             </div>
+        );
+    }
 
+    return(
+        <div className="min-h-screen bg-[var(--color-bg)]">
+            <Header/>
+            <div className="container py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+                    {/* Left Sidebar - Profile Info */}
+                    <div className="lg:col-span-1">
+                        <Card className="p-6 space-y-6">
+                            {/* Profile Picture */}
+                            <div className="flex justify-center">
+                                <div className="relative">
+                                    <img
+                                        className="w-48 h-48 rounded-full object-cover border-4 border-[var(--color-surface-2)] shadow-lg" 
+                                        src={imageDisplay ? normalizeImageUrl(imageDisplay) : placeholder}
+                                        alt={username || 'Profile'}
+                                        onError={(e) => {
+                                            e.target.src = placeholder;
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* User Info */}
+                            <div className="space-y-4">
+                                {/* Graduating Class */}
+                                {year && (
+                                    <div className="space-y-1">
+                                        <div className="text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wide">
+                                            Graduating Class
+                                        </div>
+                                        <div className="text-lg font-medium text-[var(--color-text)]">
+                                            {year}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Interests */}
+                                {interestsSafe.length > 0 && (
+                                    <div className="space-y-2">
+                                        <div className="text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wide">
+                                            Interests
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {interestsSafe.map((interest, index) => (
+                                                <Badge key={index} variant="default" className="text-sm">
+                                                    {interest}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Venmo */}
+                                {venmo && (
+                                    <div className="space-y-1">
+                                        <div className="text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wide">
+                                            Venmo
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <img 
+                                                className="w-6 h-4 object-contain" 
+                                                src={require('../assets/vimeo.png')}
+                                                alt="Venmo"
+                                            />
+                                            <span className="text-lg font-semibold text-[var(--color-text)]">
+                                                {venmo}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Bio */}
+                            {bio && (
+                                <div className="pt-4 border-t border-[var(--color-border)]">
+                                    <div className="text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wide mb-2">
+                                        About
+                                    </div>
+                                    <p className="text-sm text-[var(--color-text)] leading-relaxed whitespace-pre-wrap">
+                                        {bio}
+                                    </p>
+                                </div>
+                            )}
+                        </Card>
+                    </div>
+
+                    {/* Right Column - Username, Actions, and Items */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Header Section */}
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-3">
+                                    <h1 className="text-4xl md:text-5xl font-bold text-[var(--color-text)]">
+                                        {username}
+                                    </h1>
+                                    {/* Verified badge or other indicator could go here */}
+                                </div>
+                                {itemsSafe.length > 0 && (
+                                    <p className="text-[var(--color-muted)]">
+                                        {itemsSafe.length} {itemsSafe.length === 1 ? 'item' : 'items'} listed
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Action Buttons */}
+                            {!isOwnProfile && viewer && (
+                                <div className="flex gap-3">
+                                    <Button
+                                        variant="primary"
+                                        className="px-6 py-2.5"
+                                    >
+                                        Follow
+                                    </Button>
+                                    <Button
+                                        variant="primary"
+                                        onClick={() => processMessageRequest()}
+                                        className="px-6 py-2.5"
+                                    >
+                                        Message
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Items Section */}
+                        <div>
+                            {itemsLoading ? (
+                                <div className="flex items-center justify-center py-16">
+                                    <div className="text-center">
+                                        <svg 
+                                            className="animate-spin h-8 w-8 text-[var(--color-primary)] mx-auto mb-4" 
+                                            xmlns="http://www.w3.org/2000/svg" 
+                                            fill="none" 
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <p className="text-base text-[var(--color-muted)]">Loading items...</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <StoreItems
+                                    data={itemsSafe}
+                                    user={viewer}
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     )
 }
