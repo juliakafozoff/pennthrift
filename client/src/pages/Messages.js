@@ -41,7 +41,71 @@ const Messages = props => {
     const [joined, setJoined] = useState(false);
     const socketRef = useRef(null); 
     // Track failed avatar loads to persist fallback state
-    const [failedAvatars, setFailedAvatars] = useState(new Set()); 
+    const [failedAvatars, setFailedAvatars] = useState(new Set());
+    
+    // Format timestamp helper - defined early to avoid hoisting issues
+    const formatTimestamp = (date) => {
+        if (!date) return '';
+        try {
+            const msgDate = new Date(date);
+            const now = new Date();
+            const diffMs = now - msgDate;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return msgDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        } catch {
+            return '';
+        }
+    };
+    
+    // Group consecutive messages by sender - defined early to avoid hoisting issues
+    const groupMessages = (messages) => {
+        if (!Array.isArray(messages) || messages.length === 0) return [];
+        
+        const grouped = [];
+        let currentGroup = null;
+        
+        messages.forEach((msg) => {
+            if (!msg || msg === 'string to stop infinite loop') return;
+            
+            try {
+                const msgTimestamp = msg.timestamp ? new Date(msg.timestamp) : new Date();
+                const isSameSender = currentGroup && currentGroup.sender === msg.sender;
+                
+                let timeDiff = Infinity;
+                if (currentGroup && currentGroup.messages.length > 0) {
+                    const lastMsgTimestamp = currentGroup.messages[currentGroup.messages.length - 1].timestamp 
+                        ? new Date(currentGroup.messages[currentGroup.messages.length - 1].timestamp)
+                        : new Date();
+                    timeDiff = Math.abs(msgTimestamp - lastMsgTimestamp);
+                }
+                
+                const shouldGroup = isSameSender && timeDiff < 300000; // 5 minutes
+                
+                if (shouldGroup && currentGroup) {
+                    currentGroup.messages.push(msg);
+                } else {
+                    currentGroup = {
+                        sender: msg.sender,
+                        messages: [msg],
+                        timestamp: msg.timestamp || new Date().toISOString()
+                    };
+                    grouped.push(currentGroup);
+                }
+            } catch (err) {
+                // Skip invalid messages
+                console.error('Error grouping message:', err);
+            }
+        });
+        
+        return grouped;
+    }; 
 
 
     async function checkAllowed(){
@@ -313,61 +377,6 @@ const Messages = props => {
         }
         return null;
     }
-    
-    // Format timestamp helper
-    const formatTimestamp = (date) => {
-        if (!date) return '';
-        const msgDate = new Date(date);
-        const now = new Date();
-        const diffMs = now - msgDate;
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMs / 3600000);
-        const diffDays = Math.floor(diffMs / 86400000);
-        
-        if (diffMins < 1) return 'Just now';
-        if (diffMins < 60) return `${diffMins}m ago`;
-        if (diffHours < 24) return `${diffHours}h ago`;
-        if (diffDays < 7) return `${diffDays}d ago`;
-        return msgDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    };
-    
-    // Group consecutive messages by sender
-    const groupMessages = (messages) => {
-        if (!Array.isArray(messages) || messages.length === 0) return [];
-        
-        const grouped = [];
-        let currentGroup = null;
-        
-        messages.forEach((msg) => {
-            if (!msg || msg === 'string to stop infinite loop') return;
-            
-            const msgTimestamp = msg.timestamp ? new Date(msg.timestamp) : new Date();
-            const isSameSender = currentGroup && currentGroup.sender === msg.sender;
-            
-            let timeDiff = Infinity;
-            if (currentGroup && currentGroup.messages.length > 0) {
-                const lastMsgTimestamp = currentGroup.messages[currentGroup.messages.length - 1].timestamp 
-                    ? new Date(currentGroup.messages[currentGroup.messages.length - 1].timestamp)
-                    : new Date();
-                timeDiff = Math.abs(msgTimestamp - lastMsgTimestamp);
-            }
-            
-            const shouldGroup = isSameSender && timeDiff < 300000; // 5 minutes
-            
-            if (shouldGroup && currentGroup) {
-                currentGroup.messages.push(msg);
-            } else {
-                currentGroup = {
-                    sender: msg.sender,
-                    messages: [msg],
-                    timestamp: msg.timestamp || new Date().toISOString()
-                };
-                grouped.push(currentGroup);
-            }
-        });
-        
-        return grouped;
-    };
 
     
     
