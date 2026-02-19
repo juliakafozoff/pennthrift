@@ -49,32 +49,60 @@ router.route('/item/new').post((req, res) => {
 
 router.route('/favourites/update').post(( req, res) => {
     const { itemID, username } = req.body;
+    if(!itemID || !username){
+        return res.status(400).json('Error! itemID and username are required');
+    }
+    
     User.findOne({username:username}).then( user => {
+        if(!user){
+            return res.status(404).json('Error! User not found');
+        }
+        
         Item.findOne({_id:itemID}).then( item => {
-            const remove = user.favourites.includes(itemID);
-            if(remove){
-                User.findOneAndUpdate(
-                    { username:username },
-                    { $pullAll: {favourites:[{_id:itemID}] }}
-                ).exec();
-
-            }else{
-                User.findOneAndUpdate(
-                    { username:username },
-                    { $addToSet: {favourites:item }}
-                ).exec();
-
+            if(!item){
+                return res.status(404).json('Error! Item not found');
             }
-            res.json(user.favourites)
-        } )
-    })
+            
+            const remove = user.favourites.some(fav => fav.toString() === itemID.toString());
+            
+            if(remove){
+                // Remove from favourites
+                User.findOneAndUpdate(
+                    { username:username },
+                    { $pull: {favourites: itemID } }
+                ).then(() => {
+                    // Return updated user with populated favourites
+                    User.findOne({username:username}).populate('favourites').then( updatedUser => {
+                        res.json(updatedUser.favourites);
+                    }).catch(err => res.status(400).json('Error! ' + err));
+                }).catch(err => res.status(400).json('Error! ' + err));
+            } else {
+                // Add to favourites
+                User.findOneAndUpdate(
+                    { username:username },
+                    { $addToSet: {favourites: itemID } }
+                ).then(() => {
+                    // Return updated user with populated favourites
+                    User.findOne({username:username}).populate('favourites').then( updatedUser => {
+                        res.json(updatedUser.favourites);
+                    }).catch(err => res.status(400).json('Error! ' + err));
+                }).catch(err => res.status(400).json('Error! ' + err));
+            }
+        }).catch(err => res.status(400).json('Error! ' + err));
+    }).catch(err => res.status(400).json('Error! ' + err));
 });
 
 router.route('/favourites').post( (req, res) => {
     const { username } = req.body;
+    if(!username){
+        return res.status(400).json('Error! username is required');
+    }
     User.findOne({username:username}).populate('favourites').then( user => {
-        res.json(user.favourites)
-    });
+        if(!user){
+            return res.json([]);
+        }
+        res.json(user.favourites || []);
+    }).catch(err => res.status(400).json('Error! ' + err));
 })
 
 // get chats of user

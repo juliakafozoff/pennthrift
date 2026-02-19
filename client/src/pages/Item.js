@@ -110,21 +110,29 @@ const Item = props => {
 
     const refresh = async() => {
         if(viewer){
-            const fav = await getUserFavourites(viewer);
-            fav.map( f => {
-                setFavourites([...favourites, f._id])
-            });
-            setProcessed(true)
+            try {
+                const fav = await getUserFavourites(viewer);
+                const favouritesSafe = Array.isArray(fav) ? fav : [];
+                const favouriteIds = favouritesSafe.map(f => f?._id).filter(Boolean);
+                setFavourites(favouriteIds);
+            } catch (error) {
+                console.error('Error refreshing favourites:', error);
+            }
         }
     }
 
     async function setUp(){
         if(viewer && favourites.length == 0 && !processed){
-            const fav = await getUserFavourites(viewer);
-            fav.map( f => {
-                setFavourites([...favourites, f._id])
-            });
-            setProcessed(true)
+            try {
+                const fav = await getUserFavourites(viewer);
+                const favouritesSafe = Array.isArray(fav) ? fav : [];
+                const favouriteIds = favouritesSafe.map(f => f?._id).filter(Boolean);
+                setFavourites(favouriteIds);
+                setProcessed(true);
+            } catch (error) {
+                console.error('Error setting up favourites:', error);
+                setProcessed(true);
+            }
         }
     }
 

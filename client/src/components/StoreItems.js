@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import React from 'react';
 import { Card, Badge } from './ui';
 import { normalizeImageUrl } from '../utils/imageUtils';
+import api from '../api/http';
 
 export default class StoreItems extends Component{
 
@@ -54,14 +55,39 @@ export default class StoreItems extends Component{
             return require('../assets/favourite.png')
         }
 
-        const update = (id) =>{
+        const update = async (id) => {
             if (!id) return;
+            
             const favouritesSafe = Array.isArray(this.state.favourites) ? this.state.favourites : [];
-            if(favouritesSafe.includes(id)){
-               const updated = favouritesSafe.filter((item) => item !== id);
-               return this.setState({favourites: updated});
+            const user = this.props.user;
+            
+            // Optimistically update UI
+            const isCurrentlyFavourite = favouritesSafe.includes(id);
+            if(isCurrentlyFavourite){
+                const updated = favouritesSafe.filter((item) => item !== id);
+                this.setState({favourites: updated});
+            } else {
+                this.setState({favourites: [...favouritesSafe, id]});
             }
-           return this.setState({favourites: [...favouritesSafe, id]});
+            
+            // Call API if user is available
+            if(user){
+                try {
+                    await api.post('/api/profile/favourites/update', {
+                        itemID: id, 
+                        username: user
+                    });
+                    
+                    // Refresh favourites from parent if refresh callback is provided
+                    if(this.props.refresh){
+                        this.props.refresh();
+                    }
+                } catch (error) {
+                    console.error('Error updating favourites:', error);
+                    // Revert optimistic update on error
+                    this.setState({favourites: favouritesSafe});
+                }
+            }
         }
 
         
