@@ -14,13 +14,55 @@ const Header = props =>{
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [unread, setUnread] = useState(0);
     const [processing , setProcessing] = useState(false)
+    const [loggingOut, setLoggingOut] = useState(false);
     const socketRef = useRef(null);
 
-    function logOut(){
-        api.post('/api/auth/logout').then(res => {
+    async function logOut(){
+        // Prevent multiple simultaneous logout attempts
+        if (loggingOut) return;
+        
+        setLoggingOut(true);
+        
+        try {
+            console.log('🔴 [LOGOUT] Starting logout...');
+            
+            // Disconnect socket before logout
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+                socketRef.current = null;
+                console.log('🟢 [LOGOUT] Socket disconnected');
+            }
+            
+            // Call logout endpoint
+            const res = await api.post('/api/auth/logout', {}, { withCredentials: true });
+            
+            console.log('🟢 [LOGOUT] Logout response:', res.data);
+            
+            // Clear auth state
             setIsAuthenticated(false);
+            setUser(null);
+            
+            // Navigate to login
             navigate('/login', { replace: true });
-        });
+        } catch (error) {
+            console.error('❌ [LOGOUT] Logout error:', error);
+            
+            // Even if request fails, clear local state and navigate
+            // The session may still be cleared server-side
+            setIsAuthenticated(false);
+            setUser(null);
+            
+            // Show minimal error message (optional - you can remove this if you prefer silent failure)
+            if (error.response?.status !== 500) {
+                // Only show error if it's not a server error (session might still be cleared)
+                console.warn('⚠️ [LOGOUT] Logout request failed, but clearing local state');
+            }
+            
+            // Navigate to login regardless - if session is still active, ProtectedRoute will handle it
+            navigate('/login', { replace: true });
+        } finally {
+            setLoggingOut(false);
+        }
     }
     async function setUp(){
         try {
@@ -114,9 +156,10 @@ const Header = props =>{
                                 data-testid="logout"
                                 variant="ghost"
                                 onClick={logOut}
+                                disabled={loggingOut}
                                 className="text-sm"
                             >
-                                Logout
+                                {loggingOut ? 'Logging out...' : 'Logout'}
                             </Button>
                         ) : (
                             <Link to="/login">

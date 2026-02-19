@@ -154,17 +154,47 @@ router.get('/debug/session', (req, res) => {
     res.json(debugInfo);
 })
 
-router.post('/logout', (req, res) =>{
+router.post('/logout', (req, res) => {
+    console.log('🔴 [LOGOUT] ============================================');
+    console.log('🔴 [LOGOUT] Logout request received');
+    console.log('🔴 [LOGOUT] Session ID:', req.sessionID || 'NO SESSION ID');
+    console.log('🔴 [LOGOUT] req.user:', req.user ? { username: req.user.username, id: req.user._id } : 'NO USER');
+    console.log('🔴 [LOGOUT] req.isAuthenticated():', typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : 'NOT AVAILABLE');
+    console.log('🔴 [LOGOUT] Cookie header:', req.headers.cookie || 'NO COOKIE HEADER');
+    
+    // Store session ID for logging after destroy
+    const sessionIdBefore = req.sessionID;
+    
     // Use Passport's req.logout() for proper cleanup
     req.logout((err) => {
         if (err) {
-            console.error('Logout error:', err);
+            console.error('❌ [LOGOUT] req.logout() error:', err);
+        } else {
+            console.log('🟢 [LOGOUT] req.logout() successful');
         }
-        req.session.destroy((err) => {
-            if (err) {
-                console.error('Session destroy error:', err);
+        
+        // Destroy the session
+        req.session.destroy((destroyErr) => {
+            if (destroyErr) {
+                console.error('❌ [LOGOUT] Session destroy error:', destroyErr);
+                return res.status(500).json({ success: false, error: 'Failed to destroy session' });
             }
-            res.json('Logged out');
+            
+            console.log('🟢 [LOGOUT] Session destroyed successfully');
+            console.log('🔴 [LOGOUT] Session ID after destroy:', req.sessionID || 'NO SESSION ID');
+            
+            // Clear the session cookie with the SAME attributes used when setting it
+            res.clearCookie('user_sid', {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'none',
+                path: '/'
+            });
+            
+            console.log('🟢 [LOGOUT] Cookie cleared');
+            console.log('🔴 [LOGOUT] ============================================');
+            
+            res.json({ success: true });
         });
     });
 })
