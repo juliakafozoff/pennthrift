@@ -12,7 +12,8 @@ export const AuthProvider = ({ children }) => {
   const checkAuth = async () => {
     try {
       console.log('🔵 [AUTH CONTEXT] Checking authentication...');
-      const res = await api.get('/api/auth/');
+      // Use canonical /api/auth/me endpoint to get current authenticated user from session
+      const res = await api.get('/api/auth/me');
       
       const authenticated = res.data.authenticated === true;
       const authUser = res.data.user || null;

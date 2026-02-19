@@ -45,6 +45,11 @@ const Login = () => {
                 // Update auth context
                 await checkAuth();
                 
+                // Verify authenticated user from session
+                console.log('[LOGIN] Verifying authenticated user from /api/auth/me');
+                const meRes = await api.get('/api/auth/me');
+                console.log('[LOGIN] /api/auth/me response:', meRes.data);
+                
                 const target = from;
                 console.log('[LOGIN] navigating to', target);
                 

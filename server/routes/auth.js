@@ -154,6 +154,24 @@ router.get('/debug/session', (req, res) => {
     res.json(debugInfo);
 })
 
+// Canonical endpoint to get current authenticated user from session
+router.get('/me', (req, res) => {
+    const authenticated = typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : false;
+    const user = req.user || null;
+    
+    console.log('🔍 [AUTH ME] Request received');
+    console.log('🔍 [AUTH ME] authenticated:', authenticated);
+    console.log('🔍 [AUTH ME] user:', user ? { username: user.username, id: user._id || user.id } : null);
+    
+    res.json({
+        authenticated: authenticated === true,
+        user: user ? { 
+            username: user.username, 
+            id: user._id || user.id 
+        } : null
+    });
+})
+
 // Diagnostic endpoint to check authentication status after logout
 router.get('/debug/whoami', (req, res) => {
     const authenticated = typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : false;

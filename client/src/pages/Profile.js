@@ -45,51 +45,70 @@ class Profile extends Component {
         }
     }
 
-    loadProfileData = () => {
-        const user = this.props.auth?.user?.username;
+    loadProfileData = async () => {
         const { items, processed, userInfo, dataLoaded } = this.state;
         
         // Don't reload if already loaded
         if (dataLoaded) return;
         
-        if (!user) {
-            // If no user, mark as loaded to prevent infinite loops
-            this.setState({ dataLoaded: true });
-            return;
-        }
-        
-        // Load items if empty
-        if (items.length === 0) {
-            api.get(`/api/profile/items/${user}`)
-                .then(res => {
-                    this.setState({
-                        items: Array.isArray(res.data?.items) ? res.data.items.reverse() : [],
-                        dataLoaded: true
+        try {
+            // First, get the current authenticated user from session (canonical source)
+            console.log('[PROFILE] Fetching current authenticated user from /api/auth/me');
+            const meRes = await api.get('/api/auth/me');
+            console.log('[PROFILE] /api/auth/me response:', meRes.data);
+            
+            if (!meRes.data.authenticated || !meRes.data.user) {
+                console.log('[PROFILE] Not authenticated, redirecting to login');
+                // Not authenticated - ProtectedRoute should handle this, but ensure we don't load data
+                this.setState({ dataLoaded: true });
+                return;
+            }
+            
+            const currentUser = meRes.data.user;
+            const username = currentUser.username;
+            const userId = currentUser.id;
+            
+            console.log('[PROFILE] Current authenticated user:', { username, userId });
+            console.log('[PROFILE] Fetching profile for:', username, '(from /api/auth/me)');
+            
+            // Load items if empty
+            if (items.length === 0) {
+                api.get(`/api/profile/items/${username}`)
+                    .then(res => {
+                        console.log('[PROFILE] Items loaded for:', username);
+                        this.setState({
+                            items: Array.isArray(res.data?.items) ? res.data.items.reverse() : [],
+                            dataLoaded: true
+                        });
+                    })
+                    .catch(e => {
+                        console.error('[PROFILE] Error loading items:', e);
+                        this.setState({ items: [], dataLoaded: true });
                     });
-                })
-                .catch(e => {
-                    console.error('Error loading items:', e);
-                    this.setState({ items: [], dataLoaded: true });
-                });
-        }
-        
-        // Load user profile info if not loaded
-        if (!userInfo) {
-            getUserProfile(user)
-                .then(info => {
-                    this.setState({ userInfo: info });
-                    if (info && !processed) {
-                        this.processUserInfo(info);
-                        this.setState({ processed: true });
-                    }
-                })
-                .catch(e => {
-                    console.error('Error loading profile:', e);
-                    this.setState({ dataLoaded: true });
-                });
-        } else if (userInfo && !processed) {
-            this.processUserInfo(userInfo);
-            this.setState({ processed: true });
+            }
+            
+            // Load user profile info if not loaded
+            if (!userInfo) {
+                getUserProfile(username)
+                    .then(info => {
+                        console.log('[PROFILE] Profile info loaded for:', username);
+                        this.setState({ userInfo: info });
+                        if (info && !processed) {
+                            this.processUserInfo(info);
+                            this.setState({ processed: true });
+                        }
+                    })
+                    .catch(e => {
+                        console.error('[PROFILE] Error loading profile:', e);
+                        this.setState({ dataLoaded: true });
+                    });
+            } else if (userInfo && !processed) {
+                this.processUserInfo(userInfo);
+                this.setState({ processed: true });
+            }
+        } catch (error) {
+            console.error('[PROFILE] Error fetching /api/auth/me:', error);
+            this.setState({ dataLoaded: true });
         }
     }
 
@@ -99,15 +118,26 @@ class Profile extends Component {
         if(interests)this.setState({interests:interests});
     }
 
-    refresh = () =>{
-        const user = this.state.user;
-        if(user){
-            api.get(`/api/profile/items/${user}`)
-                    .then( res => {this.setState({items: res.data.items.reverse()})})
-                    .catch(e => console.log(e))
-
+    refresh = async () => {
+        try {
+            // Get current authenticated user from session
+            const meRes = await api.get('/api/auth/me');
+            if (meRes.data.authenticated && meRes.data.user) {
+                const username = meRes.data.user.username;
+                console.log('[PROFILE] Refreshing items for:', username);
+                api.get(`/api/profile/items/${username}`)
+                    .then(res => {
+                        this.setState({
+                            items: Array.isArray(res.data?.items) ? res.data.items.reverse() : []
+                        });
+                    })
+                    .catch(e => {
+                        console.error('[PROFILE] Error refreshing items:', e);
+                    });
+            }
+        } catch (error) {
+            console.error('[PROFILE] Error fetching /api/auth/me for refresh:', error);
         }
-
     }
 
     render(){

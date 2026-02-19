@@ -42,23 +42,30 @@ const EditProfile = props => {
         const fetchUserInfo = async () => {
             try {
                 setInitialLoading(true);
-                const res = await api.get('/api/auth/user');
-                const currentUser = res.data;
-                setUser(currentUser);
+                // Use canonical /api/auth/me endpoint to get current authenticated user from session
+                const res = await api.get('/api/auth/me');
+                console.log('[EDIT PROFILE] /api/auth/me response:', res.data);
                 
-                if (currentUser) {
+                if (res.data.authenticated && res.data.user) {
+                    const currentUser = res.data.user.username;
+                    console.log('[EDIT PROFILE] Current authenticated user:', currentUser);
+                    setUser(currentUser);
+                    
                     const profileInfo = await getUserProfile(currentUser);
+                    console.log('[EDIT PROFILE] Profile info loaded for:', currentUser);
                     setUserInfo(profileInfo);
                     processUserInfo(profileInfo);
+                } else {
+                    setError('Not authenticated. Please log in.');
                 }
             } catch (err) {
-                console.error('Error loading user info:', err);
+                console.error('[EDIT PROFILE] Error loading user info:', err);
                 setError('Failed to load profile. Please refresh the page.');
             } finally {
                 setInitialLoading(false);
             }
         };
-
+        
         fetchUserInfo();
     }, []);
 
