@@ -34,8 +34,8 @@ const ProtectedRoute = ({ children }) => {
   useEffect(() => {
     let mounted = true;
     let retries = 0;
-    const maxRetries = 3;
-    const retryDelay = 300; // ms between retries
+    const maxRetries = 5; // Increased retries
+    const retryDelay = 500; // Increased delay between retries
     
     const checkAuth = async () => {
       try {
@@ -43,11 +43,37 @@ const ProtectedRoute = ({ children }) => {
         const authenticated = res.data[0] === true;
         
         if (mounted) {
-          // If not authenticated but we haven't exhausted retries, try again
+          // If not authenticated but we think we should be logged in, retry
           // This handles race condition where session cookie might not be set yet
           if (!authenticated && retries < maxRetries && global.LOGGED_IN === true) {
             retries++;
+            console.log(`Auth check failed, retrying (${retries}/${maxRetries})...`);
             setTimeout(checkAuth, retryDelay);
+            return;
+          }
+          
+          // If we've exhausted retries but still think we're logged in, 
+          // give it one more moment before giving up
+          if (!authenticated && retries >= maxRetries && global.LOGGED_IN === true) {
+            console.log('Max retries reached, waiting one more moment...');
+            setTimeout(() => {
+              if (mounted) {
+                api.post('/api/auth/').then(finalRes => {
+                  if (mounted) {
+                    const finalAuth = finalRes.data[0] === true;
+                    global.LOGGED_IN = finalAuth;
+                    setIsAuthenticated(finalAuth);
+                    setIsLoading(false);
+                  }
+                }).catch(() => {
+                  if (mounted) {
+                    global.LOGGED_IN = false;
+                    setIsAuthenticated(false);
+                    setIsLoading(false);
+                  }
+                });
+              }
+            }, 500);
             return;
           }
           
@@ -61,6 +87,7 @@ const ProtectedRoute = ({ children }) => {
           // Retry on network errors if we think we should be logged in
           if (retries < maxRetries && global.LOGGED_IN === true) {
             retries++;
+            console.log(`Auth check error, retrying (${retries}/${maxRetries})...`);
             setTimeout(checkAuth, retryDelay);
             return;
           }
@@ -71,7 +98,12 @@ const ProtectedRoute = ({ children }) => {
       }
     };
 
-    checkAuth();
+    // If we think we're logged in, add a small initial delay to let cookies propagate
+    if (global.LOGGED_IN === true) {
+      setTimeout(checkAuth, 200);
+    } else {
+      checkAuth();
+    }
 
     return () => {
       mounted = false;
