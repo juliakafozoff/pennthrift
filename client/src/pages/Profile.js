@@ -179,7 +179,7 @@ class Profile extends Component {
                                     
                                     {/* Edit Profile Button - Prominent placement */}
                                     <div className="pt-4 border-t border-[var(--color-border)]">
-                                        <Link to="/profile/edit" className="[&_button]:!text-white">
+                                        <Link to="/profile/edit">
                                             <Button variant="primary" className="w-full">
                                                 Edit Profile
                                             </Button>
@@ -201,12 +201,12 @@ class Profile extends Component {
                                 )}
                                 actions={
                                     <div className="flex flex-wrap items-center gap-3">
-                                        <Link to="/profile/analytics" className="[&_button]:!text-[var(--color-text)]">
+                                        <Link to="/profile/analytics">
                                             <Button variant="secondary">
                                                 View Analytics
                                             </Button>
                                         </Link>
-                                        <Link to="/profile/edit" className="hidden lg:block [&_button]:!text-white">
+                                        <Link to="/profile/edit" className="hidden lg:block">
                                             <Button variant="primary">
                                                 Edit Profile
                                             </Button>

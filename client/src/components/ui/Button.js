@@ -14,19 +14,18 @@ export const Button = ({
   className = '',
   ...props 
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center min-h-[44px] px-6 py-2.5 rounded-lg font-medium text-base transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
-  
+  // Use stable CSS classes instead of Tailwind arbitrary values to avoid purge issues
   const variantClasses = {
-    primary: 'bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] focus-visible:outline-[var(--color-primary)]',
-    secondary: 'bg-[var(--color-surface-2)] text-[var(--color-text)] border border-[var(--color-border)] hover:bg-[var(--color-border)] focus-visible:outline-[var(--color-primary)]',
-    ghost: 'text-[var(--color-text)] hover:bg-[var(--color-surface-2)] focus-visible:outline-[var(--color-primary)]',
-    danger: 'bg-[var(--color-danger)] text-white hover:bg-[var(--color-danger-hover)] focus-visible:outline-[var(--color-danger)]'
+    primary: 'btn btn-primary',
+    secondary: 'btn btn-secondary',
+    ghost: 'btn btn-ghost',
+    danger: 'btn btn-danger'
   };
   
   return (
     <button
       type={type}
-      className={`${baseClasses} ${variantClasses[variant]} ${className}`}
+      className={`${variantClasses[variant]} ${className}`}
       disabled={disabled || loading}
       onClick={onClick}
       {...props}
