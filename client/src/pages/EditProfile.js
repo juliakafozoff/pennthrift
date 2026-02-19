@@ -181,8 +181,20 @@ const EditProfile = props => {
                     }
                 });
                 // Backend now returns JSON: { path, url, filename }
-                // Prefer relative path for storage (works in both dev and prod)
-                profilePicUrl = uploadRes.data?.path || uploadRes.data?.url || uploadRes.data;
+                // ALWAYS prefer relative path for storage (works in both dev and prod)
+                // Extract relative path, fallback to extracting from URL if path not available
+                if (uploadRes.data?.path) {
+                    profilePicUrl = uploadRes.data.path; // Relative path like /api/file/filename.png
+                } else if (uploadRes.data?.url) {
+                    // Extract relative path from full URL
+                    const urlMatch = uploadRes.data.url.match(/\/api\/file\/[^?#]+/);
+                    profilePicUrl = urlMatch ? urlMatch[0] : uploadRes.data.url;
+                } else if (typeof uploadRes.data === 'string') {
+                    // If it's already a string, check if it's a relative path
+                    profilePicUrl = uploadRes.data.startsWith('/api/') ? uploadRes.data : uploadRes.data;
+                } else {
+                    profilePicUrl = uploadRes.data;
+                }
             }
 
             // Build data object - BUGFIX A: Only ONE profile_pic field

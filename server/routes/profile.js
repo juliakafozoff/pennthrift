@@ -2,18 +2,72 @@ const User = require('../models/user.model');
 const Item = require('../models/item.model')
 const router = require('express').Router();
 
+// Helper function to sanitize profile_pic URLs
+// Converts localhost URLs to relative paths or fixes them
+const sanitizeProfilePic = (profilePic) => {
+    if (!profilePic || typeof profilePic !== 'string') {
+        return profilePic;
+    }
+    
+    // If it contains localhost or 127.0.0.1, extract relative path
+    if (profilePic.includes('localhost') || profilePic.includes('127.0.0.1')) {
+        const match = profilePic.match(/\/api\/file\/[^?#]+/);
+        if (match) {
+            return match[0]; // Return relative path like /api/file/filename.png
+        }
+        // If no match, return empty string (invalid URL)
+        return '';
+    }
+    
+    // If it's already a relative path, return as-is
+    if (profilePic.startsWith('/api/')) {
+        return profilePic;
+    }
+    
+    // If it's a valid absolute URL (not localhost), return as-is
+    return profilePic;
+};
+
+// Helper to sanitize user object before sending
+const sanitizeUser = (user) => {
+    if (!user) return user;
+    
+    // Convert to plain object if it's a Mongoose document
+    const userObj = user.toObject ? user.toObject() : user;
+    
+    // Sanitize profile_pic
+    if (userObj.profile_pic) {
+        userObj.profile_pic = sanitizeProfilePic(userObj.profile_pic);
+    }
+    
+    // Ensure password is never included
+    delete userObj.password;
+    
+    return userObj;
+};
+
 // get all profiles/users
 router.route('/').get((req, res) => {
     // using .find() without a parameter will match on all user instances
     User.find().select('-password')
-        .then(allUsers => res.json(allUsers))
+        .then(allUsers => {
+            // Sanitize profile_pic URLs for all users
+            const sanitizedUsers = Array.isArray(allUsers) 
+                ? allUsers.map(user => sanitizeUser(user))
+                : [];
+            res.json(sanitizedUsers);
+        })
         .catch(err => res.status(400).json('Error! ' + err))
 });
 
 // get profile/ user info by username
 router.route('/:username').get((req, res) => {
     User.findOne({username: req.params.username}).select('-password')
-    .then(user => res.json(user))
+    .then(user => {
+        // Sanitize profile_pic URL before sending
+        const sanitizedUser = sanitizeUser(user);
+        res.json(sanitizedUser);
+    })
     .catch(err => res.status(400).json('Error! ' + err))
 });
 
@@ -26,6 +80,11 @@ router.route('/delete/:username').delete((req, res) => {
 
 // edit profile/user info by username
 router.route('/edit/:username').put((req, res) => {
+    // Sanitize profile_pic before saving if present
+    if (req.body.profile_pic) {
+        req.body.profile_pic = sanitizeProfilePic(req.body.profile_pic);
+    }
+    
     User.findOneAndUpdate({username: req.params.username }, req.body)
         .then(user => res.json('Success! User updated.'))
         .catch(err => res.status(400).json('Error! ' + err))

@@ -7,38 +7,7 @@ import { getUserProfile } from "../api/ProfileAPI";
 import placeholder from '../assets/placeholder_user.png';
 import { PageHeader, Card, Badge, Button } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
-
-// Helper function to normalize image URLs
-const normalizeImageUrl = (url) => {
-    if (!url || typeof url !== 'string') {
-        return null;
-    }
-    
-    // If it's a relative path (starts with /api), prefix with API base URL
-    if (url.startsWith('/api/')) {
-        const apiBaseUrl = process.env.REACT_APP_API_URL || 'http://localhost:4000';
-        return `${apiBaseUrl}${url}`;
-    }
-    
-    // Backward compatibility: replace localhost URLs with production URL
-    if (url.includes('localhost')) {
-        // Replace any localhost URL with production URL
-        const productionUrl = process.env.REACT_APP_API_URL || 'https://pennthrift.onrender.com';
-        // Extract the path from the localhost URL
-        const urlMatch = url.match(/\/api\/file\/(.+)$/);
-        if (urlMatch) {
-            const filename = urlMatch[1];
-            // URL encode spaces and special characters
-            const encodedFilename = encodeURIComponent(filename);
-            return `${productionUrl}/api/file/${encodedFilename}`;
-        }
-        // Fallback: replace localhost host with production host
-        return url.replace(/https?:\/\/[^\/]+/, productionUrl);
-    }
-    
-    // Already a valid absolute URL
-    return url;
-};
+import { normalizeImageUrl, getUserInitial } from "../utils/imageUtils";
 
 
 class Profile extends Component {
@@ -175,15 +144,30 @@ class Profile extends Component {
                         {/* Left Column - Profile Info */}
                         <div className="lg:col-span-1">
                             <Card className="text-center lg:text-left">
-                                <img
-                                    className="w-48 h-48 rounded-full mx-auto lg:mx-0 mb-6 object-cover border-4 border-[var(--color-surface-2)]" 
-                                    src={normalizeImageUrl(this.state.profile_pic) || placeholder}
-                                    alt={user}
-                                    onError={(e) => {
-                                        // Fallback to placeholder if image fails to load
-                                        e.target.src = placeholder;
-                                    }}
-                                />
+                                {this.state.profile_pic && normalizeImageUrl(this.state.profile_pic) ? (
+                                    <>
+                                        <img
+                                            className="w-48 h-48 rounded-full mx-auto lg:mx-0 mb-6 object-cover border-4 border-[var(--color-surface-2)]" 
+                                            src={normalizeImageUrl(this.state.profile_pic)}
+                                            alt={user}
+                                            onError={(e) => {
+                                                e.target.style.display = 'none';
+                                                const fallback = e.target.nextSibling;
+                                                if (fallback) fallback.style.display = 'flex';
+                                            }}
+                                        />
+                                        <div 
+                                            className="w-48 h-48 rounded-full mx-auto lg:mx-0 mb-6 border-4 border-[var(--color-surface-2)] bg-gray-600 flex items-center justify-center text-white text-6xl font-semibold"
+                                            style={{ display: 'none' }}
+                                        >
+                                            {getUserInitial(user)}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="w-48 h-48 rounded-full mx-auto lg:mx-0 mb-6 border-4 border-[var(--color-surface-2)] bg-gray-600 flex items-center justify-center text-white text-6xl font-semibold">
+                                        {getUserInitial(user)}
+                                    </div>
+                                )}
                                 
                                 <div className="space-y-4">
                                     {this.state.year && (

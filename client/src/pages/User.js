@@ -10,7 +10,7 @@ import io from 'socket.io-client';
 import { path } from "../api/ProfileAPI";
 import { useAuth } from "../contexts/AuthContext";
 import { Card, Badge, Button } from "../components/ui";
-import { normalizeImageUrl } from "../utils/imageUtils";
+import { normalizeImageUrl, getUserInitial } from "../utils/imageUtils";
 
 const  User = props => {
     
@@ -218,14 +218,30 @@ const  User = props => {
                             {/* Profile Picture */}
                             <div className="flex justify-center">
                                 <div className="relative">
-                                    <img
-                                        className="w-48 h-48 rounded-full object-cover border-4 border-[var(--color-surface-2)] shadow-lg" 
-                                        src={imageDisplay ? normalizeImageUrl(imageDisplay) : placeholder}
-                                        alt={username || 'Profile'}
-                                        onError={(e) => {
-                                            e.target.src = placeholder;
-                                        }}
-                                    />
+                                    {imageDisplay && normalizeImageUrl(imageDisplay) ? (
+                                        <>
+                                            <img
+                                                className="w-48 h-48 rounded-full object-cover border-4 border-[var(--color-surface-2)] shadow-lg" 
+                                                src={normalizeImageUrl(imageDisplay)}
+                                                alt={username || 'Profile'}
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    const fallback = e.target.nextSibling;
+                                                    if (fallback) fallback.style.display = 'flex';
+                                                }}
+                                            />
+                                            <div 
+                                                className="w-48 h-48 rounded-full border-4 border-[var(--color-surface-2)] shadow-lg bg-gray-600 flex items-center justify-center text-white text-6xl font-semibold"
+                                                style={{ display: 'none' }}
+                                            >
+                                                {getUserInitial(username)}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="w-48 h-48 rounded-full border-4 border-[var(--color-surface-2)] shadow-lg bg-gray-600 flex items-center justify-center text-white text-6xl font-semibold">
+                                            {getUserInitial(username)}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

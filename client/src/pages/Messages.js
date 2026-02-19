@@ -10,7 +10,7 @@ import ScrollableFeed from 'react-scrollable-feed'
 import FileViewer from 'react-file-viewer';
 import io from 'socket.io-client';
 import { path } from '../api/ProfileAPI';
-import { normalizeImageUrl } from "../utils/imageUtils";
+import { normalizeImageUrl, getUserInitial } from "../utils/imageUtils";
 
 const Messages = props => {
 
@@ -242,6 +242,38 @@ const Messages = props => {
             }
         };
         
+        // Helper to render profile picture with fallback
+        const renderProfilePic = (userObj, username) => {
+            const picUrl = normalizeImageUrl(userObj?.profile_pic);
+            const displayName = username || userObj?.username || '';
+            const initial = getUserInitial(displayName);
+            
+            if (picUrl) {
+                return (
+                    <img 
+                        src={picUrl} 
+                        alt={displayName}
+                        className='rounded-full h-10 w-10 bg-black mx-2 object-cover'
+                        onError={(e) => {
+                            // Fallback to initial circle if image fails
+                            e.target.style.display = 'none';
+                            const fallback = e.target.nextSibling;
+                            if (fallback) fallback.style.display = 'flex';
+                        }}
+                    />
+                );
+            }
+            // Show initial circle as fallback
+            return (
+                <div 
+                    className='rounded-full h-10 w-10 bg-gray-600 mx-2 flex items-center justify-center text-white font-semibold text-sm'
+                    style={{ display: picUrl ? 'none' : 'flex' }}
+                >
+                    {initial}
+                </div>
+            );
+        };
+        
         if(msgSender == user && sender){
             return(
                 <div className='flex m-5 justify-end gap-2'>
@@ -250,14 +282,30 @@ const Messages = props => {
                         {text}
                     </div>
                     
-                    <img src={sender.profile_pic || placeholder} className='rounded-full  h-10 w-10 h-full bg-black mx-2 '/>
+                    <div className='relative'>
+                        {renderProfilePic(sender, sender?.username)}
+                        <div 
+                            className='rounded-full h-10 w-10 bg-gray-600 mx-2 flex items-center justify-center text-white font-semibold text-sm absolute top-0 left-0'
+                            style={{ display: 'none' }}
+                        >
+                            {getUserInitial(sender?.username)}
+                        </div>
+                    </div>
                 </div>
             )
             
         }else if(msgSender != user && sender && msgSender){
             return(
                 <div className='flex m-5 gap-2'>
-                    <img src={receiver.profile_pic || placeholder} className='rounded-full  h-10 w-10 h-full bg-black mx-2 '/>
+                    <div className='relative'>
+                        {renderProfilePic(receiver, receiver?.username)}
+                        <div 
+                            className='rounded-full h-10 w-10 bg-gray-600 mx-2 flex items-center justify-center text-white font-semibold text-sm absolute top-0 left-0'
+                            style={{ display: 'none' }}
+                        >
+                            {getUserInitial(receiver?.username)}
+                        </div>
+                    </div>
                     <div style={{overflowWrap:'anywhere'}}  className='p-5 max-w-[70%] flex-col flex  rounded-2xl bg-gray-300'>
                         {renderAttachment()}
                         {text}
@@ -438,8 +486,32 @@ const Messages = props => {
                                                     return(
                                                     
                                                         <div key={usr} className={`flex px-2 py-5 mb-1 items-center ${chatId === id ? ' bg-blue-300 ' : ''}`  }>
-                                                            
-                                                            <img src={ chat.image || placeholder} className='rounded-full  h-10 w-10 h-full bg-black mx-2 '/>
+                                                            <div className='relative'>
+                                                                {chat.image && normalizeImageUrl(chat.image) ? (
+                                                                    <>
+                                                                        <img 
+                                                                            src={normalizeImageUrl(chat.image)} 
+                                                                            alt={usr}
+                                                                            className='rounded-full h-10 w-10 bg-black mx-2 object-cover'
+                                                                            onError={(e) => {
+                                                                                e.target.style.display = 'none';
+                                                                                const fallback = e.target.nextSibling;
+                                                                                if (fallback) fallback.style.display = 'flex';
+                                                                            }}
+                                                                        />
+                                                                        <div 
+                                                                            className='rounded-full h-10 w-10 bg-gray-600 mx-2 flex items-center justify-center text-white font-semibold text-sm absolute top-0 left-0'
+                                                                            style={{ display: 'none' }}
+                                                                        >
+                                                                            {getUserInitial(usr)}
+                                                                        </div>
+                                                                    </>
+                                                                ) : (
+                                                                    <div className='rounded-full h-10 w-10 bg-gray-600 mx-2 flex items-center justify-center text-white font-semibold text-sm'>
+                                                                        {getUserInitial(usr)}
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                             <div className=''>
                                                                 <div className='text-xl font-semibold'>{usr}</div>
                                                                 <div className='text-xs text-gray-500'>{lastMessage}</div>
