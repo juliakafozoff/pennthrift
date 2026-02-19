@@ -25,7 +25,7 @@ import Messages from './pages/Messages';
 import Favourites from './pages/Favourites';
 import NotFound from './pages/NotFound';
 
-// ProtectedRoute component - properly handles async auth check
+// ProtectedRoute component - properly handles async auth check with retry logic
 const ProtectedRoute = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(null); // null = checking, true = auth, false = not auth
   const [isLoading, setIsLoading] = useState(true);
@@ -33,6 +33,9 @@ const ProtectedRoute = ({ children }) => {
 
   useEffect(() => {
     let mounted = true;
+    let retries = 0;
+    const maxRetries = 3;
+    const retryDelay = 300; // ms between retries
     
     const checkAuth = async () => {
       try {
@@ -40,6 +43,14 @@ const ProtectedRoute = ({ children }) => {
         const authenticated = res.data[0] === true;
         
         if (mounted) {
+          // If not authenticated but we haven't exhausted retries, try again
+          // This handles race condition where session cookie might not be set yet
+          if (!authenticated && retries < maxRetries && global.LOGGED_IN === true) {
+            retries++;
+            setTimeout(checkAuth, retryDelay);
+            return;
+          }
+          
           global.LOGGED_IN = authenticated;
           setIsAuthenticated(authenticated);
           setIsLoading(false);
@@ -47,6 +58,12 @@ const ProtectedRoute = ({ children }) => {
       } catch (error) {
         console.error('Auth check failed:', error);
         if (mounted) {
+          // Retry on network errors if we think we should be logged in
+          if (retries < maxRetries && global.LOGGED_IN === true) {
+            retries++;
+            setTimeout(checkAuth, retryDelay);
+            return;
+          }
           global.LOGGED_IN = false;
           setIsAuthenticated(false);
           setIsLoading(false);
@@ -59,7 +76,7 @@ const ProtectedRoute = ({ children }) => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [location.pathname]); // Re-check when route changes
 
   // Show nothing while checking (prevents flash)
   if (isLoading || isAuthenticated === null) {

@@ -13,16 +13,23 @@ const Register = () =>{
             'password':password,
         };
 
-
         api.post(address, data).then(res =>{
-            if(res.data === "error"){
+            // Server returns "successful" on success or "Error: User is already registered" on duplicate
+            if (res.data && (res.data.includes("Error") || res.data.includes("error"))) {
                 setError('Username has already been taken');
-            }else{
-                navigate('/profile', { replace: true })
+            } else if (res.data === "successful") {
                 global.LOGGED_IN = true;
+                // Wait a moment for session cookie to be set before navigating
+                setTimeout(() => {
+                    navigate('/profile', { replace: true });
+                }, 100);
+            } else {
+                setError('Registration failed. Please try again.');
             }
-        })
-        
+        }).catch(err => {
+            console.error('Registration error:', err);
+            setError('Registration failed. Please check your connection and try again.');
+        });
     }
 
     function reset(){

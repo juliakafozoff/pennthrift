@@ -37,8 +37,10 @@ const Login = () =>{
                     // Don't block navigation on this error
                 });
                 
-                // Navigate immediately after successful login
-                navigate(from, { replace: true });
+                // Wait a moment for session cookie to be set before navigating
+                setTimeout(() => {
+                    navigate(from, { replace: true });
+                }, 100);
             } else if (res.status === 202) {
                 const currentTimestamp = moment().unix(); // in seconds
                 const currentDatetime = moment(currentTimestamp * 1000).format(
