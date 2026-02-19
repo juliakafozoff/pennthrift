@@ -89,8 +89,8 @@ app.use(session({
   store: sessionStore,
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: true,  // Always true - Render uses HTTPS
+    sameSite: 'none',  // Always 'none' for cross-domain cookies (Netlify ↔ Render)
     maxAge: 6 * 24 * 60 * 60 * 1000,
     path: '/',
     // Don't set domain explicitly - let browser handle it for cross-domain
