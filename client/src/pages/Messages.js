@@ -105,6 +105,47 @@ const Messages = props => {
         });
         
         return grouped;
+    };
+    
+    // Helper to render profile picture with fallback (persists failed state)
+    const renderProfilePic = (userObj, username, size = 'h-10 w-10') => {
+        const displayName = username || userObj?.username || '';
+        const initial = getUserInitial(displayName);
+        const avatarKey = displayName;
+        const hasFailed = failedAvatars.has(avatarKey);
+        // Support both profile_pic and profilePic/avatar fallback
+        const picUrl = !hasFailed ? normalizeImageUrl(userObj?.profile_pic || userObj?.profilePic || userObj?.avatar) : null;
+        
+        if (picUrl && !hasFailed) {
+            return (
+                <>
+                    <img 
+                        src={picUrl} 
+                        alt={displayName}
+                        className={`rounded-full ${size} bg-gray-200 object-cover`}
+                        onError={(e) => {
+                            // Mark as failed and show fallback immediately
+                            setFailedAvatars(prev => new Set([...prev, avatarKey]));
+                            e.target.style.display = 'none';
+                            const fallback = e.target.nextSibling;
+                            if (fallback) fallback.style.display = 'flex';
+                        }}
+                    />
+                    <div 
+                        className={`rounded-full ${size} bg-gray-500 flex items-center justify-center text-white font-semibold text-sm`}
+                        style={{ display: 'none' }}
+                    >
+                        {initial}
+                    </div>
+                </>
+            );
+        }
+        // Show initial circle as fallback (always shown if failed or no pic)
+        return (
+            <div className={`rounded-full ${size} bg-gray-500 flex items-center justify-center text-white font-semibold text-sm`}>
+                {initial}
+            </div>
+        );
     }; 
 
 
@@ -306,46 +347,6 @@ const Messages = props => {
                     </div>
                 );
             }
-        };
-        
-        // Helper to render profile picture with fallback (persists failed state)
-        const renderProfilePic = (userObj, username, size = 'h-10 w-10') => {
-            const displayName = username || userObj?.username || '';
-            const initial = getUserInitial(displayName);
-            const avatarKey = displayName;
-            const hasFailed = failedAvatars.has(avatarKey);
-            const picUrl = !hasFailed ? normalizeImageUrl(userObj?.profile_pic) : null;
-            
-            if (picUrl && !hasFailed) {
-                return (
-                    <>
-                        <img 
-                            src={picUrl} 
-                            alt={displayName}
-                            className={`rounded-full ${size} bg-gray-200 object-cover`}
-                            onError={(e) => {
-                                // Mark as failed and show fallback immediately
-                                setFailedAvatars(prev => new Set([...prev, avatarKey]));
-                                e.target.style.display = 'none';
-                                const fallback = e.target.nextSibling;
-                                if (fallback) fallback.style.display = 'flex';
-                            }}
-                        />
-                        <div 
-                            className={`rounded-full ${size} bg-gray-500 flex items-center justify-center text-white font-semibold text-sm`}
-                            style={{ display: 'none' }}
-                        >
-                            {initial}
-                        </div>
-                    </>
-                );
-            }
-            // Show initial circle as fallback (always shown if failed or no pic)
-            return (
-                <div className={`rounded-full ${size} bg-gray-500 flex items-center justify-center text-white font-semibold text-sm`}>
-                    {initial}
-                </div>
-            );
         };
         
         if(msgSender == user && sender){
