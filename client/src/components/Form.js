@@ -6,8 +6,21 @@ class Form extends Component{
         email:'',
         password:'',
     }
+    handleSubmit = () => {
+        const { userDetails, loading } = this.props;
+        if (!loading && userDetails) {
+            userDetails(this.state.email, this.state.password);
+        }
+    }
+
+    handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            this.handleSubmit();
+        }
+    }
+
     render(){
-        const {name, error, userDetails, reset} = this.props;
+        const {name, error, userDetails, reset, loading} = this.props;
         const error_class = (error !=null ? 'border-[#B31212]' : 'border-black');
         const classes = `w-fit  flex-col items-center text-start flex border-2 rounded-3xl pt-10 pb-2 px-16 ${error_class}`
         return(
@@ -19,18 +32,32 @@ class Form extends Component{
                         type='email'
                         className="w-64 text-xs my-3 h-[45px] p-2 bg-[#F8F8F8]"
                         onChange={(event) => this.setState({email:event.target.value})}
-                        value={this.state.email}></input>
+                        onKeyPress={this.handleKeyPress}
+                        value={this.state.email}
+                        disabled={loading}
+                    ></input>
                     <div className="w-full justify-self-start">Password</div>
                     <input
                         type='password'
                         className="w-64 text-xs my-3 h-[45px] p-2 bg-[#F8F8F8]"
                         onChange={(event) => this.setState({password:event.target.value})}
-                        value={this.state.password}>
+                        onKeyPress={this.handleKeyPress}
+                        value={this.state.password}
+                        disabled={loading}
+                    >
                     </input>
                     <div
-                        className="bg-[#C4C4C4] my-3 w-28 cursor-pointer  h-8  flex justify-center items-center"
-                        onClick={() => userDetails(this.state.email,this.state.password)}>
-                            {name}
+                        className={`my-3 w-28 h-8 flex justify-center items-center ${
+                            loading 
+                                ? 'bg-[#A0A0A0] cursor-not-allowed opacity-50' 
+                                : 'bg-[#C4C4C4] cursor-pointer'
+                        }`}
+                        onClick={this.handleSubmit}
+                        role="button"
+                        tabIndex={0}
+                        onKeyPress={(e) => e.key === 'Enter' && !loading && this.handleSubmit()}
+                    >
+                        {loading ? 'Loading...' : name}
                     </div>
                     
                 </div>

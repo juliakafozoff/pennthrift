@@ -5,15 +5,27 @@ import api from '../api/http';
 const Register = () =>{
     const navigate = useNavigate();
     const [error, setError] = useState();
+    const [loading, setLoading] = useState(false);
     const address = '/api/auth/register'; 
 
     function userDetails(username,password){
+        // Validate inputs
+        if (!username || !password) {
+            setError('Please enter both username and password.');
+            return;
+        }
+        
+        // Clear previous errors and set loading state
+        setError(null);
+        setLoading(true);
+        
         const data = {
             'username':username,
             'password':password,
         };
 
         api.post(address, data).then(res =>{
+            setLoading(false);
             // Server returns "successful" on success or "Error: User is already registered" on duplicate
             if (res.data && (res.data.includes("Error") || res.data.includes("error"))) {
                 setError('Username has already been taken');
@@ -27,6 +39,7 @@ const Register = () =>{
                 setError('Registration failed. Please try again.');
             }
         }).catch(err => {
+            setLoading(false);
             console.error('Registration error:', err);
             setError('Registration failed. Please check your connection and try again.');
         });
@@ -45,6 +58,7 @@ const Register = () =>{
                     userDetails={userDetails}
                     reset={reset}
                     error={error}
+                    loading={loading}
                     name='Register'/>
             </div>
         </div>

@@ -9,19 +9,35 @@ const Login = () =>{
     const navigate = useNavigate();
     const location = useLocation();
     const [error, setError] = useState();
+    const [loading, setLoading] = useState(false);
     const address = '/api/auth/login';
     
     // Get the intended destination from state, or default to /profile
     const from = location.state?.from?.pathname || '/profile'; 
     
     function userDetails(username,password){
+        console.log('Login attempt:', { username, hasPassword: !!password });
+        
+        // Validate inputs
+        if (!username || !password) {
+            setError('Please enter both username and password.');
+            return;
+        }
+        
+        // Clear previous errors and set loading state
+        setError(null);
+        setLoading(true);
+        
         const data = {
             'username':username,
             'password':password,
             'email':username,
         };
 
+        console.log('Sending login request to:', address);
         api.post(address, data).then(res =>{
+            console.log('Login response:', res.status, res.data);
+            setLoading(false);
             if (res.status === 200) {
                 // Set logged in state immediately
                 global.LOGGED_IN = true;
@@ -61,6 +77,7 @@ const Login = () =>{
                 }
             }
         }).catch(err => {
+            setLoading(false);
             console.error('Login error:', err);
             const statusCode = err.response?.status || err.message?.split(" ").pop();
             
@@ -103,6 +120,7 @@ const Login = () =>{
                     userDetails={userDetails}
                     reset={reset}
                     error={error}
+                    loading={loading}
                     name='Login'/>
             </div>
         </div>
