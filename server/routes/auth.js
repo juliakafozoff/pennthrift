@@ -34,6 +34,7 @@ router.get('/', async(req, res) =>{
     console.log('Cookie Header:', req.headers.cookie || 'NONE');
     console.log('Session ID:', req.sessionID);
     console.log('Session Keys:', req.session ? Object.keys(req.session) : 'NO SESSION');
+    console.log('Passport session data:', req.session?.passport || 'NOT SET');
     console.log('Passport User:', req.user || 'NOT SET');
     console.log('Is Authenticated:', typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : 'N/A');
     console.log('Cookies Parsed:', req.cookies);
@@ -48,8 +49,10 @@ router.get('/', async(req, res) =>{
             username: req.user.username,
             id: req.user._id || req.user.id
         };
+        console.log('Auth check: SUCCESS - User authenticated:', safeUserFields.username);
         res.json({ authenticated: true, user: safeUserFields });
     } else {
+        console.log('Auth check: FAILED - Not authenticated');
         res.json({ authenticated: false, user: null });
     }
 });

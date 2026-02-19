@@ -34,21 +34,46 @@ const ProtectedRoute = ({ children }) => {
 
   useEffect(() => {
     let mounted = true;
+    let retryCount = 0;
+    const maxRetries = 3;
     
-    const checkAuth = async () => {
+    const checkAuth = async (isRetry = false) => {
       try {
         // Use GET endpoint with new response format: {authenticated: boolean, user: object|null}
         const res = await api.get('/api/auth/');
         const { authenticated, user: userData } = res.data;
         
+        console.log('Auth check result:', { authenticated, user: userData, isRetry, retryCount });
+        
         if (mounted) {
           setIsAuthenticated(authenticated);
           setUser(userData);
           setIsLoading(false);
+          
+          // If not authenticated and we haven't retried, wait and retry (for cookie propagation)
+          if (!authenticated && !isRetry && retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(() => {
+              if (mounted) {
+                checkAuth(true);
+              }
+            }, 500); // Wait 500ms before retry
+            return;
+          }
         }
       } catch (error) {
         console.error('Auth check failed:', error);
         if (mounted) {
+          // Retry on error if we haven't exceeded max retries
+          if (!isRetry && retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(() => {
+              if (mounted) {
+                checkAuth(true);
+              }
+            }, 500);
+            return;
+          }
           setIsAuthenticated(false);
           setUser(null);
           setIsLoading(false);

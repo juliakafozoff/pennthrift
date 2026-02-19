@@ -53,11 +53,11 @@ const Login = () =>{
                     // Don't block navigation on this error
                 });
                 
-                // Wait briefly for session cookie to propagate, then navigate
+                // Wait longer for session cookie to propagate, then navigate
                 // ProtectedRoute will check auth and handle redirect if needed
                 setTimeout(() => {
                     navigate(from, { replace: true });
-                }, 200);
+                }, 1000); // Increased from 200ms to 1000ms for cookie propagation
             } else if (res.status === 202) {
                 const currentTimestamp = moment().unix(); // in seconds
                 const currentDatetime = moment(currentTimestamp * 1000).format(

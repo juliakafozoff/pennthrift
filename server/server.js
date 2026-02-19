@@ -92,7 +92,9 @@ app.use(session({
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 6 * 24 * 60 * 60 * 1000,
-    path: '/'
+    path: '/',
+    // Don't set domain explicitly - let browser handle it for cross-domain
+    // domain: undefined means cookie is set for the request domain (Render)
   }
 }));
 
