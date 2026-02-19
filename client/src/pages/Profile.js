@@ -179,7 +179,7 @@ class Profile extends Component {
                                     
                                     {/* Edit Profile Button - Prominent placement */}
                                     <div className="pt-4 border-t border-[var(--color-border)]">
-                                        <Link to="/profile/edit" className="block no-underline">
+                                        <Link to="/profile/edit" className="[&_button]:!text-white">
                                             <Button variant="primary" className="w-full">
                                                 Edit Profile
                                             </Button>
@@ -206,7 +206,7 @@ class Profile extends Component {
                                                 View Analytics
                                             </Button>
                                         </Link>
-                                        <Link to="/profile/edit" className="hidden lg:block no-underline">
+                                        <Link to="/profile/edit" className="hidden lg:block [&_button]:!text-white">
                                             <Button variant="primary">
                                                 Edit Profile
                                             </Button>
