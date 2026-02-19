@@ -142,7 +142,7 @@ export default class Profile extends Component {
                                     
                                     {/* Edit Profile Button - Prominent placement */}
                                     <div className="pt-4 border-t border-[var(--color-border)]">
-                                        <Link to="/profile/edit" className="block">
+                                        <Link to="/profile/edit" className="block [&_button]:!text-white">
                                             <Button variant="primary" className="w-full">
                                                 Edit Profile
                                             </Button>
@@ -164,12 +164,12 @@ export default class Profile extends Component {
                                 )}
                                 actions={
                                     <div className="flex flex-wrap items-center gap-3">
-                                        <Link to="/profile/analytics">
+                                        <Link to="/profile/analytics" className="[&_button]:!text-[var(--color-text)]">
                                             <Button variant="secondary">
                                                 View Analytics
                                             </Button>
                                         </Link>
-                                        <Link to="/profile/edit" className="hidden lg:block">
+                                        <Link to="/profile/edit" className="hidden lg:block [&_button]:!text-white">
                                             <Button variant="primary">
                                                 Edit Profile
                                             </Button>
