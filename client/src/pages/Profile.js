@@ -139,6 +139,15 @@ export default class Profile extends Component {
                                             <p className="text-sm text-[var(--color-text)] leading-relaxed">{this.state.bio}</p>
                                         </div>
                                     )}
+                                    
+                                    {/* Edit Profile Button - Prominent placement */}
+                                    <div className="pt-4 border-t border-[var(--color-border)]">
+                                        <Link to="/profile/edit" className="block">
+                                            <Button variant="primary" className="w-full">
+                                                Edit Profile
+                                            </Button>
+                                        </Link>
+                                    </div>
                                 </div>
                             </Card>
                         </div>
@@ -154,13 +163,13 @@ export default class Profile extends Component {
                                     </div>
                                 )}
                                 actions={
-                                    <div className="flex gap-3">
+                                    <div className="flex flex-wrap items-center gap-3">
                                         <Link to="/profile/analytics">
                                             <Button variant="secondary">
                                                 View Analytics
                                             </Button>
                                         </Link>
-                                        <Link to="/profile/edit">
+                                        <Link to="/profile/edit" className="hidden lg:block">
                                             <Button variant="primary">
                                                 Edit Profile
                                             </Button>
