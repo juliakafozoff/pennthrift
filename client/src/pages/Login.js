@@ -76,10 +76,10 @@ const Login = () =>{
                             setError('Login failed. Please try again.')
                         });
                     } else {
-                        setError('We don't recognize that username and password. Please try again.')
+                        setError("We don't recognize that username and password. Please try again.")
                     }
                 }).catch(() => {
-                    setError('We don't recognize that username and password. Please try again.')
+                    setError("We don't recognize that username and password. Please try again.")
                 });   
             } else {
                 // Generic error message for other failures
