@@ -6,6 +6,7 @@ import React from 'react';
 import { path } from '../api/ProfileAPI';
 import { Button, Badge } from './ui';
 import { useAuth } from '../contexts/AuthContext';
+import { useUnread } from '../contexts/UnreadContext';
 import TopNav from './TopNav';
 import AboutPopover from './AboutPopover';
 
@@ -13,6 +14,7 @@ import AboutPopover from './AboutPopover';
 const Header = props =>{
     const navigate = useNavigate();
     const { isAuthenticated, user: authUser, logout: logoutFromContext, demoLogin } = useAuth();
+    const { unreadCounts } = useUnread();
     const [unread, setUnread] = useState(0);
     const [processing, setProcessing] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
@@ -90,74 +92,25 @@ const Header = props =>{
         return localStorage.getItem(`demoConciergeOpened:${sessionId}`) === '1';
     };
 
-    const updateUnread = useCallback(async () => {
-        if (!authUser || !isAuthenticated || processing) return;
-        
-        setProcessing(true);
-        try {
-            const profile = await getUserProfile(authUser.username);
-            // Safely extract unread count: default to empty array if missing/invalid
-            const unreadSafe = Array.isArray(profile?.unread) ? profile.unread : [];
-            
-            // For demo users, if concierge has been opened, hide the red dot
-            const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
-            let effectiveUnread = unreadSafe;
-            
-            if (isDemoUser && hasOpenedConcierge()) {
-                // If concierge has been opened, filter it out from unread count
-                try {
-                    const { getUserChats } = await import('../api/ProfileAPI');
-                    const chats = await getUserChats(authUser.username);
-                    const conciergeChat = Array.isArray(chats) ? chats.find(chat => {
-                        const users = Array.isArray(chat.users) ? chat.users : [];
-                        return users.includes('franklindesk');
-                    }) : null;
-                    
-                    if (conciergeChat) {
-                        const conciergeId = conciergeChat._id || conciergeChat.id;
-                        const conciergeIdStr = typeof conciergeId === 'string' ? conciergeId : String(conciergeId);
-                        // Filter out concierge conversation from unread count
-                        effectiveUnread = unreadSafe.filter(id => {
-                            const idStr = typeof id === 'string' ? id : String(id);
-                            return idStr !== conciergeIdStr;
-                        });
-                    } else {
-                        // If concierge chat doesn't exist yet but flag is set, assume no unread
-                        effectiveUnread = [];
-                    }
-                } catch (e) {
-                    // If we can't check chats, assume concierge is only unread and hide dot
-                    effectiveUnread = [];
-                }
-            }
-            
-            // Single source of truth: red dot shows ONLY if there are unread conversations
-            const count = effectiveUnread.length;
-            // Only set if count is a valid number (defensive check)
-            setUnread(typeof count === 'number' && count >= 0 ? count : 0);
-        } catch (e) {
-            // On any error (network, 401, missing data), default to 0 (no badge)
-            // This prevents false positives
-            if (e?.response?.status === 401) {
-                // User not authenticated, clear unread count
-                setUnread(0);
-            } else {
-                console.error('Error updating unread:', e);
-                setUnread(0);
-            }
-        } finally {
-            setProcessing(false);
-        }
-    }, [authUser, isAuthenticated, processing]);
-    
-    // Load unread count when authenticated user changes
+    // Use shared unreadCounts from context - single source of truth
     useEffect(() => {
-        if (isAuthenticated && authUser) {
-            updateUnread();
-        } else {
+        // Red dot shows ONLY if there are unread conversations
+        const count = Array.isArray(unreadCounts) ? unreadCounts.length : 0;
+        setUnread(count > 0 ? count : 0);
+    }, [unreadCounts]);
+    
+    // Keep updateUnread for socket 'unread' event compatibility (but it now just syncs from context)
+    const updateUnread = useCallback(async () => {
+        // No-op: unreadCounts is managed by Messages.js and synced via context
+        // This function is kept for socket event compatibility but doesn't fetch from API
+    }, []);
+    
+    // Clear unread when user logs out
+    useEffect(() => {
+        if (!isAuthenticated) {
             setUnread(0);
         }
-    }, [isAuthenticated, authUser?.username]);
+    }, [isAuthenticated]);
     
     // Initialize socket only when authenticated
     useEffect(() => {

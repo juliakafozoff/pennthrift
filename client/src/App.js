@@ -10,6 +10,7 @@ import {
   useLocation
 } from "react-router-dom";
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { UnreadProvider } from './contexts/UnreadContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Welcome from './pages/Welcome';
@@ -51,7 +52,8 @@ function App() {
   return (
     <div className="App w-full h-full">
       <AuthProvider>
-        <BrowserRouter>
+        <UnreadProvider>
+          <BrowserRouter>
           <Routes>
           {/* Public routes */}
           <Route path="/" element={<Navigate to="/store" replace />} />
@@ -82,6 +84,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        </UnreadProvider>
       </AuthProvider>
     </div>
   );

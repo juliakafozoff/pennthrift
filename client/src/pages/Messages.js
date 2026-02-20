@@ -13,6 +13,7 @@ import { path } from '../api/ProfileAPI';
 import { normalizeImageUrl, getUserInitial } from "../utils/imageUtils";
 import benFranklinThoughtBubble from '../assets/benjamin-franklin-thought-bubble.png';
 import { useAuth } from '../contexts/AuthContext';
+import { useUnread } from '../contexts/UnreadContext';
 import MessagingBlockedModal from '../components/MessagingBlockedModal';
 import { requireAuthForMessaging } from '../utils/messagingGuard';
 import { 
@@ -68,7 +69,7 @@ const Messages = props => {
     const [joined, setJoined] = useState(false);
     const socketRef = useRef(null);
     // Managed unreadCounts state - single source of truth for unread indicators
-    const [unreadCounts, setUnreadCounts] = useState([]);
+    const { unreadCounts, setUnreadCounts } = useUnread();
     // Guard to prevent ensure-concierge-only from running multiple times
     const didEnsureConciergeRef = useRef(false);
     // Draft thread state (for demo users)
