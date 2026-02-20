@@ -35,20 +35,23 @@ const IconButton = ({
     // Default: dark gray icons (#374151 = gray-700), always visible
     const iconColor = isActive ? '#ffffff' : '#374151';
     
-    // Clone icon element to inject explicit color style directly on SVG
-    // This ensures stroke="currentColor" inherits the correct color
+    // Clone icon element to inject explicit stroke color directly on SVG
+    // ROOT CAUSE FIX: Global CSS rule `a { color: var(--color-primary) }` in theme.css (line 85)
+    // was overriding our inline color styles. By setting stroke directly on SVG, we bypass
+    // the currentColor inheritance chain and ensure the icon is always visible.
     const iconWithColor = icon ? cloneElement(icon, {
+        stroke: iconColor, // Set stroke directly - bypasses currentColor inheritance issues
         style: {
-            color: iconColor,
+            color: iconColor, // Also set color for any other uses
             ...icon.props?.style
         },
-        className: `${icon.props?.className || 'w-5 h-5'}`
+        className: `${icon.props?.className || 'w-5 h-5'} ${!isActive ? 'nav-icon-hover' : ''}`
     }) : null;
 
     // Icon wrapper classes - hover enhancement for non-active icons
+    // Note: hover color change handled via CSS class since we're setting stroke directly
     const iconWrapperClasses = `
         w-5 h-5 flex items-center justify-center
-        ${!isActive ? 'hover:[&>svg]:text-[var(--color-primary)]' : ''}
     `;
 
     const content = (
@@ -81,6 +84,12 @@ const IconButton = ({
                 className={baseClasses}
                 aria-label={ariaLabel}
                 aria-current={isActive ? 'page' : undefined}
+                style={{
+                    // Fix: Override global link color rule (theme.css line 85-93)
+                    // Global rule sets all <a> tags to var(--color-primary), which conflicts with active white icons
+                    color: 'inherit', // Let children control color, don't inherit from global link rule
+                    textDecoration: 'none' // Ensure no underline
+                }}
             >
                 {content}
             </Link>

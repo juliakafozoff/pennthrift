@@ -4,3 +4,9 @@
 
 /* Import design system theme */
 @import './theme.css';
+
+/* Fix: Active icon visibility - override global link color for navigation icons */
+/* Global link rule in theme.css sets all <a> tags to primary color, which conflicts with active white icons */
+.nav-icon-hover:hover svg {
+    stroke: var(--color-primary) !important;
+}
