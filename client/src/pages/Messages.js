@@ -52,7 +52,10 @@ const Messages = props => {
     const [processed, setProcessed] = useState(false)
     const [allowed, setAllowed] = useState(false)
     const [joined, setJoined] = useState(false);
-    const socketRef = useRef(null); 
+    const socketRef = useRef(null);
+    // Draft thread state (for demo users)
+    const [draftTo, setDraftTo] = useState(null);
+    const [draftReceiver, setDraftReceiver] = useState(null); 
     // Track failed avatar loads to persist fallback state
     const [failedAvatars, setFailedAvatars] = useState(new Set());
     // Guest session state
@@ -224,6 +227,26 @@ const Messages = props => {
         }
     }, [isAuthenticated]);
     
+    // Check for draftTo query param on mount
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        const draftToParam = searchParams.get('draftTo');
+        if (draftToParam && authUser) {
+            const isDemo = authUser?.username === 'demo' || authUser?.isDemo === true;
+            if (isDemo) {
+                setDraftTo(draftToParam);
+                // Fetch receiver profile for draft thread
+                getUserProfile(draftToParam).then(profile => {
+                    setDraftReceiver(profile);
+                    setReceiver(profile);
+                    setUsers([authUser.username, draftToParam]);
+                }).catch(err => {
+                    console.error('Error loading draft receiver:', err);
+                });
+            }
+        }
+    }, [location.search, authUser]);
+    
     checkAllowed();
 
 
@@ -269,16 +292,17 @@ const Messages = props => {
         setUp();
     }, [users, user, allowed, receiver, sender]);
     
-    // Ensure concierge conversation exists for demo users on mount and when user changes
+    // Ensure concierge-only conversation exists for demo users on mount
+    // This deletes any old conversations and ensures only concierge thread exists
     useEffect(() => {
-        const ensureConciergeForDemo = async () => {
+        const ensureConciergeOnlyForDemo = async () => {
             const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
             if (isDemoUser && isAuthenticated) {
                 try {
-                    // Ensure concierge thread exists
-                    await api.post('/api/auth/demo/ensure-concierge-thread', {}, { withCredentials: true });
+                    // Call ensure-concierge-only endpoint (deletes all, then creates concierge)
+                    await api.post('/api/auth/demo/ensure-concierge-only', {}, { withCredentials: true });
                     
-                    // Refresh chats after ensuring concierge exists
+                    // Refresh chats after ensuring concierge-only
                     const currentUser = user || authUser?.username;
                     if (currentUser) {
                         const updatedChats = await getUserChats(currentUser);
@@ -287,7 +311,7 @@ const Messages = props => {
                         }
                     }
                 } catch (error) {
-                    console.error('Error ensuring concierge thread:', error);
+                    console.error('Error ensuring concierge only:', error);
                     // If ensure fails, still try to load chats
                     if (user) {
                         try {
@@ -303,8 +327,8 @@ const Messages = props => {
             }
         };
         
-        ensureConciergeForDemo();
-    }, [isAuthenticated, authUser?.username, user]);
+        ensureConciergeOnlyForDemo();
+    }, [isAuthenticated, authUser?.username]);
     
     // Mark concierge conversation as opened when it's loaded
     useEffect(() => {
@@ -348,10 +372,13 @@ const Messages = props => {
     }, [chats, user, id, processed, navigate]);
     
     async function sendMessage(userParam, message, attachment){
-        // Block demo users from messaging real users
+        // Block demo users from sending messages (including draft threads)
         if (authUser && !requireAuthForMessaging(authUser)) {
-            setShowMessagingBlockedModal(true);
-            return;
+            // Check if this is a draft thread (demo user trying to message real user)
+            if (draftTo || (receiver && receiver.username !== 'franklindesk')) {
+                setShowMessagingBlockedModal(true);
+                return;
+            }
         }
         
         // Handle guest sessions
@@ -869,20 +896,20 @@ const Messages = props => {
                         </div>
                     )}
                 </div>
-                {/* Conversation Area */}
-                {id && receiver ? (
+                {/* Conversation Area - Show draft thread or real conversation */}
+                {((id && receiver) || (draftTo && draftReceiver)) ? (
                     <div className='flex-1 flex flex-col bg-[var(--color-bg)]'>
                         {/* Conversation Header */}
                         <div className='h-16 flex items-center gap-3 px-4 border-b border-gray-200 bg-white'>
                             <div className='flex-shrink-0'>
-                                {renderProfilePic(receiver, receiver?.username, 'h-10 w-10')}
+                                {renderProfilePic(draftReceiver || receiver, (draftReceiver || receiver)?.username, 'h-10 w-10')}
                             </div>
                             <div className='flex-1'>
                                 <div className='text-base font-semibold text-gray-900'>
-                                    {receiver.username || otherUser}
+                                    {(draftReceiver || receiver)?.username || otherUser}
                                 </div>
                                 <div className='text-xs text-gray-500'>
-                                    {receiver.bio ? receiver.bio.substring(0, 50) + '...' : 'Active'}
+                                    {(draftReceiver || receiver)?.bio ? (draftReceiver || receiver).bio.substring(0, 50) + '...' : 'Active'}
                                 </div>
                             </div>
                         </div>

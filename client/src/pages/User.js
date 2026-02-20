@@ -14,6 +14,7 @@ import { normalizeImageUrl, getUserInitial } from "../utils/imageUtils";
 import { formatUsername } from "../utils/usernameUtils";
 import MessagingBlockedModal from "../components/MessagingBlockedModal";
 import { requireAuthForMessaging } from "../utils/messagingGuard";
+import { openConversationUI } from "../utils/openConversation";
 
 const  User = props => {
     
@@ -106,37 +107,15 @@ const  User = props => {
 
     }
     async function processMessageRequest(){
-        // Check if user is demo - block messaging real users
-        if (viewer && !requireAuthForMessaging(viewer)) {
-            setShowMessagingBlockedModal(true);
-            return;
-        }
-        
-        if(viewer && socketRef.current){
-            const users = [viewer, username];
-            
-            // Listen for message-blocked events
-            socketRef.current.on('message-blocked', (data) => {
-                if (data?.reason === 'demo_user_blocked') {
-                    setShowMessagingBlockedModal(true);
-                }
-            });
-            
-            socketRef.current.emit('get-open', users);
-            socketRef.current.on('message-navigate', id => {
-                // Defensive: Ensure id is a string, never an object
-                const chatId = typeof id === 'string' ? id : String(id);
-                if(chatId && chatId !== '[object Object]' && chatId !== 'undefined'){
-                    navigate(`/profile/messages/${chatId}`);
-                } else {
-                    console.error('Invalid chat ID received from socket:', id);
-                }
-            });
-        }else if(!viewer){
-            navigate('/login')
-        }
-        
-
+        // Use shared openConversationUI function
+        openConversationUI(username, {
+            viewer,
+            authUser,
+            navigate,
+            setShowAuthModal: () => navigate('/login'),
+            setShowMessagingBlockedModal,
+            socketRef
+        });
     }
     
     // Initialize socket and load items when username changes

@@ -23,10 +23,10 @@ const MessagingBlockedModal = ({ isOpen, onClose }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={onClose}>
             <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6" onClick={(e) => e.stopPropagation()}>
                 <h2 className="text-2xl font-semibold text-gray-900 mb-3">
-                    Messaging is available with an account
+                    Send messages with an account
                 </h2>
                 <p className="text-base text-gray-600 mb-6">
-                    To protect students from spam and keep conversations tied to a Penn identity, messaging requires signing in. Create an account to message sellers and receive replies.
+                    To protect students from spam and keep conversations tied to a Penn identity, messaging requires signing in. Create an account to send this message and receive replies.
                 </p>
                 
                 <div className="flex flex-col gap-3">

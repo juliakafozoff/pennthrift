@@ -467,6 +467,67 @@ router.post('/demo/ensure-default-favorites', async (req, res) => {
     }
 });
 
+// Demo ensure concierge only endpoint - deletes all conversations except concierge, then ensures concierge exists
+router.post('/demo/ensure-concierge-only', async (req, res) => {
+    try {
+        // Verify user is authenticated
+        if (!req.isAuthenticated() || !req.user) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+        
+        const user = req.user;
+        const DEMO_USERNAME = 'demo';
+        
+        // Verify this is the demo user
+        const isDemoUser = user.username === DEMO_USERNAME || 
+                          user.usernameLower === DEMO_USERNAME || 
+                          user.isDemo === true;
+        
+        if (!isDemoUser) {
+            return res.status(403).json({ error: 'Not a demo user' });
+        }
+        
+        // Find ALL conversations for demo user
+        const allDemoMessages = await Message.find({ 
+            users: { $in: [DEMO_USERNAME, user._id.toString()] } 
+        });
+        
+        // Get all message IDs
+        const allMessageIds = allDemoMessages.map(msg => msg._id);
+        
+        // Delete ALL conversations (including any user-to-user threads)
+        await Message.deleteMany({ 
+            _id: { $in: allMessageIds } 
+        });
+        
+        // Clear demo user's chats array
+        await User.findByIdAndUpdate(user._id, {
+            $set: { chats: [] }
+        });
+        
+        // Clean up chats arrays for other users
+        await User.updateMany(
+            { chats: { $in: allMessageIds } },
+            { 
+                $pull: { 
+                    chats: { $in: allMessageIds }
+                } 
+            }
+        );
+        
+        // Now ensure concierge conversation exists (using existing helper)
+        const conversation = await seedWelcomeConversation(user);
+        
+        res.json({ 
+            success: true,
+            conversationId: conversation._id.toString()
+        });
+    } catch (error) {
+        console.error('Error ensuring concierge only:', error);
+        res.status(500).json({ error: 'Failed to ensure concierge only' });
+    }
+});
+
 // Demo ensure concierge thread endpoint - ensures concierge conversation exists
 router.post('/demo/ensure-concierge-thread', async (req, res) => {
     try {
@@ -520,7 +581,8 @@ router.post('/demo/logout', async (req, res) => {
             return res.status(403).json({ error: 'Not a demo user' });
         }
         
-        // Find all Message documents where demo user is in the users array
+        // Find ALL Message documents where demo user is a participant
+        // This includes conversations with real users (which should be deleted)
         const demoMessages = await Message.find({ 
             users: { $in: [DEMO_USERNAME, user._id.toString()] } 
         });
@@ -528,7 +590,7 @@ router.post('/demo/logout', async (req, res) => {
         // Get all message IDs to delete
         const messageIds = demoMessages.map(msg => msg._id);
         
-        // Delete all Message documents
+        // Delete ALL Message documents for demo user (including user-to-user conversations)
         await Message.deleteMany({ 
             _id: { $in: messageIds } 
         });
@@ -551,6 +613,17 @@ router.post('/demo/logout', async (req, res) => {
         const FRANKLIN_DESK_USERNAME = 'franklindesk';
         await User.findOneAndUpdate(
             { username: FRANKLIN_DESK_USERNAME },
+            { 
+                $pull: { 
+                    chats: { $in: messageIds }
+                } 
+            }
+        );
+        
+        // Clean up chats arrays for any other users who had conversations with demo user
+        // This ensures no orphaned references remain
+        await User.updateMany(
+            { chats: { $in: messageIds } },
             { 
                 $pull: { 
                     chats: { $in: messageIds }

@@ -64,7 +64,7 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     setUser(null);
     
-    // Clear demo session storage
+    // Clear demo session storage and chat cache
     if (typeof window !== 'undefined') {
       const sessionId = sessionStorage.getItem('demoSessionId');
       if (sessionId) {
@@ -83,6 +83,8 @@ export const AuthProvider = ({ children }) => {
       sessionStorage.removeItem('demoFavoritesSeeded');
       // Clear demo avatar customized flag
       sessionStorage.removeItem('demoAvatarCustomized');
+      // Clear any cached chat state (if stored in localStorage)
+      // Note: chats are stored in component state, which is cleared by the component
     }
     
     try {
