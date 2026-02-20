@@ -152,12 +152,27 @@ const server  = require('http').Server(app);
 
 
 //socket.io inititializtion for messages
+const allowedOrigins = process.env.FRONTEND_URL 
+  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+  : ['http://localhost:3000', 'https://pennthrift.netlify.app'];
+
 const io = require('socket.io')(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
+    },
     credentials: true,
     methods: ['GET','POST','PUT','DELETE','OPTIONS']
-  }
+  },
+  transports: ['websocket', 'polling'], // Allow both transports
+  allowEIO3: true // Support older clients
 });
 require('./routes/messages')(io);
 

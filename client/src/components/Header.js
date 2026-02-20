@@ -164,9 +164,25 @@ const Header = props =>{
         if (typeof window !== 'undefined' && path && isAuthenticated && authUser) {
             try {
                 if (!socketRef.current) {
-                    socketRef.current = io.connect(`${path}/api/messages`, {
+                    // Use proper socket.io URL (base URL, socket.io handles /socket.io path)
+                    const socketUrl = path.replace(/\/$/, ''); // Remove trailing slash
+                    socketRef.current = io.connect(socketUrl, {
+                        path: '/socket.io',
                         withCredentials: true,
-                        transports: ['websocket', 'polling']
+                        transports: ['websocket', 'polling'], // Allow fallback to polling
+                        reconnection: true,
+                        reconnectionAttempts: 5,
+                        reconnectionDelay: 1000,
+                        reconnectionDelayMax: 5000,
+                        timeout: 20000
+                    });
+                    
+                    socketRef.current.on('connect', () => {
+                        console.log('✅ Socket.io connected (Header)');
+                    });
+                    
+                    socketRef.current.on('connect_error', (error) => {
+                        console.error('❌ Socket.io connection error (Header):', error);
                     });
                 }
                 

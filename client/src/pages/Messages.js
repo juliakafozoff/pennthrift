@@ -227,10 +227,12 @@ const Messages = props => {
         }
     }, [isAuthenticated]);
     
-    // Check for draftTo query param on mount
+    // Check for draftTo or startConversation query params on mount
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
         const draftToParam = searchParams.get('draftTo');
+        const startConversationParam = searchParams.get('startConversation');
+        
         if (draftToParam && authUser) {
             const isDemo = authUser?.username === 'demo' || authUser?.isDemo === true;
             if (isDemo) {
@@ -244,6 +246,19 @@ const Messages = props => {
                     console.error('Error loading draft receiver:', err);
                 });
             }
+        } else if (startConversationParam && authUser && socketRef.current) {
+            // Real user: start conversation via socket (non-blocking)
+            const users = [authUser.username, startConversationParam];
+            socketRef.current.emit('get-open', users);
+            socketRef.current.once('message-navigate', id => {
+                const chatId = typeof id === 'string' ? id : String(id);
+                if (chatId && chatId !== '[object Object]' && chatId !== 'undefined') {
+                    // Remove query param and navigate to conversation
+                    navigate(`/profile/messages/${chatId}`, { replace: true });
+                }
+            });
+            // Clean up query param immediately
+            navigate('/profile/messages', { replace: false });
         }
     }, [location.search, authUser]);
     
