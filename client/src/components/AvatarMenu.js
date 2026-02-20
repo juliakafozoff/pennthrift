@@ -98,8 +98,8 @@ const AvatarMenu = ({ onLogout }) => {
                     transition-all duration-200 ease-in-out
                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2
                     ${isOpen || isProfileActive
-                        ? 'bg-[var(--color-primary)] text-white' 
-                        : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
+                        ? 'bg-[var(--color-primary)] text-white shadow-md' 
+                        : 'text-gray-700 hover:text-[var(--color-primary)] hover:bg-gray-100 active:bg-gray-200'
                     }
                 `}
                 aria-label="Profile menu"

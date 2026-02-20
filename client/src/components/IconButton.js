@@ -20,7 +20,7 @@ const IconButton = ({
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2
         ${isActive 
             ? 'bg-[var(--color-primary)] text-white shadow-md' 
-            : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
+            : 'text-gray-700 hover:text-[var(--color-primary)] hover:bg-gray-100 active:bg-gray-200'
         }
     `;
 
@@ -34,8 +34,8 @@ const IconButton = ({
                 />
             )}
 
-            {/* Icon */}
-            <div className="w-5 h-5 flex items-center justify-center">
+            {/* Icon - explicitly inherit color */}
+            <div className={`w-5 h-5 flex items-center justify-center ${isActive ? 'text-white' : 'text-gray-700'}`}>
                 {icon}
             </div>
         </>
