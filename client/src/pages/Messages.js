@@ -11,6 +11,7 @@ import FileViewer from 'react-file-viewer';
 import io from 'socket.io-client';
 import { path } from '../api/ProfileAPI';
 import { normalizeImageUrl, getUserInitial } from "../utils/imageUtils";
+import benFranklinThoughtBubble from '../assets/benjamin-franklin-thought-bubble.png';
 
 const Messages = props => {
 
@@ -369,7 +370,7 @@ const Messages = props => {
                     <div style={{overflowWrap:'anywhere'}} className='px-4 py-2 max-w-[70%] flex-col flex w-fit rounded-2xl bg-blue-500 text-white'>
                         {renderAttachment()}
                         {text && <div className='text-sm'>{text}</div>}
-                    </div>
+                            </div>
                     <div className='flex-shrink-0'>
                         {renderProfilePic(sender, sender?.username)}
                     </div>
@@ -381,7 +382,7 @@ const Messages = props => {
                 <div className='flex gap-2 mb-1 group'>
                     <div className='flex-shrink-0'>
                         {renderProfilePic(receiver, receiver?.username)}
-                    </div>
+                            </div>
                     <div style={{overflowWrap:'anywhere'}} className='px-4 py-2 max-w-[70%] flex-col flex rounded-2xl bg-gray-200 text-gray-900'>
                         {renderAttachment()}
                         {text && <div className='text-sm'>{text}</div>}
@@ -532,7 +533,7 @@ const Messages = props => {
     const groupedMessages = groupMessages(messages);
     const otherUser = users.find(usr => usr !== user);
     const unreadCounts = sender?.unread || [];
-    
+
     return(
         <div className="h-screen flex flex-col bg-[var(--color-bg)]">
             <Header/>
@@ -562,7 +563,7 @@ const Messages = props => {
                         <div className='flex-1 overflow-y-auto'>
                             {Array.isArray(chats) && chats.length > 0 ? (
                                 chats.map( chat => {
-                                    if(!chat || !chat._id) return null;
+                            if(!chat || !chat._id) return null;
                                     const chatId = typeof chat._id === 'string' ? chat._id : String(chat._id);
                                     if(!chatId || chatId === '[object Object]' || chatId === 'undefined') {
                                         return null;
@@ -577,7 +578,7 @@ const Messages = props => {
                                     let lastMessage = '';
                                     let lastMessageTime = null;
                                     try {
-                                        const messagesSafe = Array.isArray(chat.messages) ? chat.messages : [];
+                                                    const messagesSafe = Array.isArray(chat.messages) ? chat.messages : [];
                                         if (messagesSafe.length > 0) {
                                             const lastMsg = messagesSafe[messagesSafe.length - 1];
                                             lastMessage = lastMsg?.message || '';
@@ -630,8 +631,8 @@ const Messages = props => {
                                                     {hasUnread && (
                                                         <div className='absolute -top-1 -right-1 h-4 w-4 bg-blue-500 rounded-full border-2 border-white'></div>
                                                     )}
-                                                </div>
-                                                
+                                                        </div>
+
                                                 {/* Content */}
                                                 <div className='flex-1 min-w-0'>
                                                     <div className='flex items-center justify-between mb-1'>
@@ -648,21 +649,17 @@ const Messages = props => {
                                                         {lastMessage || 'No messages yet'}
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </Link>
+                                    </div>
+                                </Link>
                                     );
                                 })
                             ) : (
                                 <div className='p-8 text-center'>
-                                    <svg 
-                                        className='w-12 h-12 text-gray-400 mx-auto mb-3' 
-                                        fill="none" 
-                                        stroke="currentColor" 
-                                        viewBox="0 0 24 24"
-                                        aria-hidden="true"
-                                    >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                    </svg>
+                                    <img 
+                                        src={benFranklinThoughtBubble} 
+                                        alt="Ben Franklin thought bubble" 
+                                        className='w-12 h-auto mx-auto mb-3' 
+                                    />
                                     <p className='text-sm font-medium text-gray-700 mb-1'>No conversations yet</p>
                                     <p className='text-xs text-gray-500'>Start messaging sellers from item listings</p>
                                 </div>
@@ -772,11 +769,11 @@ const Messages = props => {
                                                         </div>
                                                     );
                                                 })}
-                                            </div>
-                                        </div>
+                    </div>
+                                    </div>
                                     );
                                 })}
-                            </ScrollableFeed>
+                        </ScrollableFeed>
                         </div>
                         
                         {/* Input Area */}
@@ -790,12 +787,12 @@ const Messages = props => {
                                             return (
                                                 <div className='h-20 w-20 bg-gray-100 rounded-lg p-2 text-xs flex items-center justify-center'>
                                                     Attachment ready
-                                                </div>
+                    </div>
                                             );
                                         }
                                         return (
                                             <div className='h-20 w-20 bg-gray-100 rounded-lg overflow-hidden'>
-                                                <FileViewer
+                                <FileViewer
                                                     fileType={fileType}
                                                     filePath={attachmentDisplay}
                                                     errorComponent={<div className='p-2 text-sm text-gray-500'>Preview unavailable</div>}
@@ -803,7 +800,7 @@ const Messages = props => {
                                             </div>
                                         );
                                     })()}
-                                </div>
+                            </div>
                             )}
                             
                             {/* Input Controls */}
@@ -826,11 +823,11 @@ const Messages = props => {
                                         onChange={event => processAttachment(inputRef.current.files[0])} 
                                     />
                                 </button>
-                                
-                                <textarea
-                                    style={{resize:'none'}}
-                                    onChange={(e) => setText(e.target.value)}
-                                    value={text}
+                            
+                            <textarea
+                                style={{resize:'none'}}
+                                onChange={(e) => setText(e.target.value)}
+                                value={text}
                                     placeholder='Type a message...' 
                                     className='flex-1 min-h-[44px] max-h-32 px-4 py-2 rounded-2xl bg-gray-100 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
                                     onKeyDown={(e) => {
@@ -844,7 +841,7 @@ const Messages = props => {
                                 />
                                 
                                 <button 
-                                    onClick={() => sendMessage(user, text, attachment)}
+                                onClick={() => sendMessage(user, text, attachment)}
                                     disabled={!text.trim() && !attachment}
                                     className='p-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition-colors flex-shrink-0'
                                     aria-label="Send message"
@@ -863,15 +860,11 @@ const Messages = props => {
                         <div className='text-center max-w-md px-4'>
                             {Array.isArray(chats) && chats.length === 0 ? (
                                 <>
-                                    <svg 
-                                        className='w-16 h-16 text-gray-400 mx-auto mb-4' 
-                                        fill="none" 
-                                        stroke="currentColor" 
-                                        viewBox="0 0 24 24"
-                                        aria-hidden="true"
-                                    >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                    </svg>
+                                    <img 
+                                        src={benFranklinThoughtBubble} 
+                                        alt="Ben Franklin thought bubble" 
+                                        className='w-16 h-auto mx-auto mb-4' 
+                                    />
                                     <h3 className='text-xl font-semibold text-gray-900 mb-2'>No conversations yet</h3>
                                     <p className='text-base text-gray-500 mb-6'>Start a conversation by messaging a seller from an item listing.</p>
                                     <Link 
@@ -886,21 +879,17 @@ const Messages = props => {
                                 </>
                             ) : (
                                 <>
-                                    <svg 
-                                        className='w-16 h-16 text-gray-400 mx-auto mb-4' 
-                                        fill="none" 
-                                        stroke="currentColor" 
-                                        viewBox="0 0 24 24"
-                                        aria-hidden="true"
-                                    >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                    </svg>
+                                    <img 
+                                        src={benFranklinThoughtBubble} 
+                                        alt="Ben Franklin thought bubble" 
+                                        className='w-16 h-auto mx-auto mb-4' 
+                                    />
                                     <h3 className='text-xl font-semibold text-gray-900 mb-2'>Select a conversation</h3>
                                     <p className='text-base text-gray-500'>Choose a conversation from the sidebar to start messaging</p>
                                 </>
                             )}
                         </div>
-                    </div>
+                </div>
                 )}
                 
             </div>
