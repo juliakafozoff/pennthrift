@@ -151,7 +151,7 @@ const Header = props =>{
             className="w-full bg-[var(--color-surface)] border-b border-[var(--color-border)] shadow-sm sticky top-0 z-50"
         >
             <div className="container max-w-7xl mx-auto px-4">
-                <div className="flex items-center justify-between h-16 gap-4">
+                <div className="flex items-center justify-between h-20 gap-4">
                     {/* Left side - Brand lockup */}
                     <div className="flex items-center gap-3 flex-shrink-0">
                         <AboutPopover trigger="hover">
@@ -163,9 +163,9 @@ const Header = props =>{
                                 <img 
                                     src={require('../assets/logo.png')} 
                                     alt="PennThrift logo" 
-                                    className="h-8 w-8 object-contain"
+                                    className="h-10 w-10 object-contain"
                                 />
-                                <span className="text-xl font-semibold text-gray-900 hidden sm:inline">
+                                <span className="text-2xl font-semibold text-gray-900 hidden sm:inline">
                                     PennThrift
                                 </span>
                             </Link>

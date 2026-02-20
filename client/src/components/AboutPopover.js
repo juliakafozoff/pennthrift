@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const AboutPopover = ({ children, trigger = 'hover' }) => {
+    const { isAuthenticated, user: authUser } = useAuth();
+    const isDemoUser = isAuthenticated && authUser?.username === 'demo';
     const [isOpen, setIsOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const popoverRef = useRef(null);
@@ -96,6 +100,26 @@ const AboutPopover = ({ children, trigger = 'hover' }) => {
         }
     };
 
+    // Helper component for badge (Link if demo, span if not)
+    const FeatureBadge = ({ to, children }) => {
+        if (isDemoUser) {
+            return (
+                <Link 
+                    to={to}
+                    className="inline-flex items-center px-2 py-1 rounded-md text-xs bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors cursor-pointer"
+                    onClick={() => setIsOpen(false)}
+                >
+                    {children}
+                </Link>
+            );
+        }
+        return (
+            <span className="inline-flex items-center px-2 py-1 rounded-md text-xs bg-gray-100 text-gray-700">
+                {children}
+            </span>
+        );
+    };
+
     return (
         <div className="relative inline-block">
             <div
@@ -129,15 +153,18 @@ const AboutPopover = ({ children, trigger = 'hover' }) => {
                         Browse as a guest. Try Demo to save items, message sellers, and post listings.
                     </p>
                     <div className="flex flex-wrap gap-2">
-                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs bg-gray-100 text-gray-700">
+                        <FeatureBadge to="/store">
                             Search & filters
-                        </span>
-                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs bg-gray-100 text-gray-700">
+                        </FeatureBadge>
+                        <FeatureBadge to="/profile/messages">
                             Real-time chat
-                        </span>
-                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs bg-gray-100 text-gray-700">
+                        </FeatureBadge>
+                        <FeatureBadge to="/profile/newitem">
                             Post listings
-                        </span>
+                        </FeatureBadge>
+                        <FeatureBadge to="/profile/favourites">
+                            Wishlist
+                        </FeatureBadge>
                     </div>
                 </div>
             )}

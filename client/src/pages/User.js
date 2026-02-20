@@ -334,12 +334,6 @@ const  User = props => {
                                 <div className="flex gap-3">
                                     <Button
                                         variant="primary"
-                                        className="px-6 py-2.5"
-                                    >
-                                        Follow
-                                    </Button>
-                                    <Button
-                                        variant="primary"
                                         onClick={() => processMessageRequest()}
                                         className="px-6 py-2.5"
                                     >

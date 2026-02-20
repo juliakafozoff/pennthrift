@@ -81,8 +81,6 @@ const User = (props) => {
 
 
 
-    const [followingStatus, setFollowingStatus] = useState("FOLLOW");
-    const [buttonColor, setButtonColor] = useState("#29a64d");
 
     return(
     <ScrollView>
@@ -97,26 +95,8 @@ const User = (props) => {
                         </View>
 
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-
                             <View style={styles.username_view}>
                                 <Text style={styles.username}>{username}</Text>
-                            </View>
-
-                            <View style={styles.button}>
-                                <Pressable
-                                    onPress={() => {
-                                        buttonColor == "#29a64d" ? setButtonColor("#4079ff") : setButtonColor("#29a64d");
-                                        followingStatus == "FOLLOWING" ? setFollowingStatus("FOLLOW") : setFollowingStatus("FOLLOWING");
-                                    }}
-                                    activeOpacity={0.6}>
-                                        <View style={{ backgroundColor: buttonColor, width:127 }}>
-                                            <Text
-                                                style={{fontSize: 18, fontWeight: "bold", color: "white", margin: 10, textAlign: 'center'}}
-                                            >
-                                                {followingStatus}
-                                                </Text>
-                                        </View>
-                                </Pressable>
                             </View>
                         </View>
 
@@ -245,17 +225,6 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         paddingHorizontal: 10,
         marginBottom: 20,
-      },
-    follow_button: {
-        textAlign: "center",
-        fontSize: 20,
-        fontWeight: "bold",
-        height: 40,
-        width:160,
-        borderRadius:10,
-        backgroundColor : "#0067b0", //
-        justifyContent: "center",
-        alignItems: "center",
       },
     new_item_button: {
         textAlign: "center",
