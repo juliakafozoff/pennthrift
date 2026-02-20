@@ -398,7 +398,10 @@ const Messages = props => {
             userParam = guestSessionId;
         }
         
-        if(allowed && receiver && socketRef.current){
+        // For draft threads, allow sending attempt (will be blocked by demo check above)
+        const canSend = (allowed && receiver && socketRef.current) || (draftTo && draftReceiver);
+        
+        if(canSend){
             if(attachment){
                 var formData = new FormData();
                 formData.append("file", attachment);
