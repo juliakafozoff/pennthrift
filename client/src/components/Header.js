@@ -6,6 +6,7 @@ import React from 'react';
 import { path } from '../api/ProfileAPI';
 import { Button } from './ui';
 import { useAuth } from '../contexts/AuthContext';
+import TopNav from './TopNav';
 
 
 const Header = props =>{
@@ -162,65 +163,7 @@ const Header = props =>{
                     </div>
 
                     {/* Right side - Navigation */}
-                    <nav data-testid="flex" className="flex items-center gap-2">
-                        <Link 
-                            to="/store"
-                            className="p-2 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
-                            aria-label="Store"
-                        >
-                            <img 
-                                className="w-6 h-6" 
-                                src={require('../assets/shop_bag.png')}
-                                alt="Store"
-                            />
-                        </Link>
-                        
-                        <Link 
-                            data-testid="relative"
-                            className="relative p-2 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
-                            to="/profile/messages"
-                            aria-label="Messages"
-                        >
-                            {unread > 0 && (
-                                <div 
-                                    data-testid="unread"
-                                    className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-xs font-semibold text-white bg-[var(--color-danger)] rounded-full"
-                                >
-                                    {unread > 9 ? '9+' : unread}
-                                </div>
-                            )}
-                            <img 
-                                data-testid="image"
-                                className="w-6 h-6" 
-                                src={require('../assets/messages.png')}
-                                alt="Messages"
-                            />
-                        </Link>
-                        
-                        <Link 
-                            to="/profile/favourites"
-                            className="p-2 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
-                            aria-label="Favourites"
-                        >
-                            <img 
-                                className="w-6 h-6" 
-                                src={require('../assets/favourite.png')}
-                                alt="Favourites"
-                            />
-                        </Link>
-                        
-                        <Link 
-                            to="/profile"
-                            className="p-2 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
-                            aria-label="Profile"
-                        >
-                            <img 
-                                className="w-6 h-6 rounded-full" 
-                                src={require('../assets/placeholder_user_sm.png')}
-                                alt="Profile"
-                            />
-                        </Link>
-                    </nav>
+                    <TopNav unreadCount={unread} />
                 </div>
             </div>
         </header>
