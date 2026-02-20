@@ -870,8 +870,7 @@ const Messages = props => {
                                         To receive replies and continue the conversation, create an account.
                                     </p>
                                     <div className='flex gap-2'>
-                                        <Button
-                                            variant="primary"
+                                        <button
                                             onClick={async () => {
                                                 try {
                                                     await demoLogin();
@@ -880,24 +879,22 @@ const Messages = props => {
                                                     console.error('Demo login failed:', error);
                                                 }
                                             }}
-                                            className="text-sm"
+                                            className="text-sm px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:bg-[var(--color-primary)]/90 transition-colors font-medium"
                                         >
                                             Try Demo
-                                        </Button>
-                                        <Button
-                                            variant="secondary"
+                                        </button>
+                                        <button
                                             onClick={() => navigate('/login')}
-                                            className="text-sm"
+                                            className="text-sm px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-colors font-medium"
                                         >
                                             Log in
-                                        </Button>
-                                        <Button
-                                            variant="secondary"
+                                        </button>
+                                        <button
                                             onClick={() => navigate('/register')}
-                                            className="text-sm"
+                                            className="text-sm px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-colors font-medium"
                                         >
                                             Register
-                                        </Button>
+                                        </button>
                                     </div>
                                 </div>
                             )}
