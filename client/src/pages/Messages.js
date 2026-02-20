@@ -243,13 +243,16 @@ const Messages = props => {
             setAllowed(false);
             setProcessed(false);
             
+            // Clear unreadCounts on logout
+            setUnreadCounts([]);
+            
             // Disconnect socket if connected
             if (socketRef.current) {
                 socketRef.current.disconnect();
                 socketRef.current = null;
             }
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, setUnreadCounts]);
     
     // Check for draftTo or startConversation query params on mount
     useEffect(() => {
