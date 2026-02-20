@@ -425,7 +425,7 @@ const Messages = props => {
                 }
             }
         }
-    }, [id, users, authUser]);
+    }, [routeConvoId, activeConversationId, users, authUser]);
     
     // Auto-select first conversation if none selected and conversations exist
     useEffect(() => {
@@ -442,6 +442,9 @@ const Messages = props => {
     }, [chats, user, routeConvoId, activeConversationId, processed, navigate]);
     
     async function sendMessage(userParam, message, attachment){
+        // Get current conversation ID
+        const currentConversationId = routeConvoId || activeConversationId;
+        
         // Block demo users from sending messages (including draft threads)
         if (authUser && !requireAuthForMessaging(authUser)) {
             // Check if this is a draft thread (demo user trying to message real user)
@@ -506,7 +509,7 @@ const Messages = props => {
                         sender: userParam, 
                         message: message, 
                         attachment: normalizedUrl || '', 
-                        id: id, 
+                        id: currentConversationId, 
                         receiver: receiver.username,
                         isGuest: isGuest && !isAuthenticated // Flag for server to handle guest messages
                     };
@@ -520,7 +523,7 @@ const Messages = props => {
                     sender: userParam, 
                     message: message, 
                     attachment: attachment, 
-                    id: id,
+                    id: currentConversationId,
                     receiver: receiver.username,
                     isGuest: isGuest && !isAuthenticated // Flag for server to handle guest messages
                 };
@@ -789,12 +792,13 @@ const Messages = props => {
                 }
             })
             
-            if(id && user && sender && Array.isArray(sender.unread) && sender.unread.includes(id)){
-                socketRef.current.emit('clear-unread',{id:id, username:user})
+            const selectedId = routeConvoId || activeConversationId;
+            if(selectedId && user && sender && Array.isArray(sender.unread) && sender.unread.includes(selectedId)){
+                socketRef.current.emit('clear-unread',{id:selectedId, username:user})
             }
             
-            if(!joined && id){
-                socketRef.current.emit('join-room', id);
+            if(!joined && selectedId){
+                socketRef.current.emit('join-room', selectedId);
                 setJoined(true)
             }
             
@@ -822,7 +826,7 @@ const Messages = props => {
             }
         };
         
-    },[id, messages,receiver, processed, allowed, chats, user, users, attachmentDisplay, attachment, sender, joined])
+    },[routeConvoId, activeConversationId, messages,receiver, processed, allowed, chats, user, users, attachmentDisplay, attachment, sender, joined])
     
     function handleClick(){
         document.getElementById('selectFile').click()
