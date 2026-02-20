@@ -5,7 +5,6 @@ import api from "../api/http";
 import { getUserFavourites } from "../api/ProfileAPI";
 import { PageHeader, Card, Input, Badge } from "../components/ui";
 import AuthRequiredModal from "../components/AuthRequiredModal";
-import AboutPopover from "../components/AboutPopover";
 
 
 export default class Store extends Component {
@@ -181,20 +180,7 @@ export default class Store extends Component {
                 />
                 <div className="container py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <PageHeader 
-                        title={
-                            <span className="flex items-baseline">
-                                Store
-                                <AboutPopover trigger="hover">
-                                    <button
-                                        className="inline-flex items-center justify-center ml-2 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
-                                        aria-label="About PennThrift"
-                                        style={{ fontSize: '14px', lineHeight: '1' }}
-                                    >
-                                        ⓘ
-                                    </button>
-                                </AboutPopover>
-                            </span>
-                        }
+                        title="Store"
                         subtitle={resultCount > 0 ? `${resultCount} ${resultCount === 1 ? 'item' : 'items'} found` : 'Browse marketplace'}
                     />
                     

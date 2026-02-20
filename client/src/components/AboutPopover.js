@@ -78,10 +78,22 @@ const AboutPopover = ({ children, trigger = 'hover' }) => {
     };
 
     const handleClick = (e) => {
+        // Don't prevent default if clicking a link or button (let navigation/interaction happen)
+        const target = e.target;
+        const isLink = target.closest('a');
+        const isButton = target.closest('button') && target.closest('button') !== triggerRef.current;
+        
         // On mobile or when trigger is click, toggle on click
         if (isMobile || trigger === 'click') {
-            e.preventDefault();
-            setIsOpen(!isOpen);
+            // Only prevent default if not clicking a link or button
+            if (!isLink && !isButton) {
+                e.preventDefault();
+                setIsOpen(!isOpen);
+            } else if (isButton) {
+                // If clicking a button (like the (i) icon), toggle popover
+                setIsOpen(!isOpen);
+            }
+            // If clicking a link, let it navigate (don't prevent default)
         }
         // On desktop with hover trigger, click also works as fallback
         else if (trigger === 'hover') {
@@ -129,6 +141,17 @@ const AboutPopover = ({ children, trigger = 'hover' }) => {
                 onClick={handleClick}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
+                onKeyDown={(e) => {
+                    // Keyboard accessibility: Enter or Space toggles popover
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setIsOpen(!isOpen);
+                    }
+                }}
+                tabIndex={0}
+                role="button"
+                aria-haspopup="dialog"
+                aria-expanded={isOpen}
                 className="inline-block"
             >
                 {children}
