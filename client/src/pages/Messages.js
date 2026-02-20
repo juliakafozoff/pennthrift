@@ -298,19 +298,26 @@ const Messages = props => {
         } 
     
 
-        // Fix: Always fetch receiver and sender profiles when we have users array and current user
+        // Fetch receiver and sender profiles when we have users array and current user
+        // Skip if concierge (already handled in useEffect above)
         if(Array.isArray(users) && users.length > 0 && user && allowed){
-            // Find the other user (not the current user)
-            const otherUser = users.find(usr => usr !== user);
-            // Fetch receiver profile if we don't have it or if it's missing profile data
-            if(otherUser && (!receiver || !receiver.username || (!receiver.profile_pic && !receiver.profilePic && !receiver.avatar))){
-                try {
-                    const receiverProfile = await getUserProfile(otherUser);
-                    setReceiver(receiverProfile);
-                } catch (error) {
-                    console.error('Error fetching receiver profile:', error);
+            const isConcierge = users.includes('franklindesk');
+            
+            // Skip receiver fetch for concierge (already set in useEffect)
+            if (!isConcierge) {
+                // Find the other user (not the current user)
+                const otherUser = users.find(usr => usr !== user);
+                // Fetch receiver profile if we don't have it or if it's missing profile data
+                if(otherUser && (!receiver || !receiver.username || receiver.username !== otherUser || (!receiver.profile_pic && !receiver.profilePic && !receiver.avatar))){
+                    try {
+                        const receiverProfile = await getUserProfile(otherUser);
+                        setReceiver(receiverProfile);
+                    } catch (error) {
+                        console.error('Error fetching receiver profile:', error);
+                    }
                 }
             }
+            
             // Set sender profile if not set or missing profile data
             if(user && (!sender || !sender.username || (!sender.profile_pic && !sender.profilePic && !sender.avatar))){
                 try {
@@ -392,10 +399,34 @@ const Messages = props => {
         ensureConciergeOnlyForDemo();
     }, []); // Empty dependency array - run ONLY on mount
     
-    // Mark concierge conversation as opened when it's loaded
+    // Sync users state from selected conversation and set receiver for concierge
     useEffect(() => {
         const selectedId = routeConvoId || activeConversationId;
-        if (selectedId && Array.isArray(users) && users.includes('franklindesk')) {
+        const selectedConversation = Array.isArray(chats) ? chats.find(c => getConvoId(c) === selectedId) : null;
+        
+        if (!selectedConversation) {
+            return;
+        }
+        
+        const selectedUsers = Array.isArray(selectedConversation.users) ? selectedConversation.users : [];
+        
+        // Sync users state from selected conversation
+        if (selectedUsers.length > 0) {
+            setUsers(selectedUsers);
+        }
+        
+        // Special case for concierge: set receiver immediately
+        const isConcierge = selectedUsers.includes('franklindesk');
+        if (isConcierge) {
+            // Set lightweight receiver object immediately for concierge
+            setReceiver({
+                username: 'franklindesk',
+                name: 'Franklin Desk',
+                profile_pic: '/ben-franklin-demo-user.png',
+                bio: 'Your PennThrift concierge'
+            });
+            
+            // Mark concierge conversation as opened when it's loaded
             const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
             if (isDemoUser) {
                 // Ensure demoSessionId exists (generate if missing)
@@ -418,8 +449,22 @@ const Messages = props => {
                     socketRef.current.emit('unread');
                 }
             }
+            return; // Don't fetch profile for concierge
         }
-    }, [routeConvoId, activeConversationId, users, authUser]);
+        
+        // For non-concierge conversations, fetch receiver profile if needed
+        if (selectedUsers.length > 0 && user) {
+            const otherUser = selectedUsers.find(usr => usr !== user);
+            if (otherUser && (!receiver || receiver.username !== otherUser)) {
+                // Fetch receiver profile
+                getUserProfile(otherUser).then(profile => {
+                    setReceiver(profile);
+                }).catch(error => {
+                    console.error('Error fetching receiver profile:', error);
+                });
+            }
+        }
+    }, [routeConvoId, activeConversationId, chats, user, authUser]);
     
     // Auto-select first conversation if none selected and conversations exist
     useEffect(() => {
@@ -1055,8 +1100,8 @@ const Messages = props => {
                         return true;
                     }
                     
-                    // Show conversation if selected and has receiver
-                    if (selectedId && selectedConversation && receiver) {
+                    // Show conversation if selected (receiver can be loading)
+                    if (selectedId && selectedConversation) {
                         return true;
                     }
                     
