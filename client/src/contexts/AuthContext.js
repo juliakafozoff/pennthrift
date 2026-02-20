@@ -81,6 +81,8 @@ export const AuthProvider = ({ children }) => {
       });
       // Clear demo favorites seeded flag
       sessionStorage.removeItem('demoFavoritesSeeded');
+      // Clear demo avatar customized flag
+      sessionStorage.removeItem('demoAvatarCustomized');
     }
     
     try {
@@ -127,6 +129,12 @@ export const AuthProvider = ({ children }) => {
       if (res.data.success) {
         // Generate/retrieve demo session ID
         getDemoSessionId();
+        
+        // Clear avatar customized flag on new login (allows default avatar to be set)
+        // This ensures that after logout/login, default avatar is restored
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('demoAvatarCustomized');
+        }
         
         // Refresh auth state
         await checkAuth(true);

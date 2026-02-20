@@ -315,6 +315,12 @@ const EditProfile = props => {
                 }
             }
 
+            // If demo user changed avatar, mark as customized in sessionStorage
+            const isDemoUser = auth?.user?.username === 'demo' || auth?.user?.isDemo === true;
+            if (isDemoUser && image) {
+                sessionStorage.setItem('demoAvatarCustomized', '1');
+            }
+            
             // Build data object - BUGFIX A: Only ONE profile_pic field
             // If username changed, don't include it in data (already updated via username endpoint)
             const data = {

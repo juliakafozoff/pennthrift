@@ -292,6 +292,7 @@ router.post('/demo', async (req, res) => {
                 password: hashedPassword,
                 bio: 'Demo user - try out PennThrift!',
                 class_year: '2025',
+                profile_pic: '/ben-franklin-demo-user.png', // Default avatar
                 isDemo: true // Flag to identify demo user
             });
             await demoUser.save();
@@ -300,6 +301,17 @@ router.post('/demo', async (req, res) => {
             if (!demoUser.isDemo) {
                 demoUser.isDemo = true;
                 await demoUser.save();
+            }
+            
+            // Set default avatar if avatar is missing, empty, or already set to default
+            // (This is idempotent - safe to call multiple times)
+            // Note: We don't check sessionStorage here since it's client-side only
+            // The client will prevent overwriting if user has customized this session
+            if (!demoUser.profile_pic || !demoUser.profile_pic.trim() || demoUser.profile_pic === '/ben-franklin-demo-user.png') {
+                await User.findByIdAndUpdate(demoUser._id, {
+                    $set: { profile_pic: '/ben-franklin-demo-user.png' }
+                });
+                demoUser.profile_pic = '/ben-franklin-demo-user.png';
             }
         }
         
@@ -520,14 +532,15 @@ router.post('/demo/logout', async (req, res) => {
             _id: { $in: messageIds } 
         });
         
-        // Clear demo user's chats, unread, and favourites arrays
+        // Clear demo user's chats, unread, favourites arrays, and reset avatar to default
         await User.findOneAndUpdate(
             { _id: user._id },
             { 
                 $set: { 
                     chats: [], 
                     unread: [],
-                    favourites: []
+                    favourites: [],
+                    profile_pic: '/ben-franklin-demo-user.png' // Reset to default avatar
                 } 
             }
         );
