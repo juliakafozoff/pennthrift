@@ -25,19 +25,39 @@ import {
 } from '../utils/guestSession';
 import AuthRequiredModal from '../components/AuthRequiredModal';
 
+// Helper to normalize conversation ID (handle both _id and id)
+const getConvoId = (c) => {
+    if (!c) return null;
+    const convoId = c._id || c.id;
+    return typeof convoId === 'string' && convoId !== '[object Object]' && convoId !== 'undefined' 
+        ? convoId 
+        : (convoId ? String(convoId) : null);
+};
+
 const Messages = props => {
     const { isAuthenticated, user: authUser, demoLogin } = useAuth();
     const {id: chatIdParam} = useParams();
-    // Fix: Ensure id is always a string, defensive guard against objects
-    const id = typeof chatIdParam === 'string' && chatIdParam !== '[object Object]' 
-        ? chatIdParam 
-        : (chatIdParam && typeof chatIdParam === 'object' ? String(chatIdParam) : (chatIdParam || null));
+    // Normalize route param ID
+    const routeConvoId = getConvoId({ id: chatIdParam });
+    
+    console.log('[MESSAGES] route convoId param:', routeConvoId);
 
     const location = useLocation();
     const propsChat = location.state;
     const [chats, setChats] = useState(propsChat || []);
+    const [activeConversationId, setActiveConversationId] = useState(null);
     const [user, setUser] = useState('');
     const [messages, setMessages] = useState([]);
+    
+    // Log active conversation ID
+    console.log('[MESSAGES] activeConversationId state:', activeConversationId);
+    
+    // Log conversations loaded
+    useEffect(() => {
+        if (Array.isArray(chats) && chats.length > 0) {
+            console.log('[MESSAGES] conversations loaded ids:', chats.map(c => getConvoId(c)));
+        }
+    }, [chats]);
     const [text, setText]           = useState('');
     const [attachment, setAttachment] = useState('');
     const [attachmentDisplay , setAttachmentDisplay]    = useState();
@@ -45,7 +65,7 @@ const Messages = props => {
     const [users, setUsers]             = useState([])
     const [sender, setSender]           = useState('');
     const [chatImages, setChatImages] = useState('');
-    const [stateId , setStateId]  = useState(id);
+    const [stateId , setStateId]  = useState(null);
     const [menuOpen, setMenuOpen] = useState(true)
     const inputRef = useRef()
     const navigate = useNavigate();
@@ -175,17 +195,19 @@ const Messages = props => {
 
 
     async function checkAllowed(){
-        if(!processed && id){
+        const selectedId = routeConvoId || activeConversationId;
+        if(!processed && selectedId){
             if(user){
                 const chts = await getUserChats(user);
                 chts.map( cht => {
-                    if(cht._id === id){
+                    const chtId = getConvoId(cht);
+                    if(chtId === selectedId){
                         setAllowed(true);
                     }
                 })
                 
                 setProcessed(true)
-            } else if (!isAuthenticated && id) {
+            } else if (!isAuthenticated && selectedId) {
                 // Allow guests to access if they have a chat ID
                 // Guest sessions are handled differently
                 setIsGuest(true);
@@ -359,7 +381,8 @@ const Messages = props => {
     
     // Mark concierge conversation as opened when it's loaded
     useEffect(() => {
-        if (id && Array.isArray(users) && users.includes('franklindesk')) {
+        const selectedId = routeConvoId || activeConversationId;
+        if (selectedId && Array.isArray(users) && users.includes('franklindesk')) {
             const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
             if (isDemoUser) {
                 // Ensure demoSessionId exists (generate if missing)
@@ -387,16 +410,17 @@ const Messages = props => {
     
     // Auto-select first conversation if none selected and conversations exist
     useEffect(() => {
-        if (!id && Array.isArray(chats) && chats.length > 0 && user && !processed) {
+        const selectedId = routeConvoId || activeConversationId;
+        if (!selectedId && Array.isArray(chats) && chats.length > 0 && user && !processed) {
             const firstChat = chats[0];
-            if (firstChat && firstChat._id) {
-                const firstChatId = typeof firstChat._id === 'string' ? firstChat._id : String(firstChat._id);
-                if (firstChatId && firstChatId !== '[object Object]' && firstChatId !== 'undefined') {
-                    navigate(`/profile/messages/${firstChatId}`, { replace: true });
-                }
+            const firstChatId = getConvoId(firstChat);
+            if (firstChatId) {
+                console.log('[MESSAGES] Auto-selecting first conversation:', firstChatId);
+                navigate(`/profile/messages/${firstChatId}`, { replace: true });
+                setActiveConversationId(firstChatId);
             }
         }
-    }, [chats, user, id, processed, navigate]);
+    }, [chats, user, routeConvoId, activeConversationId, processed, navigate]);
     
     async function sendMessage(userParam, message, attachment){
         // Block demo users from sending messages (including draft threads)
@@ -630,19 +654,20 @@ const Messages = props => {
         }
     }
 
-    function loadMessages(chatId = id){
+    function loadMessages(chatId){
         // Defensive: Ensure chatId is a valid string
         const validChatId = typeof chatId === 'string' && chatId !== '[object Object]' && chatId !== 'undefined' ? chatId : null;
         if(messages.length == 0 && validChatId && socketRef.current){
             socketRef.current.emit('load', validChatId);
         }
     }
-    function refresh(){
+    function refresh(conversationId){
+        if (!conversationId) return;
         setMessages([])
-        loadMessages();
+        loadMessages(conversationId);
         setReceiver('')
-        if(socketRef.current && id){
-            socketRef.current.emit('join-room', id);
+        if(socketRef.current && conversationId){
+            socketRef.current.emit('join-room', conversationId);
         }
         // Removed window.location.reload() - causes full page refresh
         // State updates above are sufficient to refresh the UI
@@ -685,31 +710,33 @@ const Messages = props => {
             }
         }
         
-        // Defensive: Only proceed if id is a valid string
-        // Normalize id (handle both _id and id from route params)
-        const normalizedId = id && typeof id === 'string' && id !== '[object Object]' && id !== 'undefined' ? id : null;
+        // Derive selected conversation from route or active state
+        const selectedId = routeConvoId || activeConversationId;
+        const selectedConversation = Array.isArray(chats) ? chats.find(c => getConvoId(c) === selectedId) : null;
         
-        if(normalizedId){
-            console.log('📥 Loading conversation:', normalizedId);
+        console.log('[MESSAGES] selected conversation:', selectedConversation);
+        console.log('[MESSAGES] selectedId:', selectedId);
+        
+        if(selectedId && selectedConversation){
+            console.log('[MESSAGES] Loading conversation:', selectedId);
             // Only refresh if conversation ID actually changed
-            if(stateId !== normalizedId) {
+            if(stateId !== selectedId) {
                 if(stateId) {
                     // Conversation changed - refresh messages
-                    setStateId(normalizedId);
-                    refresh();
+                    setStateId(selectedId);
+                    refresh(selectedId);
                 } else {
                     // First load - just set state
-                    setStateId(normalizedId);
+                    setStateId(selectedId);
                 }
             }
             // Always load messages for current conversation
             if(socketRef.current) {
-                loadMessages(normalizedId);
+                loadMessages(selectedId);
             }
-        } else if(id && (typeof id === 'object' || id === '[object Object]')) {
-            console.error('Invalid chat ID detected (object instead of string):', id);
-            // Redirect to messages list if invalid ID
-            navigate('/profile/messages', { replace: true });
+        } else if(routeConvoId && !selectedConversation) {
+            console.warn('[MESSAGES] Route ID exists but conversation not found:', routeConvoId);
+            // Don't redirect - might be loading
         }
         
         if(socketRef.current){
@@ -869,12 +896,10 @@ const Messages = props => {
                         <div className='flex-1 overflow-y-auto'>
                             {Array.isArray(chats) && chats.length > 0 ? (
                                 chats.map( chat => {
-                            if(!chat || !chat._id) return null;
-                                    // Normalize conversation ID (handle both _id and id)
-                                    const convoId = chat._id || chat.id;
-                                    const chatId = typeof convoId === 'string' ? convoId : String(convoId);
-                                    if(!chatId || chatId === '[object Object]' || chatId === 'undefined') {
-                                        console.warn('Invalid chat ID:', chat);
+                                    // Normalize conversation ID
+                                    const chatId = getConvoId(chat);
+                                    if(!chatId) {
+                                        console.warn('[MESSAGES] Invalid chat ID:', chat);
                                         return null;
                                     }
                                     
@@ -906,7 +931,8 @@ const Messages = props => {
                                         lastMessage = '';
                                     }
                                     
-                                    const isSelected = chatId === id;
+                                    const currentRouteId = routeConvoId || activeConversationId;
+                                    const isSelected = chatId === currentRouteId;
                                     const hasUnread = Array.isArray(unreadCounts) && unreadCounts.includes(chatId);
                                     const avatarKey = `sidebar-${displayUser}`;
                                     const hasFailed = failedAvatars.has(avatarKey);
@@ -917,14 +943,20 @@ const Messages = props => {
                                             type="button"
                                             onClick={(e) => {
                                                 e.preventDefault();
+                                                console.log('[MESSAGES] click row', chat, 'id:', chatId);
+                                                
                                                 // Don't navigate if already selected
-                                                if (chatId === id) {
-                                                    console.log('📩 Conversation already selected:', chatId);
+                                                const currentRouteId = routeConvoId || activeConversationId;
+                                                if (chatId === currentRouteId) {
+                                                    console.log('[MESSAGES] Conversation already selected:', chatId);
+                                                    setActiveConversationId(chatId);
                                                     return;
                                                 }
-                                                console.log('📩 Clicked conversation:', { chatId, displayUser, isConciergeThread, chat });
+                                                
                                                 // Navigate to conversation
+                                                console.log('[MESSAGES] Navigating to conversation:', chatId);
                                                 navigate(`/profile/messages/${chatId}`, { replace: false });
+                                                setActiveConversationId(chatId);
                                             }}
                                             className={`w-full text-left block hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
                                         >
@@ -996,7 +1028,22 @@ const Messages = props => {
                     )}
                 </div>
                 {/* Conversation Area - Show draft thread or real conversation */}
-                {((id && receiver) || (draftTo && draftReceiver)) ? (
+                {(() => {
+                    const selectedId = routeConvoId || activeConversationId;
+                    const selectedConversation = Array.isArray(chats) ? chats.find(c => getConvoId(c) === selectedId) : null;
+                    
+                    // Show draft thread if draftTo is set
+                    if (draftTo && draftReceiver) {
+                        return true;
+                    }
+                    
+                    // Show conversation if selected and has receiver
+                    if (selectedId && selectedConversation && receiver) {
+                        return true;
+                    }
+                    
+                    return false;
+                })() ? (
                     <div className='flex-1 flex flex-col bg-[var(--color-bg)]'>
                         {/* Conversation Header */}
                         <div className='h-16 flex items-center gap-3 px-4 border-b border-gray-200 bg-white'>
