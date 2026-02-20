@@ -498,7 +498,8 @@ const Messages = props => {
                 socketRef.current.emit('unread');
             }
         }
-    }, [routeConvoId, activeConversationId, unreadCounts, chats, socketConnected, user, authUser]); // Run when selection changes
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [routeConvoId, activeConversationId]); // Run when selection changes (unreadCounts excluded to avoid loops)
     
     // Sync users state from selected conversation and set receiver for concierge
     useEffect(() => {
