@@ -55,6 +55,14 @@ const seedWelcomeConversation = async (demoUser) => {
         if (existingConversation) {
             // Use existing conversation
             conversation = existingConversation;
+            
+            // Ensure conversation is in both users' chats arrays (idempotent)
+            await User.findByIdAndUpdate(demoUser._id, {
+                $addToSet: { chats: conversation._id }
+            });
+            await User.findByIdAndUpdate(franklinDesk._id, {
+                $addToSet: { chats: conversation._id }
+            });
         } else {
             // Create new conversation
             conversation = new Message({
@@ -329,6 +337,39 @@ router.post('/demo', async (req, res) => {
     } catch (error) {
         console.error('Demo login error:', error);
         res.status(500).json({ error: 'Demo login failed' });
+    }
+});
+
+// Demo ensure concierge thread endpoint - ensures concierge conversation exists
+router.post('/demo/ensure-concierge-thread', async (req, res) => {
+    try {
+        // Verify user is authenticated
+        if (!req.isAuthenticated() || !req.user) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+        
+        const user = req.user;
+        const DEMO_USERNAME = 'demo';
+        
+        // Verify this is the demo user
+        const isDemoUser = user.username === DEMO_USERNAME || 
+                          user.usernameLower === DEMO_USERNAME || 
+                          user.isDemo === true;
+        
+        if (!isDemoUser) {
+            return res.status(403).json({ error: 'Not a demo user' });
+        }
+        
+        // Ensure concierge conversation exists
+        const conversation = await seedWelcomeConversation(user);
+        
+        res.json({ 
+            success: true,
+            conversationId: conversation._id.toString()
+        });
+    } catch (error) {
+        console.error('Error ensuring concierge thread:', error);
+        res.status(500).json({ error: 'Failed to ensure concierge thread' });
     }
 });
 

@@ -267,6 +267,43 @@ const Messages = props => {
         setUp();
     }, [users, user, allowed, receiver, sender]);
     
+    // Ensure concierge conversation exists for demo users on mount and when user changes
+    useEffect(() => {
+        const ensureConciergeForDemo = async () => {
+            const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
+            if (isDemoUser && isAuthenticated) {
+                try {
+                    // Ensure concierge thread exists
+                    await api.post('/api/auth/demo/ensure-concierge-thread', {}, { withCredentials: true });
+                    
+                    // Refresh chats after ensuring concierge exists
+                    const currentUser = user || authUser?.username;
+                    if (currentUser) {
+                        const updatedChats = await getUserChats(currentUser);
+                        if (Array.isArray(updatedChats)) {
+                            setChats(updatedChats);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error ensuring concierge thread:', error);
+                    // If ensure fails, still try to load chats
+                    if (user) {
+                        try {
+                            const updatedChats = await getUserChats(user);
+                            if (Array.isArray(updatedChats)) {
+                                setChats(updatedChats);
+                            }
+                        } catch (e) {
+                            console.error('Error loading chats:', e);
+                        }
+                    }
+                }
+            }
+        };
+        
+        ensureConciergeForDemo();
+    }, [isAuthenticated, authUser?.username, user]);
+    
     // Mark concierge conversation as opened when it's loaded
     useEffect(() => {
         if (id && Array.isArray(users) && users.includes('franklindesk')) {
