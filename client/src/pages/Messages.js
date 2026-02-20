@@ -70,6 +70,11 @@ const Messages = props => {
     const socketRef = useRef(null);
     // Managed unreadCounts state - single source of truth for unread indicators
     const { unreadCounts, setUnreadCounts } = useUnread();
+    
+    // Log unreadCounts changes for debugging
+    useEffect(() => {
+        console.log('[UNREAD] unreadCounts changed:', unreadCounts);
+    }, [unreadCounts]);
     // Guard to prevent ensure-concierge-only from running multiple times
     const didEnsureConciergeRef = useRef(false);
     // Draft thread state (for demo users)
@@ -405,14 +410,34 @@ const Messages = props => {
         ensureConciergeOnlyForDemo();
     }, []); // Empty dependency array - run ONLY on mount
     
-    // Initialize unreadCounts from sender.unread, filtering out opened concierge for demo users
+    // Initialize unreadCounts from sender.unread, filtering out:
+    // 1. Opened concierge for demo users (if demoConciergeOpened flag is set)
+    // 2. Currently selected conversation (user is viewing it, so it's read)
     useEffect(() => {
         if (!sender || !Array.isArray(sender.unread)) {
+            console.log('[UNREAD] No sender or sender.unread, clearing unreadCounts');
             setUnreadCounts([]);
             return;
         }
         
         const serverUnread = sender.unread;
+        const selectedId = routeConvoId || activeConversationId;
+        console.log('[UNREAD] Initializing from sender.unread:', serverUnread);
+        console.log('[UNREAD] Currently selected conversation:', selectedId);
+        
+        let filtered = [...serverUnread];
+        
+        // Filter out currently selected conversation (user is viewing it, so it's read)
+        if (selectedId) {
+            const selectedIdStr = typeof selectedId === 'string' ? selectedId : String(selectedId);
+            filtered = filtered.filter(id => {
+                const idStr = typeof id === 'string' ? id : String(id);
+                return idStr !== selectedIdStr;
+            });
+            if (filtered.length !== serverUnread.length) {
+                console.log('[UNREAD] Filtered out selected conversation', selectedId, 'from unreadCounts');
+            }
+        }
         
         // For demo users, filter out concierge if it's been opened
         const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
@@ -428,79 +453,82 @@ const Messages = props => {
                 if (conciergeChat) {
                     const conciergeId = getConvoId(conciergeChat);
                     if (conciergeId) {
-                        // Filter out concierge from unread counts
-                        const filtered = serverUnread.filter(id => {
+                        const conciergeIdStr = typeof conciergeId === 'string' ? conciergeId : String(conciergeId);
+                        const beforeFilter = filtered.length;
+                        filtered = filtered.filter(id => {
                             const idStr = typeof id === 'string' ? id : String(id);
-                            return idStr !== conciergeId;
+                            return idStr !== conciergeIdStr;
                         });
-                        setUnreadCounts(filtered);
-                        return;
+                        if (filtered.length !== beforeFilter) {
+                            console.log('[UNREAD] Filtered out concierge', conciergeId, 'from unreadCounts');
+                        }
                     }
                 }
             }
         }
         
-        // Default: use server unread as-is
-        setUnreadCounts(serverUnread);
-    }, [sender?.unread, chats, authUser]);
+        console.log('[UNREAD] Final unreadCounts:', filtered);
+        setUnreadCounts(filtered);
+    }, [sender?.unread, chats, authUser, routeConvoId, activeConversationId, setUnreadCounts]);
     
     // Mark conversation as read when it becomes selected
     useEffect(() => {
         const selectedId = routeConvoId || activeConversationId;
-        if (!selectedId || unreadCounts.length === 0) {
+        if (!selectedId) {
             return;
         }
         
-        // Check if this conversation is in unreadCounts
-        const isUnread = unreadCounts.some(id => {
-            const idStr = typeof id === 'string' ? id : String(id);
-            const selectedIdStr = typeof selectedId === 'string' ? selectedId : String(selectedId);
-            return idStr === selectedIdStr;
-        });
+        console.log('[UNREAD] selectedId changed:', selectedId);
+        console.log('[UNREAD] unreadCounts before:', unreadCounts);
         
-        if (isUnread) {
-            console.log('[MESSAGES] Marking conversation as read:', selectedId);
-            
-            // Remove from unreadCounts immediately
-            setUnreadCounts(prev => {
-                const filtered = prev.filter(id => {
-                    const idStr = typeof id === 'string' ? id : String(id);
-                    const selectedIdStr = typeof selectedId === 'string' ? selectedId : String(selectedId);
-                    return idStr !== selectedIdStr;
-                });
-                return filtered;
+        // Always remove selectedId from unreadCounts when conversation is opened
+        // This ensures the blue dot disappears immediately
+        setUnreadCounts(prev => {
+            const selectedIdStr = typeof selectedId === 'string' ? selectedId : String(selectedId);
+            const filtered = prev.filter(id => {
+                const idStr = typeof id === 'string' ? id : String(id);
+                return idStr !== selectedIdStr;
             });
             
-            // Sync with server if socket connected
-            if (socketRef.current && socketConnected && user) {
-                socketRef.current.emit('clear-unread', { id: selectedId, username: user || authUser?.username });
+            // Only log if we actually removed something
+            if (filtered.length !== prev.length) {
+                console.log('[UNREAD] Removed', selectedId, 'from unreadCounts');
+                console.log('[UNREAD] unreadCounts after:', filtered);
             }
             
-            // For demo concierge, persist opened state
-            const selectedConversation = Array.isArray(chats) ? chats.find(c => getConvoId(c) === selectedId) : null;
-            if (selectedConversation) {
-                const selectedUsers = Array.isArray(selectedConversation.users) ? selectedConversation.users : [];
-                const isConcierge = selectedUsers.includes('franklindesk');
-                const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
-                
-                if (isConcierge && isDemoUser) {
-                    let sessionId = sessionStorage.getItem('demoSessionId');
-                    if (!sessionId) {
-                        sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-                            const r = Math.random() * 16 | 0;
-                            const v = c === 'x' ? r : (r & 0x3 | 0x8);
-                            return v.toString(16);
-                        });
-                        sessionStorage.setItem('demoSessionId', sessionId);
-                    }
-                    localStorage.setItem(`demoConciergeOpened:${sessionId}`, '1');
+            return filtered;
+        });
+        
+        // Sync with server if socket connected
+        if (socketRef.current && socketConnected && user) {
+            socketRef.current.emit('clear-unread', { id: selectedId, username: user || authUser?.username });
+        }
+        
+        // For demo concierge, persist opened state
+        const selectedConversation = Array.isArray(chats) ? chats.find(c => getConvoId(c) === selectedId) : null;
+        if (selectedConversation) {
+            const selectedUsers = Array.isArray(selectedConversation.users) ? selectedConversation.users : [];
+            const isConcierge = selectedUsers.includes('franklindesk');
+            const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
+            
+            if (isConcierge && isDemoUser) {
+                let sessionId = sessionStorage.getItem('demoSessionId');
+                if (!sessionId) {
+                    sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                        const r = Math.random() * 16 | 0;
+                        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                        return v.toString(16);
+                    });
+                    sessionStorage.setItem('demoSessionId', sessionId);
                 }
+                localStorage.setItem(`demoConciergeOpened:${sessionId}`, '1');
+                console.log('[UNREAD] Set demoConciergeOpened flag for session:', sessionId);
             }
-            
-            // Trigger header update
-            if (socketRef.current) {
-                socketRef.current.emit('unread');
-            }
+        }
+        
+        // Trigger header update (no-op in Header, but kept for compatibility)
+        if (socketRef.current) {
+            socketRef.current.emit('unread');
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [routeConvoId, activeConversationId]); // Run when selection changes (unreadCounts excluded to avoid loops)
@@ -927,18 +955,8 @@ const Messages = props => {
                 if(data && data.users){
                     setUsers(data.users)
                     
-                    // Check if this is the concierge conversation and mark as opened
-                    const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
-                    if (isDemoUser && Array.isArray(data.users) && data.users.includes('franklindesk')) {
-                        const sessionId = sessionStorage.getItem('demoSessionId');
-                        if (sessionId) {
-                            localStorage.setItem(`demoConciergeOpened:${sessionId}`, '1');
-                            // Trigger header update by emitting unread update
-                            if (socketRef.current) {
-                                socketRef.current.emit('unread');
-                            }
-                        }
-                    }
+                    // Note: Concierge opened state is now handled by the "mark as read on open" effect
+                    // This handler no longer needs to set demoConciergeOpened or emit 'unread'
                 }
             })
             
