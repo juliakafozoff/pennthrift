@@ -2,6 +2,7 @@
 const express       = require('express');
 const router        = express.Router();
 const User          = require('../models/user.model');
+const Message       = require('../models/message.model');
 const bcrypt        = require('bcrypt');
 const passport      = require('passport');
 const session       = require('express-session');
@@ -166,9 +167,16 @@ router.post('/demo', async (req, res) => {
                 usernameLower: DEMO_USERNAME,
                 password: hashedPassword,
                 bio: 'Demo user - try out PennThrift!',
-                class_year: '2025'
+                class_year: '2025',
+                isDemo: true // Flag to identify demo user
             });
             await demoUser.save();
+        } else {
+            // Ensure existing demo user has isDemo flag
+            if (!demoUser.isDemo) {
+                demoUser.isDemo = true;
+                await demoUser.save();
+            }
         }
         
         // Log in the demo user
@@ -185,7 +193,8 @@ router.post('/demo', async (req, res) => {
                 // Return user data (without password)
                 const userResponse = {
                     username: demoUser.username,
-                    id: demoUser._id || demoUser.id
+                    id: demoUser._id || demoUser.id,
+                    isDemo: true
                 };
                 
                 res.json({
@@ -197,6 +206,72 @@ router.post('/demo', async (req, res) => {
     } catch (error) {
         console.error('Demo login error:', error);
         res.status(500).json({ error: 'Demo login failed' });
+    }
+});
+
+// Demo logout endpoint - wipes all demo user's chat data
+router.post('/demo/logout', async (req, res) => {
+    try {
+        // Verify user is authenticated and is demo user
+        if (!req.isAuthenticated() || !req.user) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+        
+        const user = req.user;
+        const DEMO_USERNAME = 'demo';
+        
+        // Verify this is the demo user
+        const isDemoUser = user.username === DEMO_USERNAME || 
+                          user.usernameLower === DEMO_USERNAME || 
+                          user.isDemo === true;
+        
+        if (!isDemoUser) {
+            return res.status(403).json({ error: 'Not a demo user' });
+        }
+        
+        // Find all Message documents where demo user is in the users array
+        const demoMessages = await Message.find({ 
+            users: { $in: [DEMO_USERNAME, user._id.toString()] } 
+        });
+        
+        // Get all message IDs to delete
+        const messageIds = demoMessages.map(msg => msg._id);
+        
+        // Delete all Message documents
+        await Message.deleteMany({ 
+            _id: { $in: messageIds } 
+        });
+        
+        // Clear demo user's chats and unread arrays
+        await User.findOneAndUpdate(
+            { _id: user._id },
+            { 
+                $set: { 
+                    chats: [], 
+                    unread: [] 
+                } 
+            }
+        );
+        
+        // Logout the session
+        req.logout((err) => {
+            if (err) {
+                console.error('Error during demo logout:', err);
+                return res.status(500).json({ error: 'Failed to logout session' });
+            }
+            
+            req.session.destroy((destroyErr) => {
+                if (destroyErr) {
+                    console.error('Error destroying session:', destroyErr);
+                    return res.status(500).json({ error: 'Failed to destroy session' });
+                }
+                
+                res.json({ ok: true });
+            });
+        });
+    } catch (error) {
+        console.error('Demo logout error:', error);
+        res.status(500).json({ error: 'Demo logout failed' });
     }
 });
 

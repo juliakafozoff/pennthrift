@@ -51,6 +51,9 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     console.log('🔴 [AUTH CONTEXT] Logout called');
     
+    // Check if current user is demo user
+    const isDemoUser = user?.username === 'demo' || user?.isDemo === true;
+    
     // Clear any pending auth checks
     if (checkAuthTimeoutRef.current) {
       clearTimeout(checkAuthTimeoutRef.current);
@@ -62,8 +65,15 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     
     try {
-      await api.post('/api/auth/logout', {}, { withCredentials: true });
-      console.log('🟢 [AUTH CONTEXT] Logout API call successful');
+      if (isDemoUser) {
+        // Call demo logout endpoint to wipe chat data
+        await api.post('/api/auth/demo/logout', {}, { withCredentials: true });
+        console.log('🟢 [AUTH CONTEXT] Demo logout API call successful - chat data wiped');
+      } else {
+        // Normal logout
+        await api.post('/api/auth/logout', {}, { withCredentials: true });
+        console.log('🟢 [AUTH CONTEXT] Logout API call successful');
+      }
     } catch (error) {
       console.error('❌ [AUTH CONTEXT] Logout API call failed:', error);
       // Still clear local state even if API call fails

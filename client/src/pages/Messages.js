@@ -199,6 +199,29 @@ const Messages = props => {
         }
     }, [isAuthenticated, user]);
     
+    // Clear chat state when user logs out (especially for demo user)
+    useEffect(() => {
+        if (!isAuthenticated && (user || chats.length > 0 || messages.length > 0)) {
+            // User logged out - clear all chat state
+            setChats([]);
+            setMessages([]);
+            setReceiver('');
+            setSender('');
+            setUsers([]);
+            setText('');
+            setAttachment('');
+            setAttachmentDisplay('');
+            setAllowed(false);
+            setProcessed(false);
+            
+            // Disconnect socket if connected
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+                socketRef.current = null;
+            }
+        }
+    }, [isAuthenticated]);
+    
     checkAllowed();
 
 

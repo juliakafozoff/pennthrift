@@ -66,6 +66,10 @@ const userSchema = new Schema({
     locked_out: {
         type: Boolean,
         default: false,
+    },
+    isDemo: {
+        type: Boolean,
+        default: false,
     }
 }, { collection: 'User' });
 
