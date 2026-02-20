@@ -718,30 +718,41 @@ const Messages = props => {
     function loadMessages(chatId){
         // Defensive: Ensure chatId is a valid string
         const validChatId = chatId && typeof chatId === 'string' && chatId !== '[object Object]' && chatId !== 'undefined' ? chatId : null;
-        if(validChatId && socketRef.current){
+        if(!validChatId) return;
+        
+        if(socketRef.current && socketConnected){
             console.log('[MESSAGES] Loading messages for conversation:', validChatId);
+            // Join room first, then load messages
+            socketRef.current.emit('join-room', validChatId);
             socketRef.current.emit('load', validChatId);
+        } else {
+            // Socket not connected yet, queue it
+            console.log('[MESSAGES] Socket not connected, queueing conversation:', validChatId);
+            pendingConversationIdRef.current = validChatId;
         }
     }
     function refresh(conversationId){
         if (!conversationId) return;
         setMessages([])
-        loadMessages(conversationId);
         setReceiver('')
-        if(socketRef.current && conversationId){
-            socketRef.current.emit('join-room', conversationId);
-        }
+        // loadMessages will handle join-room + load
+        loadMessages(conversationId);
         // Removed window.location.reload() - causes full page refresh
         // State updates above are sufficient to refresh the UI
     }
 
+    // Track pending conversation to load when socket connects
+    const pendingConversationIdRef = useRef(null);
+        
     useEffect(() => {
         // Initialize socket inside useEffect
         if (typeof window !== 'undefined' && path && !socketRef.current) {
             try {
                 // Use proper socket.io URL (base URL, socket.io handles /socket.io path)
                 const socketUrl = path.replace(/\/$/, ''); // Remove trailing slash
-                socketRef.current = io.connect(socketUrl, {
+                
+                // Connect to /api/messages namespace explicitly
+                socketRef.current = io(`${socketUrl}/api/messages`, {
                     path: '/socket.io',
                     withCredentials: true,
                     transports: ['websocket', 'polling'], // Allow fallback to polling
@@ -752,10 +763,21 @@ const Messages = props => {
                     timeout: 20000
                 });
                 
+                console.log('[MESSAGES] Connecting to socket namespace:', `${socketUrl}/api/messages`);
+                
                 // Add connection event handlers
                 socketRef.current.on('connect', () => {
-                    console.log('✅ Socket.io connected');
+                    console.log('✅ Socket.io connected to /api/messages namespace');
                     setSocketConnected(true);
+                    
+                    // If there's a pending conversation, load it now
+                    if (pendingConversationIdRef.current) {
+                        const pendingId = pendingConversationIdRef.current;
+                        console.log('[MESSAGES] Loading pending conversation after socket connect:', pendingId);
+                        socketRef.current.emit('join-room', pendingId);
+                        socketRef.current.emit('load', pendingId);
+                        pendingConversationIdRef.current = null;
+                    }
                 });
                 
                 socketRef.current.on('disconnect', (reason) => {
@@ -790,10 +812,11 @@ const Messages = props => {
                 } else {
                     // First load - just set state
                     setStateId(selectedId);
+                    // Load messages for first load
+                    loadMessages(selectedId);
                 }
-            }
-            // Always load messages for current conversation
-            if(socketRef.current) {
+            } else if (stateId === selectedId && socketRef.current && socketConnected) {
+                // Same conversation but ensure messages are loaded if socket just connected
                 loadMessages(selectedId);
             }
         } else if(routeConvoId && !selectedConversation) {
@@ -802,15 +825,21 @@ const Messages = props => {
         }
         
         if(socketRef.current){
+            // Remove old listener to prevent duplicates
+            socketRef.current.off('allMessages');
+            
             socketRef.current.on('allMessages', data => {
+                console.log('[MESSAGES] Received allMessages:', data);
                 if(data && data.messages && data.messages.length > 0){
                     // Add timestamps to messages if missing
                     const messagesWithTimestamps = data.messages.map((msg, idx) => ({
                         ...msg,
                         timestamp: msg.timestamp || new Date(Date.now() - (data.messages.length - idx) * 60000).toISOString()
                     }));
+                    console.log('[MESSAGES] Setting messages:', messagesWithTimestamps.length);
                     setMessages(messagesWithTimestamps);
                 }else{
+                    console.log('[MESSAGES] No messages in response, setting empty state');
                     setMessages(['string to stop infinite loop'])
                 }
                 if(data && data.users){
@@ -1014,6 +1043,41 @@ const Messages = props => {
                                                     console.log('[MESSAGES] Conversation already selected:', chatId);
                                                     setActiveConversationId(chatId);
                                                     return;
+                                                }
+                                                
+                                                // Handle concierge unread dot clearing immediately
+                                                const isConcierge = chatUsers.includes('franklindesk');
+                                                if (isConcierge) {
+                                                    const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
+                                                    if (isDemoUser) {
+                                                        // Set localStorage flag
+                                                        let sessionId = sessionStorage.getItem('demoSessionId');
+                                                        if (!sessionId) {
+                                                            sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                                                                const r = Math.random() * 16 | 0;
+                                                                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                                                                return v.toString(16);
+                                                            });
+                                                            sessionStorage.setItem('demoSessionId', sessionId);
+                                                        }
+                                                        localStorage.setItem(`demoConciergeOpened:${sessionId}`, '1');
+                                                        
+                                                        // Clear from unreadCounts immediately (local state)
+                                                        if (sender && Array.isArray(sender.unread)) {
+                                                            const updatedUnread = sender.unread.filter(id => id !== chatId);
+                                                            setSender({ ...sender, unread: updatedUnread });
+                                                        }
+                                                        
+                                                        // Also emit clear-unread to server if socket connected
+                                                        if (socketRef.current && socketConnected) {
+                                                            socketRef.current.emit('clear-unread', { id: chatId, username: user || authUser?.username });
+                                                        }
+                                                        
+                                                        // Trigger header update
+                                                        if (socketRef.current) {
+                                                            socketRef.current.emit('unread');
+                                                        }
+                                                    }
                                                 }
                                                 
                                                 // Navigate to conversation
