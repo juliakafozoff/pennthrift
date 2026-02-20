@@ -640,9 +640,33 @@ const Messages = props => {
         // Initialize socket inside useEffect
         if (typeof window !== 'undefined' && path && !socketRef.current) {
             try {
-                socketRef.current = io.connect(`${path}/api/messages`, {
+                // Use proper socket.io URL (base URL, socket.io handles /socket.io path)
+                const socketUrl = path.replace(/\/$/, ''); // Remove trailing slash
+                socketRef.current = io.connect(socketUrl, {
+                    path: '/socket.io',
                     withCredentials: true,
-                    transports: ['websocket', 'polling']
+                    transports: ['websocket', 'polling'], // Allow fallback to polling
+                    reconnection: true,
+                    reconnectionAttempts: 5,
+                    reconnectionDelay: 1000,
+                    reconnectionDelayMax: 5000,
+                    timeout: 20000
+                });
+                
+                // Add connection event handlers
+                socketRef.current.on('connect', () => {
+                    console.log('✅ Socket.io connected');
+                    setSocketConnected(true);
+                });
+                
+                socketRef.current.on('disconnect', (reason) => {
+                    console.log('⚠️ Socket.io disconnected:', reason);
+                    setSocketConnected(false);
+                });
+                
+                socketRef.current.on('connect_error', (error) => {
+                    console.error('❌ Socket.io connection error:', error);
+                    setSocketConnected(false);
                 });
             } catch (e) {
                 console.error('Error initializing socket:', e);
@@ -784,6 +808,18 @@ const Messages = props => {
                 isOpen={showMessagingBlockedModal}
                 onClose={() => setShowMessagingBlockedModal(false)}
             />
+            {/* Socket connection status banner */}
+            {socketRef.current && !socketConnected && (
+                <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 text-sm text-yellow-800">
+                    <div className="flex items-center gap-2">
+                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Chat is reconnecting...</span>
+                    </div>
+                </div>
+            )}
             <div className="flex flex-1 overflow-hidden">
                 {/* Recents Sidebar - Modern Inbox */}
                 <div className={`flex flex-col bg-white border-r border-gray-200 transition-all duration-300 ${ menuOpen ? 'w-[300px]' : 'w-0'} ${!menuOpen && 'hidden md:flex md:w-14'}`}>

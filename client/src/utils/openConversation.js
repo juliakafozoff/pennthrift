@@ -23,25 +23,14 @@ export const openConversationUI = (targetUserId, context) => {
     const user = authUser || viewer;
     const isDemo = isDemoUser(user);
     
-    if (isDemo) {
+    if (isDemo && targetUserId !== 'franklindesk') {
         // Demo user: navigate to draft thread (no server conversation)
+        // Allow demo to message franklindesk normally
         navigate(`/profile/messages?draftTo=${targetUserId}`);
     } else {
-        // Real user: create/fetch real conversation
-        if (socketRef && socketRef.current) {
-            const users = [user.username || user, targetUserId];
-            
-            socketRef.current.emit('get-open', users);
-            socketRef.current.on('message-navigate', id => {
-                const chatId = typeof id === 'string' ? id : String(id);
-                if (chatId && chatId !== '[object Object]' && chatId !== 'undefined') {
-                    navigate(`/profile/messages/${chatId}`);
-                }
-            });
-        } else {
-            // Fallback: navigate to messages page
-            navigate(`/profile/messages?draftTo=${targetUserId}`);
-        }
+        // Real user: navigate immediately, then fetch/create conversation
+        // Don't wait for socket - navigate first, then handle conversation in Messages page
+        navigate(`/profile/messages?startConversation=${targetUserId}`);
     }
 };
 
