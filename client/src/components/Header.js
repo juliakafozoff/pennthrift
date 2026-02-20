@@ -104,23 +104,22 @@ const Header = props =>{
             let effectiveUnread = unreadSafe;
             
             if (isDemoUser && hasOpenedConcierge()) {
-                // If concierge has been opened, don't show red dot
-                // Check if concierge conversation exists in chats
+                // If concierge has been opened, filter it out from unread count
                 try {
                     const { getUserChats } = await import('../api/ProfileAPI');
                     const chats = await getUserChats(authUser.username);
-                    const conciergeChat = Array.isArray(chats) ? chats.find(chat => 
-                        Array.isArray(chat.users) && chat.users.includes('franklindesk')
-                    ) : null;
+                    const conciergeChat = Array.isArray(chats) ? chats.find(chat => {
+                        const users = Array.isArray(chat.users) ? chat.users : [];
+                        return users.includes('franklindesk');
+                    }) : null;
                     
-                    if (conciergeChat && conciergeChat._id) {
-                        const conciergeId = typeof conciergeChat._id === 'string' 
-                            ? conciergeChat._id 
-                            : String(conciergeChat._id);
+                    if (conciergeChat) {
+                        const conciergeId = conciergeChat._id || conciergeChat.id;
+                        const conciergeIdStr = typeof conciergeId === 'string' ? conciergeId : String(conciergeId);
                         // Filter out concierge conversation from unread count
                         effectiveUnread = unreadSafe.filter(id => {
                             const idStr = typeof id === 'string' ? id : String(id);
-                            return idStr !== conciergeId;
+                            return idStr !== conciergeIdStr;
                         });
                     } else {
                         // If concierge chat doesn't exist yet but flag is set, assume no unread
@@ -132,6 +131,7 @@ const Header = props =>{
                 }
             }
             
+            // Single source of truth: red dot shows ONLY if there are unread conversations
             const count = effectiveUnread.length;
             // Only set if count is a valid number (defensive check)
             setUnread(typeof count === 'number' && count >= 0 ? count : 0);
