@@ -1,34 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getUserProfile } from '../api/ProfileAPI';
-import { normalizeImageUrl, getUserInitial } from '../utils/imageUtils';
+import AvatarMenu from './AvatarMenu';
 
-const TopNav = ({ unreadCount = 0 }) => {
+const TopNav = ({ unreadCount = 0, onLogout }) => {
     const location = useLocation();
     const { isAuthenticated, user: authUser } = useAuth();
-    const [userProfile, setUserProfile] = useState(null);
-    const [avatarFailed, setAvatarFailed] = useState(false);
-    const [loading, setLoading] = useState(true);
-
-    // Fetch user profile to get profile_pic
-    useEffect(() => {
-        if (isAuthenticated && authUser?.username) {
-            setLoading(true);
-            getUserProfile(authUser.username)
-                .then(profile => {
-                    setUserProfile(profile);
-                    setAvatarFailed(false);
-                    setLoading(false);
-                })
-                .catch(err => {
-                    console.error('Error fetching user profile for nav:', err);
-                    setLoading(false);
-                });
-        } else {
-            setLoading(false);
-        }
-    }, [isAuthenticated, authUser?.username]);
+    // Profile avatar is now handled by AvatarMenu component
 
     // Determine active route
     const pathname = location.pathname;
@@ -37,12 +14,6 @@ const TopNav = ({ unreadCount = 0 }) => {
     const isSavedActive = pathname === '/profile/favourites';
     const isProfileActive = pathname === '/profile' || pathname === '/profile/edit' || pathname === '/profile/analytics' || pathname === '/profile/newitem';
 
-    // Get avatar URL with fallbacks
-    const avatarUrl = userProfile?.profile_pic || userProfile?.profilePic || userProfile?.avatar
-        ? normalizeImageUrl(userProfile.profile_pic || userProfile.profilePic || userProfile.avatar)
-        : null;
-    const username = authUser?.username || userProfile?.username || '';
-    const initial = getUserInitial(username);
     const hasUnread = unreadCount > 0;
 
     // Nav items configuration
@@ -72,9 +43,10 @@ const TopNav = ({ unreadCount = 0 }) => {
         {
             to: '/profile',
             label: 'Profile',
-            icon: null, // Will render avatar instead
+            icon: null, // Will render avatar menu instead
             isActive: isProfileActive,
-            ariaLabel: 'Your profile'
+            ariaLabel: 'Your profile',
+            isMenu: true // Flag to render AvatarMenu instead of Link
         }
     ];
 
@@ -86,77 +58,54 @@ const TopNav = ({ unreadCount = 0 }) => {
         >
             {navItems.map((item) => (
                 <div key={item.to} className="relative group">
-                    <Link
-                        to={item.to}
-                        className={`
-                            relative flex items-center justify-center
-                            w-11 h-11 rounded-full
-                            transition-all duration-200 ease-in-out
-                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]
-                            ${item.isActive 
-                                ? 'bg-[var(--color-primary)] text-white shadow-md scale-105' 
-                                : 'hover:bg-gray-100 text-gray-700 hover:scale-105'
-                            }
-                        `}
-                        aria-label={item.ariaLabel}
-                        aria-current={item.isActive ? 'page' : undefined}
-                        title={item.label}
-                    >
-                        {/* Unread indicator dot for Messages */}
-                        {item.hasUnread && (
-                            <div 
-                                className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white z-10"
-                                aria-label="Unread messages"
-                            />
-                        )}
-
-                        {/* Icon or Avatar */}
-                        {item.to === '/profile' ? (
-                            // Profile avatar
-                            <div className="relative w-8 h-8">
-                                {!loading && avatarUrl && !avatarFailed ? (
-                                    <img
-                                        src={avatarUrl}
-                                        alt={username || 'Profile'}
-                                        className="w-full h-full rounded-full object-cover"
-                                        onError={() => {
-                                            setAvatarFailed(true);
-                                        }}
-                                    />
-                                ) : (
+                    {item.isMenu ? (
+                        // Profile menu (AvatarMenu component)
+                        <AvatarMenu onLogout={onLogout} unreadCount={unreadCount} />
+                    ) : (
+                        // Regular navigation link
+                        <>
+                            <Link
+                                to={item.to}
+                                className={`
+                                    relative flex items-center justify-center
+                                    w-11 h-11 rounded-full
+                                    transition-all duration-200 ease-in-out
+                                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]
+                                    ${item.isActive 
+                                        ? 'bg-[var(--color-primary)] text-white shadow-md scale-105' 
+                                        : 'hover:bg-gray-100 text-gray-700 hover:scale-105'
+                                    }
+                                `}
+                                aria-label={item.ariaLabel}
+                                aria-current={item.isActive ? 'page' : undefined}
+                                title={item.label}
+                            >
+                                {/* Unread indicator dot for Messages */}
+                                {item.hasUnread && (
                                     <div 
-                                        className={`
-                                            w-full h-full rounded-full 
-                                            flex items-center justify-center 
-                                            font-semibold text-sm
-                                            ${item.isActive 
-                                                ? 'bg-white text-[var(--color-primary)]' 
-                                                : 'bg-gray-200 text-gray-600'
-                                            }
-                                        `}
-                                    >
-                                        {initial}
-                                    </div>
+                                        className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white z-10"
+                                        aria-label="Unread messages"
+                                    />
                                 )}
+
+                                {/* Regular icon */}
+                                <img
+                                    src={item.icon}
+                                    alt={item.label}
+                                    className={`w-5 h-5 ${item.isActive ? 'brightness-0 invert' : 'opacity-80 group-hover:opacity-100'}`}
+                                />
+                            </Link>
+                            
+                            {/* Tooltip - only show on desktop (hover) */}
+                            <div 
+                                className="hidden sm:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50"
+                                role="tooltip"
+                            >
+                                {item.label}
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-2 h-2 bg-gray-900 rotate-45"></div>
                             </div>
-                        ) : (
-                            // Regular icon
-                            <img
-                                src={item.icon}
-                                alt={item.label}
-                                className={`w-5 h-5 ${item.isActive ? 'brightness-0 invert' : 'opacity-80 group-hover:opacity-100'}`}
-                            />
-                        )}
-                    </Link>
-                    
-                    {/* Tooltip - only show on desktop (hover) */}
-                    <div 
-                        className="hidden sm:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium text-white bg-gray-900 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50"
-                        role="tooltip"
-                    >
-                        {item.label}
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-2 h-2 bg-gray-900 rotate-45"></div>
-                    </div>
+                        </>
+                    )}
                 </div>
             ))}
         </nav>

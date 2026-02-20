@@ -325,3 +325,5 @@ cookie: {
 - ✅ POST `/api/auth/` endpoint still exists (returns old format `[true, username]`)
 - ✅ Can be removed after confirming frontend works with GET endpoint
 
+
+
