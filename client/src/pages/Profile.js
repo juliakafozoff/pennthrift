@@ -9,7 +9,7 @@ import { PageHeader, Card, Badge, Button } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
 import { normalizeImageUrl, getUserInitial } from "../utils/imageUtils";
 import { formatUsername } from "../utils/usernameUtils";
-import { VenmoIcon } from "../components/icons";
+import venmoLogo from '../assets/Venmo_logo.png';
 
 
 class Profile extends Component {
@@ -214,7 +214,7 @@ class Profile extends Component {
                                 title={displayUsername}
                                 subtitle={this.state.venmo && (
                                     <div className="flex items-center gap-1.5 mt-2">
-                                        <VenmoIcon className="w-4 h-4 flex-shrink-0" />
+                                        <img src={venmoLogo} alt="Venmo" className="w-4 h-4 object-contain flex-shrink-0" />
                                         <span className="text-base text-[var(--color-text)]">{this.state.venmo}</span>
                                     </div>
                                 )}
