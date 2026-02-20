@@ -158,7 +158,7 @@ const Header = props =>{
                             <div className="flex items-baseline gap-2 cursor-pointer">
                                 <Link 
                                     to={isAuthenticated ? "/store" : "/"} 
-                                    className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                    className="flex items-baseline gap-2 hover:opacity-80 transition-opacity"
                                     aria-label="PennThrift home"
                                 >
                                     <img 
@@ -171,9 +171,14 @@ const Header = props =>{
                                     </span>
                                 </Link>
                                 <button
-                                    className="inline-flex items-center justify-center ml-1.5 text-gray-500 hover:text-gray-700 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+                                    className="inline-block ml-1.5 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] relative"
                                     aria-label="About PennThrift"
-                                    style={{ fontSize: '14px', lineHeight: '1' }}
+                                    style={{ 
+                                        fontSize: '14px', 
+                                        lineHeight: '1',
+                                        opacity: '0.7',
+                                        top: '-1px'
+                                    }}
                                     type="button"
                                 >
                                     ⓘ
