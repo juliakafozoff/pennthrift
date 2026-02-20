@@ -180,23 +180,23 @@ export default class Store extends Component {
                     onSuccess={this.handleAuthModalSuccess}
                 />
                 <div className="container py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-start gap-3 mb-8">
-                        <div className="flex-1">
-                            <PageHeader 
-                                title="Store"
-                                subtitle={resultCount > 0 ? `${resultCount} ${resultCount === 1 ? 'item' : 'items'} found` : 'Browse marketplace'}
-                                className="mb-0"
-                            />
-                        </div>
-                        <AboutPopover trigger="hover">
-                            <button
-                                className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] mt-1"
-                                aria-label="About PennThrift"
-                            >
-                                <span className="text-xs font-normal">ⓘ</span>
-                            </button>
-                        </AboutPopover>
-                    </div>
+                    <PageHeader 
+                        title={
+                            <span className="flex items-baseline">
+                                Store
+                                <AboutPopover trigger="hover">
+                                    <button
+                                        className="inline-flex items-center justify-center ml-2 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+                                        aria-label="About PennThrift"
+                                        style={{ fontSize: '14px', lineHeight: '1' }}
+                                    >
+                                        ⓘ
+                                    </button>
+                                </AboutPopover>
+                            </span>
+                        }
+                        subtitle={resultCount > 0 ? `${resultCount} ${resultCount === 1 ? 'item' : 'items'} found` : 'Browse marketplace'}
+                    />
                     
                     {/* Mobile Filter Bar */}
                     <div className="lg:hidden mb-6 space-y-4">
