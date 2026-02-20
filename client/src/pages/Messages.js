@@ -658,7 +658,7 @@ const Messages = props => {
                                     <img 
                                         src={benFranklinThoughtBubble} 
                                         alt="Ben Franklin thought bubble" 
-                                        className='w-12 h-auto mx-auto mb-3' 
+                                        className='w-24 h-auto mx-auto mb-3' 
                                     />
                                     <p className='text-sm font-medium text-gray-700 mb-1'>No conversations yet</p>
                                     <p className='text-xs text-gray-500'>Start messaging sellers from item listings</p>
@@ -863,7 +863,7 @@ const Messages = props => {
                                     <img 
                                         src={benFranklinThoughtBubble} 
                                         alt="Ben Franklin thought bubble" 
-                                        className='w-16 h-auto mx-auto mb-4' 
+                                        className='w-80 h-auto mx-auto mb-4' 
                                     />
                                     <h3 className='text-xl font-semibold text-gray-900 mb-2'>No conversations yet</h3>
                                     <p className='text-base text-gray-500 mb-6'>Start a conversation by messaging a seller from an item listing.</p>
@@ -882,7 +882,7 @@ const Messages = props => {
                                     <img 
                                         src={benFranklinThoughtBubble} 
                                         alt="Ben Franklin thought bubble" 
-                                        className='w-16 h-auto mx-auto mb-4' 
+                                        className='w-80 h-auto mx-auto mb-4' 
                                     />
                                     <h3 className='text-xl font-semibold text-gray-900 mb-2'>Select a conversation</h3>
                                     <p className='text-base text-gray-500'>Choose a conversation from the sidebar to start messaging</p>
