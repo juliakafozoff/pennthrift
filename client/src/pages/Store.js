@@ -4,6 +4,7 @@ import { Component } from "react";
 import api from "../api/http";
 import { getUserFavourites } from "../api/ProfileAPI";
 import { PageHeader, Card, Input, Badge } from "../components/ui";
+import AuthRequiredModal from "../components/AuthRequiredModal";
 
 
 export default class Store extends Component {
@@ -17,6 +18,8 @@ export default class Store extends Component {
         favourites:[],
         error: null,
         loading: true,
+        showAuthModal: false,
+        authModalCallback: null,
     }
     
     componentDidMount(){
@@ -141,6 +144,21 @@ export default class Store extends Component {
         }
     }
 
+    handleAuthRequired = (callback) => {
+        this.setState({ showAuthModal: true, authModalCallback: callback });
+    };
+
+    handleAuthModalClose = () => {
+        this.setState({ showAuthModal: false, authModalCallback: null });
+    };
+
+    handleAuthModalSuccess = () => {
+        // Refresh user and favourites after successful auth
+        this.setUp();
+        if (this.state.authModalCallback) {
+            this.state.authModalCallback();
+        }
+    };
 
     render(){
         const categories  = ['For Fun', 'Vehicle', 'Apparel', 'Tickets', 
@@ -155,6 +173,11 @@ export default class Store extends Component {
         return(
             <div className="min-h-screen bg-[var(--color-bg)]">
                 <Header/>
+                <AuthRequiredModal
+                    isOpen={this.state.showAuthModal}
+                    onClose={this.handleAuthModalClose}
+                    onSuccess={this.handleAuthModalSuccess}
+                />
                 <div className="container py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <PageHeader 
                         title="Store"
@@ -376,6 +399,7 @@ export default class Store extends Component {
                                     favourites={Array.isArray(this.state.favourites) ? this.state.favourites : []}
                                     user={this.state.user}
                                     data={searchResultsSafe}
+                                    onAuthRequired={this.handleAuthRequired}
                                 />
                             )}
                         </main>

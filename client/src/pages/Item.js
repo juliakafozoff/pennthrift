@@ -7,12 +7,16 @@ import placeholder from '../assets/placeholder_item.png';
 import { getUserFavourites } from "../api/ProfileAPI";
 import { normalizeImageUrl } from "../utils/imageUtils";
 import { Card, Badge } from "../components/ui";
+import AuthRequiredModal from "../components/AuthRequiredModal";
+import { useAuth } from "../contexts/AuthContext";
+import AuthRequiredModal from "../components/AuthRequiredModal";
+import { useAuth } from "../contexts/AuthContext";
 
 
 
 
 const Item = props => {
-
+    const { demoLogin } = useAuth();
     const [userInfo, setUserInfo]           = useState('');
     const [item, setItem]                   = useState({});
     const [viewer, setViewer]               = useState();
@@ -22,6 +26,8 @@ const Item = props => {
     const { id } = useParams();
     const [stateId, setStateId]             = useState(id);
     const [processed, setProcessed] = useState(false)
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [authModalCallback, setAuthModalCallback] = useState(null);
     const navigate = useNavigate()
 
     // Redirect to store if no ID provided
@@ -69,13 +75,35 @@ const Item = props => {
     
     const update = async(id) =>{
         if(viewer){
-            
             await api.post('/api/profile/favourites/update',{itemID:id, username:viewer})
             refresh()
         }else{
-            navigate('/login')
+            setAuthModalCallback(() => () => {
+                // After auth, retry the favorite action
+                update(id);
+            });
+            setShowAuthModal(true);
         }
     }
+
+    const handleAuthModalClose = () => {
+        setShowAuthModal(false);
+        setAuthModalCallback(null);
+    };
+
+    const handleAuthModalSuccess = async () => {
+        // Refresh viewer after successful auth
+        try {
+            const resU = await api.get('/api/auth/user');
+            setViewer(resU.data);
+            await refresh();
+        } catch (error) {
+            console.error('Error refreshing user after auth:', error);
+        }
+        if (authModalCallback) {
+            authModalCallback();
+        }
+    };
     
     const filter = (items) =>{
         let similar = []
@@ -182,6 +210,11 @@ const Item = props => {
     return(
         <div className="min-h-screen bg-[var(--color-bg)]">
             <Header/>
+            <AuthRequiredModal
+                isOpen={showAuthModal}
+                onClose={handleAuthModalClose}
+                onSuccess={handleAuthModalSuccess}
+            />
             <div className="container py-8 max-w-6xl">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Left Column - Item Details */}
@@ -262,6 +295,10 @@ const Item = props => {
                                 user={viewer}
                                 data={similarItems}
                                 showEmptyState={true}
+                                onAuthRequired={(callback) => {
+                                    setAuthModalCallback(() => callback);
+                                    setShowAuthModal(true);
+                                }}
                             />
                         </div>
                     </div>

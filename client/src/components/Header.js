@@ -4,14 +4,14 @@ import { getUserProfile } from '../api/ProfileAPI';
 import io from 'socket.io-client';
 import React from 'react';
 import { path } from '../api/ProfileAPI';
-import { Button } from './ui';
+import { Button, Badge } from './ui';
 import { useAuth } from '../contexts/AuthContext';
 import TopNav from './TopNav';
 
 
 const Header = props =>{
     const navigate = useNavigate();
-    const { isAuthenticated, user: authUser, logout: logoutFromContext } = useAuth();
+    const { isAuthenticated, user: authUser, logout: logoutFromContext, demoLogin } = useAuth();
     const [unread, setUnread] = useState(0);
     const [processing, setProcessing] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
@@ -172,13 +172,36 @@ const Header = props =>{
                     {/* Right side - Navigation */}
                     <div className="flex items-center gap-2 flex-shrink-0">
                         {isAuthenticated && authUser ? (
-                            <TopNav unreadCount={unread} onLogout={logOut} />
+                            <>
+                                {authUser.username === 'demo' && (
+                                    <Badge variant="primary" className="mr-2">
+                                        Demo
+                                    </Badge>
+                                )}
+                                <TopNav unreadCount={unread} onLogout={logOut} />
+                            </>
                         ) : (
-                            <Link to="/login">
-                                <Button variant="primary" className="text-sm">
-                                    Login
+                            <>
+                                <Button 
+                                    variant="primary" 
+                                    className="text-sm"
+                                    onClick={async () => {
+                                        try {
+                                            await demoLogin();
+                                            // Auth context will update automatically
+                                        } catch (error) {
+                                            console.error('Demo login failed:', error);
+                                        }
+                                    }}
+                                >
+                                    Try Demo
                                 </Button>
-                            </Link>
+                                <Link to="/login">
+                                    <Button variant="secondary" className="text-sm">
+                                        Log in
+                                    </Button>
+                                </Link>
+                            </>
                         )}
                     </div>
                 </div>

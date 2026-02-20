@@ -3,16 +3,30 @@ import Form from '../components/Form';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import api from '../api/http';
 import { useAuth } from '../contexts/AuthContext';
+import { Button } from '../components/ui';
 
 const Login = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { checkAuth } = useAuth();
+    const { checkAuth, demoLogin } = useAuth();
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [demoLoading, setDemoLoading] = useState(false);
     
     // Get intended destination or default to /profile
     const from = location.state?.from?.pathname || '/profile';
+
+    const handleDemoLogin = async () => {
+        setDemoLoading(true);
+        setError('');
+        try {
+            await demoLogin();
+            navigate(from, { replace: true });
+        } catch (err) {
+            setError('Demo login failed. Please try again.');
+            setDemoLoading(false);
+        }
+    };
     
     async function handleLogin(username, password) {
         // Validate inputs
@@ -104,6 +118,28 @@ const Login = () => {
                 
                 <div className='my-5 text-center text-5xl'>Welcome back!</div>
                 <div className='w-full my-10 h-[1px] bg-[gray]'></div>
+                
+                {/* Try Demo button */}
+                <div className='mb-6'>
+                    <Button
+                        variant="primary"
+                        onClick={handleDemoLogin}
+                        disabled={demoLoading || loading}
+                        className="w-full"
+                    >
+                        {demoLoading ? 'Loading...' : 'Try Demo'}
+                    </Button>
+                </div>
+                
+                <div className='relative my-6'>
+                    <div className='absolute inset-0 flex items-center'>
+                        <div className='w-full border-t border-gray-300'></div>
+                    </div>
+                    <div className='relative flex justify-center text-sm'>
+                        <span className='px-2 bg-white text-gray-500'>Or</span>
+                    </div>
+                </div>
+                
                 <Form
                     userDetails={handleLogin}
                     reset={() => setError('')}

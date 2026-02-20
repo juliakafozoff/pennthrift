@@ -144,6 +144,62 @@ router.get('/user', (req, res) => {
     }
 })
 
+// Demo login endpoint - creates or logs in demo user
+router.post('/demo', async (req, res) => {
+    try {
+        const DEMO_USERNAME = 'demo';
+        const DEMO_PASSWORD = 'demo123'; // Simple password for demo
+        
+        // Check if demo user exists
+        let demoUser = await User.findOne({ 
+            $or: [
+                { username: DEMO_USERNAME },
+                { usernameLower: DEMO_USERNAME }
+            ]
+        });
+        
+        // Create demo user if doesn't exist
+        if (!demoUser) {
+            const hashedPassword = await bcrypt.hash(DEMO_PASSWORD, 10);
+            demoUser = new User({
+                username: DEMO_USERNAME,
+                usernameLower: DEMO_USERNAME,
+                password: hashedPassword,
+                bio: 'Demo user - try out PennThrift!',
+                class_year: '2025'
+            });
+            await demoUser.save();
+        }
+        
+        // Log in the demo user
+        req.logIn(demoUser, (err) => {
+            if (err) {
+                return res.status(500).json({ error: 'Failed to establish session' });
+            }
+            
+            req.session.save((saveErr) => {
+                if (saveErr) {
+                    return res.status(500).json({ error: 'Failed to save session' });
+                }
+                
+                // Return user data (without password)
+                const userResponse = {
+                    username: demoUser.username,
+                    id: demoUser._id || demoUser.id
+                };
+                
+                res.json({
+                    success: true,
+                    user: userResponse
+                });
+            });
+        });
+    } catch (error) {
+        console.error('Demo login error:', error);
+        res.status(500).json({ error: 'Demo login failed' });
+    }
+});
+
 // Debug endpoint for session inspection
 router.get('/debug/session', (req, res) => {
     const debugInfo = {

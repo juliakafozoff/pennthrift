@@ -54,7 +54,8 @@ function App() {
         <BrowserRouter>
           <Routes>
           {/* Public routes */}
-          <Route path="/" element={<Welcome />} />
+          <Route path="/" element={<Navigate to="/store" replace />} />
+          <Route path="/welcome" element={<Welcome />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/store" element={<Store />} />
@@ -64,14 +65,16 @@ function App() {
           <Route path="/store/item" element={<Navigate to="/store" replace />} />
           <Route path="/store/item/:id" element={<Item />} />
           
+          {/* Messages routes - accessible to guests for trial */}
+          <Route path="/profile/messages" element={<Messages />} />
+          <Route path="/profile/messages/:id" element={<Messages />} />
+          
           {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/edit" element={<EditProfile />} />
             <Route path="/profile/newitem" element={<NewItem />} />
             <Route path="/profile/analytics" element={<Analytics />} />
-            <Route path="/profile/messages" element={<Messages />} />
-            <Route path="/profile/messages/:id" element={<Messages />} />
             <Route path="/profile/favourites" element={<Favourites />} />
           </Route>
           

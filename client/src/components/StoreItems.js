@@ -62,6 +62,18 @@ export default class StoreItems extends Component{
             const favouritesSafe = Array.isArray(this.state.favourites) ? this.state.favourites : [];
             const user = this.props.user;
             
+            // Check if user is authenticated
+            if (!user) {
+                // Call onAuthRequired callback if provided
+                if (this.props.onAuthRequired) {
+                    this.props.onAuthRequired(() => {
+                        // After auth, retry the favorite action
+                        this.update(id);
+                    });
+                }
+                return;
+            }
+            
             // Optimistically update UI
             const isCurrentlyFavourite = favouritesSafe.includes(id);
             if(isCurrentlyFavourite){
@@ -71,23 +83,21 @@ export default class StoreItems extends Component{
                 this.setState({favourites: [...favouritesSafe, id]});
             }
             
-            // Call API if user is available
-            if(user){
-                try {
-                    await api.post('/api/profile/favourites/update', {
-                        itemID: id, 
-                        username: user
-                    });
-                    
-                    // Refresh favourites from parent if refresh callback is provided
-                    if(this.props.refresh){
-                        this.props.refresh();
-                    }
-                } catch (error) {
-                    console.error('Error updating favourites:', error);
-                    // Revert optimistic update on error
-                    this.setState({favourites: favouritesSafe});
+            // Call API
+            try {
+                await api.post('/api/profile/favourites/update', {
+                    itemID: id, 
+                    username: user
+                });
+                
+                // Refresh favourites from parent if refresh callback is provided
+                if(this.props.refresh){
+                    this.props.refresh();
                 }
+            } catch (error) {
+                console.error('Error updating favourites:', error);
+                // Revert optimistic update on error
+                this.setState({favourites: favouritesSafe});
             }
         }
 

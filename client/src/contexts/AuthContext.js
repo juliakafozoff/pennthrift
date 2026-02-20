@@ -73,6 +73,26 @@ export const AuthProvider = ({ children }) => {
     await checkAuth(true);
   };
 
+  const demoLogin = async () => {
+    console.log('🟡 [AUTH CONTEXT] Demo login called');
+    
+    try {
+      const res = await api.post('/api/auth/demo', {}, { withCredentials: true });
+      
+      if (res.data.success) {
+        // Refresh auth state
+        await checkAuth(true);
+        console.log('🟢 [AUTH CONTEXT] Demo login successful');
+        return { success: true, user: res.data.user };
+      } else {
+        throw new Error('Demo login failed');
+      }
+    } catch (error) {
+      console.error('❌ [AUTH CONTEXT] Demo login error:', error);
+      throw error;
+    }
+  };
+
   // Check auth on mount
   useEffect(() => {
     checkAuth();
@@ -90,7 +110,8 @@ export const AuthProvider = ({ children }) => {
     user,
     isLoading,
     checkAuth,
-    logout
+    logout,
+    demoLogin
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
