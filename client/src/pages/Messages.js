@@ -179,11 +179,12 @@ const Messages = props => {
         } 
     
 
-        // Fix: Only fetch receiver profile when we have users array and current user
-        if((!receiver || !sender) && Array.isArray(users) && users.length > 0 && user && allowed){
+        // Fix: Always fetch receiver and sender profiles when we have users array and current user
+        if(Array.isArray(users) && users.length > 0 && user && allowed){
             // Find the other user (not the current user)
             const otherUser = users.find(usr => usr !== user);
-            if(otherUser && !receiver){
+            // Fetch receiver profile if we don't have it or if it's missing profile data
+            if(otherUser && (!receiver || !receiver.username || (!receiver.profile_pic && !receiver.profilePic && !receiver.avatar))){
                 try {
                     const receiverProfile = await getUserProfile(otherUser);
                     setReceiver(receiverProfile);
@@ -191,8 +192,8 @@ const Messages = props => {
                     console.error('Error fetching receiver profile:', error);
                 }
             }
-            // Set sender profile if not set
-            if(!sender && user){
+            // Set sender profile if not set or missing profile data
+            if(user && (!sender || !sender.username || (!sender.profile_pic && !sender.profilePic && !sender.avatar))){
                 try {
                     const senderProfile = await getUserProfile(user);
                     setSender(senderProfile);
@@ -697,13 +698,17 @@ const Messages = props => {
                                     
                                     return (
                                         <div key={groupIndex} className={`flex gap-2 mb-3 ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}>
-                                            {/* Avatar - only show for first message in group */}
-                                            <div className={`flex-shrink-0 ${showAvatar ? 'visible' : 'invisible'}`}>
-                                                {isOwnMessage 
-                                                    ? renderProfilePic(sender, sender?.username, 'h-8 w-8')
-                                                    : renderProfilePic(receiver, receiver?.username, 'h-8 w-8')
-                                                }
-                                            </div>
+                                            {/* Avatar - show for first message in group, always visible for incoming messages */}
+                                            {showAvatar ? (
+                                                <div className="flex-shrink-0">
+                                                    {isOwnMessage 
+                                                        ? renderProfilePic(sender, sender?.username, 'h-8 w-8')
+                                                        : renderProfilePic(receiver, receiver?.username, 'h-8 w-8')
+                                                    }
+                                                </div>
+                                            ) : (
+                                                <div className="flex-shrink-0 w-8"></div>
+                                            )}
                                             
                                             {/* Message Group */}
                                             <div className={`flex flex-col gap-1 ${isOwnMessage ? 'items-end' : 'items-start'} max-w-[70%]`}>
