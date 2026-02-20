@@ -53,6 +53,8 @@ const Messages = props => {
     const [allowed, setAllowed] = useState(false)
     const [joined, setJoined] = useState(false);
     const socketRef = useRef(null);
+    // Guard to prevent ensure-concierge-only from running multiple times
+    const didEnsureConciergeRef = useRef(false);
     // Draft thread state (for demo users)
     const [draftTo, setDraftTo] = useState(null);
     const [draftReceiver, setDraftReceiver] = useState(null);
@@ -310,12 +312,19 @@ const Messages = props => {
         setUp();
     }, [users, user, allowed, receiver, sender]);
     
-    // Ensure concierge-only conversation exists for demo users on mount
+    // Ensure concierge-only conversation exists for demo users on mount ONLY
     // This deletes any old conversations and ensures only concierge thread exists
+    // Use ref guard to prevent re-running on route changes or state updates
     useEffect(() => {
+        // Only run once on mount, not on every route change
+        if (didEnsureConciergeRef.current) {
+            return;
+        }
+        
         const ensureConciergeOnlyForDemo = async () => {
             const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
             if (isDemoUser && isAuthenticated) {
+                didEnsureConciergeRef.current = true; // Set guard immediately to prevent re-runs
                 try {
                     // Call ensure-concierge-only endpoint (deletes all, then creates concierge)
                     await api.post('/api/auth/demo/ensure-concierge-only', {}, { withCredentials: true });
@@ -346,7 +355,7 @@ const Messages = props => {
         };
         
         ensureConciergeOnlyForDemo();
-    }, [isAuthenticated, authUser?.username]);
+    }, []); // Empty dependency array - run ONLY on mount
     
     // Mark concierge conversation as opened when it's loaded
     useEffect(() => {
@@ -682,13 +691,18 @@ const Messages = props => {
         
         if(normalizedId){
             console.log('📥 Loading conversation:', normalizedId);
-            if(!stateId){
-                setStateId(normalizedId);
+            // Only refresh if conversation ID actually changed
+            if(stateId !== normalizedId) {
+                if(stateId) {
+                    // Conversation changed - refresh messages
+                    setStateId(normalizedId);
+                    refresh();
+                } else {
+                    // First load - just set state
+                    setStateId(normalizedId);
+                }
             }
-            if(stateId !== normalizedId && stateId) {
-                setStateId(normalizedId);
-                refresh();
-            }
+            // Always load messages for current conversation
             if(socketRef.current) {
                 loadMessages(normalizedId);
             }
@@ -898,16 +912,21 @@ const Messages = props => {
                                     const hasFailed = failedAvatars.has(avatarKey);
                                     
                                     return(
-                                        <Link 
-                                            key={chatId} 
-                                            to={`/profile/messages/${chatId}`}
-                                            onClick={() => {
+                                        <button
+                                            key={chatId}
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                // Don't navigate if already selected
+                                                if (chatId === id) {
+                                                    console.log('📩 Conversation already selected:', chatId);
+                                                    return;
+                                                }
                                                 console.log('📩 Clicked conversation:', { chatId, displayUser, isConciergeThread, chat });
-                                                // Ensure navigation happens
+                                                // Navigate to conversation
                                                 navigate(`/profile/messages/${chatId}`, { replace: false });
                                             }}
-                                            state={chats}
-                                            className={`block hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
+                                            className={`w-full text-left block hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
                                         >
                                             <div className='flex items-center gap-3 px-4 py-3'>
                                                 {/* Avatar */}
@@ -959,7 +978,7 @@ const Messages = props => {
                                                     </div>
                                                 </div>
                                     </div>
-                                </Link>
+                                </button>
                                     );
                                 })
                             ) : (
