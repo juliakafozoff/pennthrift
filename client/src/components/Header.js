@@ -52,14 +52,14 @@ const Header = props =>{
             
             console.log('🟢 [LOGOUT] Logout complete');
             
-            // Navigate to login
-            console.log('🔴 [LOGOUT] About to navigate to /login');
-            navigate('/login', { replace: true });
+            // Navigate to landing page (Welcome to PennThrift!)
+            console.log('🔴 [LOGOUT] About to navigate to /');
+            navigate('/', { replace: true });
             console.log('🟢 [LOGOUT] Navigate() called - navigation should occur');
         } catch (error) {
             console.error('❌ [LOGOUT] Logout error:', error);
             // Navigate anyway - auth context should have cleared state
-            navigate('/login', { replace: true });
+            navigate('/', { replace: true });
         } finally {
             console.log('🔴 [LOGOUT] Finally block executing');
             setLoggingOut(false);
