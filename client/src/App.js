@@ -80,14 +80,19 @@ const UnreadInitializer = ({ children }) => {
 
       // Only initialize once per demo login session
       if (initializedRef.current) {
+        console.log('[UNREAD INIT] Already initialized, skipping');
         return;
       }
 
-      // Check if concierge has been opened this session
+      // Check if concierge has been opened this session FIRST
       if (typeof window !== 'undefined') {
         const sessionId = sessionStorage.getItem('demoSessionId');
-        if (sessionId && localStorage.getItem(`demoConciergeOpened:${sessionId}`) === '1') {
+        const conciergeOpened = sessionId && localStorage.getItem(`demoConciergeOpened:${sessionId}`) === '1';
+        
+        if (conciergeOpened) {
           // Concierge already opened, don't show red dot
+          console.log('[UNREAD INIT] Concierge already opened (flag set), setting unreadCounts to []');
+          console.log('[SETUNREAD] UnreadInitializer setUnreadCounts([])');
           setUnreadCounts([]);
           initializedRef.current = true;
           return;
@@ -95,14 +100,26 @@ const UnreadInitializer = ({ children }) => {
 
         // Concierge not opened yet - ensure it exists and get conversationId
         try {
+          console.log('[UNREAD INIT] Concierge not opened, ensuring concierge exists...');
           const api = (await import('./api/http')).default;
           const res = await api.post('/api/auth/demo/ensure-concierge-only', {}, { withCredentials: true });
           
           if (res.data.success && res.data.conversationId) {
             const conversationId = res.data.conversationId;
-            // Set unreadCounts to include concierge conversation
-            setUnreadCounts([conversationId]);
-            console.log('[UNREAD INIT] Initialized unreadCounts with concierge conversationId:', conversationId);
+            
+            // Double-check flag wasn't set while we were fetching (race condition guard)
+            const currentSessionId = sessionStorage.getItem('demoSessionId');
+            const flagNowSet = currentSessionId && localStorage.getItem(`demoConciergeOpened:${currentSessionId}`) === '1';
+            
+            if (flagNowSet) {
+              console.log('[UNREAD INIT] Flag was set while fetching, skipping unreadCounts initialization');
+              setUnreadCounts([]);
+            } else {
+              // Set unreadCounts to include concierge conversation
+              console.log('[UNREAD INIT] Initialized unreadCounts with concierge conversationId:', conversationId);
+              console.log('[SETUNREAD] UnreadInitializer setUnreadCounts([conversationId])');
+              setUnreadCounts([conversationId]);
+            }
             initializedRef.current = true;
           }
         } catch (error) {
@@ -113,7 +130,7 @@ const UnreadInitializer = ({ children }) => {
     };
 
     initializeUnreadOnDemoLogin();
-  }, [user?.username, isAuthenticated, setUnreadCounts]);
+  }, [user?.username, isAuthenticated, setUnreadCounts]); // Only depend on user change, not route changes
 
   return <>{children}</>;
 };

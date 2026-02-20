@@ -77,6 +77,9 @@ const Messages = props => {
     // Guard to prevent initialization from overwriting client removals
     const senderInitializedRef = useRef(false);
     
+    // Guard to prevent mark-as-read from running multiple times for same conversation
+    const lastMarkedRef = useRef(null);
+    
     // Log unreadCounts changes for debugging
     useEffect(() => {
         console.log('[UNREAD] unreadCounts changed:', unreadCounts);
@@ -486,11 +489,12 @@ const Messages = props => {
         senderInitializedRef.current = true;
     }, [sender, chats, authUser, routeConvoId, activeConversationId, setUnreadCounts]);
     
-    // Reset initialization flag when user logs out or changes
+    // Reset initialization flag and marked ref when user logs out or changes
     useEffect(() => {
         if (!isAuthenticated || !authUser) {
             senderInitializedRef.current = false;
             conciergeIdRef.current = null;
+            lastMarkedRef.current = null;
         }
     }, [isAuthenticated, authUser]);
     
@@ -501,78 +505,38 @@ const Messages = props => {
             return;
         }
         
+        // Guard: only mark-as-read once per selectedId to prevent re-runs
+        const selectedIdStr = String(selectedId);
+        if (lastMarkedRef.current === selectedIdStr) {
+            console.log('[UNREAD] Already marked as read:', selectedId);
+            return;
+        }
+        
         console.log('[UNREAD] selectedId changed:', selectedId);
         console.log('[UNREAD] unreadCounts before:', unreadCounts);
         
-        // Always remove selectedId from unreadCounts when conversation is opened
-        // This ensures the blue dot disappears immediately
-        setUnreadCounts(prev => {
-            const selectedIdStr = typeof selectedId === 'string' ? selectedId : String(selectedId);
-            const filtered = prev.filter(id => {
-                const idStr = typeof id === 'string' ? id : String(id);
-                return idStr !== selectedIdStr;
-            });
-            
-            // Only log if we actually removed something
-            if (filtered.length !== prev.length) {
-                console.log('[UNREAD] Removed', selectedId, 'from unreadCounts');
-                console.log('[UNREAD] unreadCounts after:', filtered);
-            }
-            
-            return filtered;
-        });
-        
-        // Sync with server if socket connected
-        if (socketRef.current && socketConnected && user) {
-            socketRef.current.emit('clear-unread', { id: selectedId, username: user || authUser?.username });
-        }
-        
-        // Check if this is concierge conversation (check multiple sources)
+        // Detect if this is concierge conversation WITHOUT using unreadCounts
         const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
         let isConcierge = false;
         
         if (isDemoUser) {
-            // Method 1: Check if selectedId matches stored conciergeId
-            if (conciergeIdRef.current) {
-                const conciergeIdStr = typeof conciergeIdRef.current === 'string' ? conciergeIdRef.current : String(conciergeIdRef.current);
-                const selectedIdStr = typeof selectedId === 'string' ? selectedId : String(selectedId);
-                isConcierge = conciergeIdStr === selectedIdStr;
+            // Method 1: Check chats array for concierge users
+            const selectedConversation = Array.isArray(chats) ? chats.find(c => getConvoId(c) === selectedId) : null;
+            if (selectedConversation) {
+                const selectedUsers = Array.isArray(selectedConversation.users) ? selectedConversation.users : [];
+                isConcierge = selectedUsers.includes('franklindesk');
             }
             
-            // Method 2: Check if selectedId is in unreadCounts and matches concierge pattern
-            // (concierge is typically the only unread conversation for demo users)
-            if (!isConcierge && Array.isArray(unreadCounts) && unreadCounts.includes(selectedId)) {
-                // If this is the only unread and we're demo user, likely concierge
-                // But be more specific - check chats if available
-                const selectedConversation = Array.isArray(chats) ? chats.find(c => getConvoId(c) === selectedId) : null;
-                if (selectedConversation) {
-                    const selectedUsers = Array.isArray(selectedConversation.users) ? selectedConversation.users : [];
-                    isConcierge = selectedUsers.includes('franklindesk');
-                } else {
-                    // Chats not loaded yet - if this is the only unread, assume it's concierge
-                    // (UnreadInitializer sets unreadCounts = [conciergeId] on demo login)
-                    if (unreadCounts.length === 1 && unreadCounts[0] === selectedId) {
-                        isConcierge = true;
-                        console.log('[UNREAD] Assuming concierge (only unread conversation for demo user)');
-                    }
-                }
-            }
-            
-            // Method 3: Check chats array if available
-            if (!isConcierge && Array.isArray(chats)) {
-                const selectedConversation = chats.find(c => getConvoId(c) === selectedId);
-                if (selectedConversation) {
-                    const selectedUsers = Array.isArray(selectedConversation.users) ? selectedConversation.users : [];
-                    isConcierge = selectedUsers.includes('franklindesk');
-                }
+            // Method 2: Check if selectedId matches stored conciergeId
+            if (!isConcierge && conciergeIdRef.current) {
+                isConcierge = String(conciergeIdRef.current) === selectedIdStr;
             }
         }
         
-        // For demo concierge, persist opened state and store conciergeId
+        // CRITICAL: Set demoConciergeOpened flag FIRST (before removing from unreadCounts)
+        // This prevents any initializer from re-adding conciergeId
         if (isConcierge && isDemoUser) {
-            // Store conciergeId for future filtering
-            conciergeIdRef.current = selectedId;
-            
+            // Ensure demoSessionId exists
             let sessionId = sessionStorage.getItem('demoSessionId');
             if (!sessionId) {
                 sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -582,9 +546,35 @@ const Messages = props => {
                 });
                 sessionStorage.setItem('demoSessionId', sessionId);
             }
+            
+            // Set flag IMMEDIATELY
             localStorage.setItem(`demoConciergeOpened:${sessionId}`, '1');
-            console.log('[UNREAD] Detected concierge conversation, set demoConciergeOpened flag for session:', sessionId);
+            conciergeIdRef.current = selectedId;
+            
+            console.log('[UNREAD] ✅ Concierge detected - set demoConciergeOpened flag FIRST');
+            console.log('[UNREAD] SessionId:', sessionId);
             console.log('[UNREAD] Stored conciergeId:', selectedId);
+        }
+        
+        // Then remove selectedId from unreadCounts
+        setUnreadCounts(prev => {
+            const filtered = prev.filter(id => String(id) !== selectedIdStr);
+            
+            if (filtered.length !== prev.length) {
+                console.log('[UNREAD] ✅ Removed', selectedId, 'from unreadCounts');
+                console.log('[UNREAD] unreadCounts after:', filtered);
+                console.log('[SETUNREAD] setUnreadCounts called with:', filtered);
+            }
+            
+            return filtered;
+        });
+        
+        // Mark as processed
+        lastMarkedRef.current = selectedIdStr;
+        
+        // Sync with server if socket connected
+        if (socketRef.current && socketConnected && user) {
+            socketRef.current.emit('clear-unread', { id: selectedId, username: user || authUser?.username });
         }
         
         // Trigger header update (no-op in Header, but kept for compatibility)
@@ -592,7 +582,7 @@ const Messages = props => {
             socketRef.current.emit('unread');
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [routeConvoId, activeConversationId, unreadCounts, chats]); // Added unreadCounts and chats to detect concierge even if chats not loaded
+    }, [routeConvoId, activeConversationId, chats, authUser, isAuthenticated]); // Removed unreadCounts to prevent re-runs
     
     // Sync users state from selected conversation and set receiver for concierge
     useEffect(() => {
