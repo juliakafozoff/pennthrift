@@ -356,7 +356,26 @@ const Messages = props => {
                     if (currentUser) {
                         const updatedChats = await getUserChats(currentUser);
                         if (Array.isArray(updatedChats)) {
+                            console.log('[MESSAGES] Chats updated after ensure:', updatedChats.map(c => getConvoId(c)));
                             setChats(updatedChats);
+                            
+                            // Auto-select concierge conversation if none selected
+                            const currentSelectedId = routeConvoId || activeConversationId;
+                            if (!currentSelectedId) {
+                                const conciergeChat = updatedChats.find(c => {
+                                    const users = Array.isArray(c.users) ? c.users : [];
+                                    return users.includes('franklindesk');
+                                });
+                                if (conciergeChat) {
+                                    const conciergeId = getConvoId(conciergeChat);
+                                    if (conciergeId) {
+                                        console.log('[MESSAGES] Auto-selecting concierge conversation:', conciergeId);
+                                        setActiveConversationId(conciergeId);
+                                        // Navigate to concierge conversation
+                                        navigate(`/profile/messages/${conciergeId}`, { replace: false });
+                                    }
+                                }
+                            }
                         }
                     }
                 } catch (error) {
