@@ -234,7 +234,7 @@ class Profile extends Component {
                             />
                             
                             <div>
-                                <h2 className="text-xl font-semibold text-[var(--color-text)] mb-4">Your listings</h2>
+                                <h2 className="text-2xl font-semibold text-[var(--color-text)] mb-6">Your listings</h2>
                                 <ProfileListings
                                     refresh={this.refresh}
                                     data={this.state.items}
