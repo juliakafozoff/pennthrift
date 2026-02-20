@@ -293,6 +293,7 @@ router.post('/demo', async (req, res) => {
                 bio: 'Demo user - try out PennThrift!',
                 class_year: '2025',
                 profile_pic: '/ben-franklin-demo-user.png', // Default avatar
+                venmo: '@benjaminfranklin',
                 isDemo: true // Flag to identify demo user
             });
             await demoUser.save();
@@ -532,7 +533,7 @@ router.post('/demo/logout', async (req, res) => {
             _id: { $in: messageIds } 
         });
         
-        // Clear demo user's chats, unread, favourites arrays, and reset avatar to default
+        // Clear demo user's chats, unread, favourites arrays, and reset avatar/venmo to defaults
         await User.findOneAndUpdate(
             { _id: user._id },
             { 
@@ -540,7 +541,8 @@ router.post('/demo/logout', async (req, res) => {
                     chats: [], 
                     unread: [],
                     favourites: [],
-                    profile_pic: '/ben-franklin-demo-user.png' // Reset to default avatar
+                    profile_pic: '/ben-franklin-demo-user.png', // Reset to default avatar
+                    venmo: '@benjaminfranklin' // Reset to default venmo
                 } 
             }
         );
