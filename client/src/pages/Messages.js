@@ -939,10 +939,7 @@ const Messages = props => {
                 }
             })
             
-            const selectedId = routeConvoId || activeConversationId;
-            if(selectedId && user && sender && Array.isArray(sender.unread) && sender.unread.includes(selectedId)){
-                socketRef.current.emit('clear-unread',{id:selectedId, username:user})
-            }
+            // Note: clear-unread is now handled by the useEffect that watches selectedId
             
             if(!joined && selectedId){
                 socketRef.current.emit('join-room', selectedId);
