@@ -13,6 +13,7 @@ import { path } from '../api/ProfileAPI';
 import { normalizeImageUrl, getUserInitial } from "../utils/imageUtils";
 import benFranklinThoughtBubble from '../assets/benjamin-franklin-thought-bubble.png';
 import { useAuth } from '../contexts/AuthContext';
+import { useUnread } from '../contexts/UnreadContext';
 import MessagingBlockedModal from '../components/MessagingBlockedModal';
 import { requireAuthForMessaging } from '../utils/messagingGuard';
 import { 
@@ -30,6 +31,7 @@ const Messages = props => {
     const getConvoId = (c) => c?._id || c?.id;
     
     const { isAuthenticated, user: authUser, demoLogin } = useAuth();
+    const { unreadConversationIds, setUnreadConversationIds } = useUnread();
     const {id: conversationIdParam} = useParams();
     // Normalize route param ID
     const routeConvoId = getConvoId({ id: conversationIdParam });
@@ -240,13 +242,54 @@ const Messages = props => {
             setAllowed(false);
             setProcessed(false);
             
+            // Clear unreadConversationIds on logout
+            setUnreadConversationIds([]);
+            
             // Disconnect socket if connected
             if (socketRef.current) {
                 socketRef.current.disconnect();
                 socketRef.current = null;
             }
         }
-    }, [isAuthenticated]);
+    }, [isAuthenticated, setUnreadConversationIds]);
+    
+    // Mark conversation as read when it becomes selected
+    useEffect(() => {
+        const selectedId = routeConvoId || activeConversationId;
+        if (!selectedId) {
+            return;
+        }
+        
+        // Remove selectedId from unreadConversationIds immediately
+        setUnreadConversationIds(prev => {
+            const selectedIdStr = String(selectedId);
+            const filtered = prev.filter(id => String(id) !== selectedIdStr);
+            
+            // If this is concierge and demo user, set the opened flag
+            const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
+            if (isDemoUser && filtered.length !== prev.length) {
+                // Check if this is concierge conversation
+                const selectedConversation = Array.isArray(chats) ? chats.find(c => getConvoId(c) === selectedId) : null;
+                const isConcierge = selectedConversation && Array.isArray(selectedConversation.users) && selectedConversation.users.includes('franklindesk');
+                
+                if (isConcierge) {
+                    // Set demoConciergeOpened flag
+                    let sessionId = sessionStorage.getItem('demoSessionId');
+                    if (!sessionId) {
+                        sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                            const r = Math.random() * 16 | 0;
+                            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                            return v.toString(16);
+                        });
+                        sessionStorage.setItem('demoSessionId', sessionId);
+                    }
+                    localStorage.setItem(`demoConciergeOpened:${sessionId}`, '1');
+                }
+            }
+            
+            return filtered;
+        });
+    }, [routeConvoId, activeConversationId, chats, authUser, setUnreadConversationIds]);
     
     // Check for draftTo or startConversation query params on mount
     useEffect(() => {
@@ -983,6 +1026,7 @@ const Messages = props => {
                                     
                                     const currentRouteId = routeConvoId || activeConversationId;
                                     const isSelected = chatId === currentRouteId;
+                                    const hasUnread = Array.isArray(unreadConversationIds) && unreadConversationIds.includes(String(chatId));
                                     const avatarKey = `sidebar-${displayUser}`;
                                     const hasFailed = failedAvatars.has(avatarKey);
                                     
@@ -1036,6 +1080,9 @@ const Messages = props => {
                                                         <div className='rounded-full h-12 w-12 bg-gray-400 flex items-center justify-center text-white font-semibold text-base'>
                                                             {getUserInitial(displayUser)}
                                                         </div>
+                                                    )}
+                                                    {hasUnread && (
+                                                        <div className='absolute -top-1 -right-1 h-4 w-4 bg-blue-500 rounded-full border-2 border-white'></div>
                                                     )}
                                                         </div>
 

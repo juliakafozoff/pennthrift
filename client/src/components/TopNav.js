@@ -1,5 +1,6 @@
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useUnread } from '../contexts/UnreadContext';
 import AvatarMenu from './AvatarMenu';
 import IconButton from './IconButton';
 import { ShoppingBagIcon, MessagesIcon, HeartIcon } from './icons';
@@ -7,6 +8,7 @@ import { ShoppingBagIcon, MessagesIcon, HeartIcon } from './icons';
 const TopNav = ({ onLogout }) => {
     const location = useLocation();
     const { isAuthenticated, user: authUser } = useAuth();
+    const { unreadConversationIds } = useUnread();
 
     // Determine active route
     const pathname = location.pathname;
@@ -14,6 +16,8 @@ const TopNav = ({ onLogout }) => {
     const isMessagesActive = pathname.startsWith('/profile/messages');
     const isSavedActive = pathname === '/profile/favourites';
     const isProfileActive = pathname === '/profile' || pathname === '/profile/edit' || pathname === '/profile/analytics' || pathname === '/profile/newitem';
+
+    const hasUnread = Array.isArray(unreadConversationIds) && unreadConversationIds.length > 0;
 
     // Nav items configuration
     const navItems = [
@@ -29,7 +33,9 @@ const TopNav = ({ onLogout }) => {
             label: 'Messages',
             icon: <MessagesIcon />,
             isActive: isMessagesActive,
-            ariaLabel: 'Messages'
+            ariaLabel: 'Messages',
+            hasBadge: hasUnread,
+            badgeLabel: 'Unread messages'
         },
         {
             to: '/profile/favourites',
@@ -66,6 +72,8 @@ const TopNav = ({ onLogout }) => {
                         icon={item.icon}
                         ariaLabel={item.ariaLabel}
                         isActive={item.isActive}
+                        hasBadge={item.hasBadge}
+                        badgeLabel={item.badgeLabel}
                     />
                 )
             ))}

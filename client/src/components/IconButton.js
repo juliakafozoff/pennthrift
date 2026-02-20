@@ -10,6 +10,8 @@ const IconButton = ({
     icon, 
     ariaLabel, 
     isActive = false, 
+    hasBadge = false,
+    badgeLabel,
     onClick 
 }) => {
     // FIX: Ensure active icons are always visible
@@ -62,6 +64,14 @@ const IconButton = ({
 
     const content = (
         <>
+            {/* Badge indicator */}
+            {hasBadge && (
+                <div 
+                    className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white z-10"
+                    aria-label={badgeLabel || 'Notification'}
+                />
+            )}
+
             {/* Icon wrapper - inline style ensures base color is always applied */}
             <div 
                 className={iconWrapperClasses}
