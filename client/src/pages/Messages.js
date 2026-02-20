@@ -1111,14 +1111,26 @@ const Messages = props => {
                         {/* Conversation Header */}
                         <div className='h-16 flex items-center gap-3 px-4 border-b border-gray-200 bg-white'>
                             <div className='flex-shrink-0'>
-                                {renderProfilePic(draftReceiver || receiver, (draftReceiver || receiver)?.username, 'h-10 w-10')}
+                                {draftReceiver ? (
+                                    renderProfilePic(draftReceiver, draftReceiver?.username, 'h-10 w-10')
+                                ) : receiver ? (
+                                    renderProfilePic(receiver, receiver?.username, 'h-10 w-10')
+                                ) : (
+                                    <div className='h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center'>
+                                        <span className='text-xs text-gray-500'>...</span>
+                                    </div>
+                                )}
                             </div>
                             <div className='flex-1'>
                                 <div className='text-base font-semibold text-gray-900'>
-                                    {(draftReceiver || receiver)?.username || otherUser}
+                                    {draftReceiver?.username || receiver?.username || receiver?.name || otherUser || 'Loading...'}
                                 </div>
                                 <div className='text-xs text-gray-500'>
-                                    {(draftReceiver || receiver)?.bio ? (draftReceiver || receiver).bio.substring(0, 50) + '...' : 'Active'}
+                                    {draftReceiver?.bio 
+                                        ? draftReceiver.bio.substring(0, 50) + '...' 
+                                        : receiver?.bio 
+                                            ? receiver.bio.substring(0, 50) + '...' 
+                                            : 'Active'}
                                 </div>
                             </div>
                         </div>
