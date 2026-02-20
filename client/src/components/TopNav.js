@@ -4,7 +4,7 @@ import AvatarMenu from './AvatarMenu';
 import IconButton from './IconButton';
 import { ShoppingBagIcon, MessagesIcon, HeartIcon } from './icons';
 
-const TopNav = ({ unreadCount = 0, onLogout }) => {
+const TopNav = ({ onLogout }) => {
     const location = useLocation();
     const { isAuthenticated, user: authUser } = useAuth();
 
@@ -14,8 +14,6 @@ const TopNav = ({ unreadCount = 0, onLogout }) => {
     const isMessagesActive = pathname.startsWith('/profile/messages');
     const isSavedActive = pathname === '/profile/favourites';
     const isProfileActive = pathname === '/profile' || pathname === '/profile/edit' || pathname === '/profile/analytics' || pathname === '/profile/newitem';
-
-    const hasUnread = unreadCount > 0;
 
     // Nav items configuration
     const navItems = [
@@ -31,9 +29,7 @@ const TopNav = ({ unreadCount = 0, onLogout }) => {
             label: 'Messages',
             icon: <MessagesIcon />,
             isActive: isMessagesActive,
-            ariaLabel: 'Messages',
-            hasBadge: hasUnread,
-            badgeLabel: 'Unread messages'
+            ariaLabel: 'Messages'
         },
         {
             to: '/profile/favourites',
@@ -70,8 +66,6 @@ const TopNav = ({ unreadCount = 0, onLogout }) => {
                         icon={item.icon}
                         ariaLabel={item.ariaLabel}
                         isActive={item.isActive}
-                        hasBadge={item.hasBadge}
-                        badgeLabel={item.badgeLabel}
                     />
                 )
             ))}

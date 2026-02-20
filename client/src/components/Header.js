@@ -6,7 +6,6 @@ import React from 'react';
 import { path } from '../api/ProfileAPI';
 import { Button, Badge } from './ui';
 import { useAuth } from '../contexts/AuthContext';
-import { useUnread } from '../contexts/UnreadContext';
 import TopNav from './TopNav';
 import AboutPopover from './AboutPopover';
 
@@ -14,12 +13,9 @@ import AboutPopover from './AboutPopover';
 const Header = props =>{
     const navigate = useNavigate();
     const { isAuthenticated, user: authUser, logout: logoutFromContext, demoLogin } = useAuth();
-    const { unreadCounts } = useUnread();
-    const [unread, setUnread] = useState(0);
     const [processing, setProcessing] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
     const socketRef = useRef(null);
-    const unreadIntervalRef = useRef(null);
 
     async function logOut(){
         // Prevent multiple simultaneous logout attempts
@@ -34,13 +30,6 @@ const Header = props =>{
         
         try {
             console.log('🔴 [LOGOUT] Starting logout process...');
-            
-            // Stop all intervals/polling
-            if (unreadIntervalRef.current) {
-                clearInterval(unreadIntervalRef.current);
-                unreadIntervalRef.current = null;
-                console.log('🟢 [LOGOUT] Cleared unread interval');
-            }
             
             // Disconnect socket before logout
             if (socketRef.current) {
@@ -91,26 +80,6 @@ const Header = props =>{
         
         return localStorage.getItem(`demoConciergeOpened:${sessionId}`) === '1';
     };
-
-    // Use shared unreadCounts from context - single source of truth
-    useEffect(() => {
-        // Red dot shows ONLY if there are unread conversations
-        const count = Array.isArray(unreadCounts) ? unreadCounts.length : 0;
-        setUnread(count > 0 ? count : 0);
-    }, [unreadCounts]);
-    
-    // Keep updateUnread for socket 'unread' event compatibility (but it now just syncs from context)
-    const updateUnread = useCallback(async () => {
-        // No-op: unreadCounts is managed by Messages.js and synced via context
-        // This function is kept for socket event compatibility but doesn't fetch from API
-    }, []);
-    
-    // Clear unread when user logs out
-    useEffect(() => {
-        if (!isAuthenticated) {
-            setUnread(0);
-        }
-    }, [isAuthenticated]);
     
     // Initialize socket only when authenticated
     useEffect(() => {
@@ -138,14 +107,6 @@ const Header = props =>{
                         console.error('❌ Socket.io connection error (Header):', error);
                     });
                 }
-                
-                // Set up unread listener (re-setup on each effect run to get latest updateUnread)
-                socketRef.current.off('unread'); // Remove old listener
-                socketRef.current.on('unread', () => {
-                    if (isAuthenticated) {
-                        updateUnread();
-                    }
-                });
             } catch (e) {
                 console.error('Error initializing socket:', e);
             }
@@ -160,16 +121,11 @@ const Header = props =>{
         // Cleanup on unmount or when auth changes
         return () => {
             if (socketRef.current) {
-                socketRef.current.off('unread');
                 socketRef.current.disconnect();
                 socketRef.current = null;
             }
-            if (unreadIntervalRef.current) {
-                clearInterval(unreadIntervalRef.current);
-                unreadIntervalRef.current = null;
-            }
         };
-    }, [isAuthenticated, authUser?.username, updateUnread])
+    }, [isAuthenticated, authUser?.username])
 
    
     return(
@@ -228,7 +184,7 @@ const Header = props =>{
                                         Demo
                                     </Badge>
                                 )}
-                                <TopNav unreadCount={unread} onLogout={logOut} />
+                                <TopNav onLogout={logOut} />
                             </>
                         ) : (
                             <>
