@@ -9,8 +9,6 @@ import { normalizeImageUrl } from "../utils/imageUtils";
 import { Card, Badge } from "../components/ui";
 import AuthRequiredModal from "../components/AuthRequiredModal";
 import { useAuth } from "../contexts/AuthContext";
-import AuthRequiredModal from "../components/AuthRequiredModal";
-import { useAuth } from "../contexts/AuthContext";
 
 
 
