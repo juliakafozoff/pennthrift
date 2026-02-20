@@ -35,6 +35,7 @@ const  User = props => {
     const navigate = useNavigate();
     const socketRef = useRef(null);
     const { isAuthenticated, user: authUser } = useAuth();
+    const [showMessagingBlockedModal, setShowMessagingBlockedModal] = useState(false);
 
     // Load user info only once when component mounts or username changes
     useEffect(() => {

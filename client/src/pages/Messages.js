@@ -64,6 +64,7 @@ const Messages = props => {
     const [isGuest, setIsGuest] = useState(false);
     const [guestMessageCount, setGuestMessageCount] = useState(0);
     const [showGuestAuthModal, setShowGuestAuthModal] = useState(false);
+    const [showMessagingBlockedModal, setShowMessagingBlockedModal] = useState(false);
     
     // Format timestamp helper - defined early to avoid hoisting issues
     const formatTimestamp = (date) => {
