@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import React from 'react';
 import { Card, Badge } from './ui';
 import { normalizeImageUrl } from '../utils/imageUtils';
+import { formatHandle } from '../utils/usernameUtils';
 import api from '../api/http';
 
 export default class StoreItems extends Component{
@@ -196,7 +197,7 @@ export default class StoreItems extends Component{
                                             className='text-sm text-[var(--color-primary)] hover:underline block truncate'
                                             onClick={(e) => e.stopPropagation()}
                                         >
-                                            @{item.owner}
+                                            {formatHandle(item.owner)}
                                         </Link>
                                     )}
                                 </div>

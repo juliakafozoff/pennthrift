@@ -208,6 +208,19 @@ const Messages = props => {
         setUp();
     }, [users, user, allowed, receiver, sender]);
     
+    // Auto-select first conversation if none selected and conversations exist
+    useEffect(() => {
+        if (!id && Array.isArray(chats) && chats.length > 0 && user && !processed) {
+            const firstChat = chats[0];
+            if (firstChat && firstChat._id) {
+                const firstChatId = typeof firstChat._id === 'string' ? firstChat._id : String(firstChat._id);
+                if (firstChatId && firstChatId !== '[object Object]' && firstChatId !== 'undefined') {
+                    navigate(`/profile/messages/${firstChatId}`, { replace: true });
+                }
+            }
+        }
+    }, [chats, user, id, processed, navigate]);
+    
     async function sendMessage(user, message, attachment){
         if(allowed && receiver && socketRef.current){
             if(attachment){
@@ -639,8 +652,18 @@ const Messages = props => {
                                     );
                                 })
                             ) : (
-                                <div className='p-4 text-center text-sm text-gray-500'>
-                                    No conversations yet
+                                <div className='p-8 text-center'>
+                                    <svg 
+                                        className='w-12 h-12 text-gray-400 mx-auto mb-3' 
+                                        fill="none" 
+                                        stroke="currentColor" 
+                                        viewBox="0 0 24 24"
+                                        aria-hidden="true"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                    </svg>
+                                    <p className='text-sm font-medium text-gray-700 mb-1'>No conversations yet</p>
+                                    <p className='text-xs text-gray-500'>Start messaging sellers from item listings</p>
                                 </div>
                             )}
                         </div>
@@ -832,9 +855,45 @@ const Messages = props => {
                     </div>
                 ) : (
                     <div className='flex-1 flex items-center justify-center bg-[var(--color-bg)]'>
-                        <div className='text-center text-gray-500'>
-                            <p className='text-lg font-medium mb-2'>Select a conversation</p>
-                            <p className='text-sm'>Choose a conversation from the sidebar to start messaging</p>
+                        <div className='text-center max-w-md px-4'>
+                            {Array.isArray(chats) && chats.length === 0 ? (
+                                <>
+                                    <svg 
+                                        className='w-16 h-16 text-gray-400 mx-auto mb-4' 
+                                        fill="none" 
+                                        stroke="currentColor" 
+                                        viewBox="0 0 24 24"
+                                        aria-hidden="true"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                    </svg>
+                                    <h3 className='text-xl font-semibold text-gray-900 mb-2'>No conversations yet</h3>
+                                    <p className='text-base text-gray-500 mb-6'>Start a conversation by messaging a seller from an item listing.</p>
+                                    <Link 
+                                        to="/store"
+                                        className='inline-flex items-center gap-2 px-6 py-3 bg-[var(--color-primary)] text-white rounded-lg hover:bg-[var(--color-primary)]/90 transition-colors font-medium'
+                                    >
+                                        Browse Store
+                                        <svg className='w-5 h-5' fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                        </svg>
+                                    </Link>
+                                </>
+                            ) : (
+                                <>
+                                    <svg 
+                                        className='w-16 h-16 text-gray-400 mx-auto mb-4' 
+                                        fill="none" 
+                                        stroke="currentColor" 
+                                        viewBox="0 0 24 24"
+                                        aria-hidden="true"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                    </svg>
+                                    <h3 className='text-xl font-semibold text-gray-900 mb-2'>Select a conversation</h3>
+                                    <p className='text-base text-gray-500'>Choose a conversation from the sidebar to start messaging</p>
+                                </>
+                            )}
                         </div>
                     </div>
                 )}

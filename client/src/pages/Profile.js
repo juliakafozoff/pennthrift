@@ -145,7 +145,7 @@ class Profile extends Component {
         return(
             <div className="min-h-screen bg-[var(--color-bg)]">
                 <Header/>
-                <div className="container py-8 max-w-6xl">
+                <div className="container py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Left Column - Profile Info */}
                         <div className="lg:col-span-1">
@@ -203,14 +203,6 @@ class Profile extends Component {
                                         </div>
                                     )}
                                     
-                                    {/* Edit Profile Button - Prominent placement */}
-                                    <div className="pt-4 border-t border-[var(--color-border)]">
-                                        <Link to="/profile/edit">
-                                            <Button variant="primary" className="w-full">
-                                                Edit Profile
-                                            </Button>
-                                        </Link>
-                                    </div>
                                 </div>
                             </Card>
                         </div>
@@ -228,11 +220,11 @@ class Profile extends Component {
                                 actions={
                                     <div className="flex flex-wrap items-center gap-3">
                                         <Link to="/profile/analytics">
-                                            <Button variant="secondary">
+                                            <Button variant="secondary" className="text-sm">
                                                 View Analytics
                                             </Button>
                                         </Link>
-                                        <Link to="/profile/edit" className="hidden lg:block">
+                                        <Link to="/profile/edit">
                                             <Button variant="primary">
                                                 Edit Profile
                                             </Button>

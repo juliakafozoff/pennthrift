@@ -19,7 +19,7 @@ const IconButton = ({
         transition-all duration-200 ease-in-out
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2
         ${isActive 
-            ? 'bg-[var(--color-primary)] text-white' 
+            ? 'bg-[var(--color-primary)] text-white shadow-md' 
             : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
         }
     `;

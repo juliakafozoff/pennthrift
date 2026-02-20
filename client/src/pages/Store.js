@@ -155,7 +155,7 @@ export default class Store extends Component {
         return(
             <div className="min-h-screen bg-[var(--color-bg)]">
                 <Header/>
-                <div className="container py-8 max-w-7xl">
+                <div className="container py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <PageHeader 
                         title="Store"
                         subtitle={resultCount > 0 ? `${resultCount} ${resultCount === 1 ? 'item' : 'items'} found` : 'Browse marketplace'}

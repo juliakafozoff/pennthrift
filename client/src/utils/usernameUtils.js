@@ -26,3 +26,18 @@ export const normalizeUsername = (username) => {
     return username.trim().toLowerCase();
 };
 
+/**
+ * Format username as handle: lowercase with @ prefix
+ * Used for displaying @username in cards/listings
+ * 
+ * @param {string} username - The username
+ * @returns {string} - Handle format (e.g., "julia" -> "@julia")
+ */
+export const formatHandle = (username) => {
+    if (!username || typeof username !== 'string') {
+        return '';
+    }
+    const normalized = normalizeUsername(username);
+    return `@${normalized}`;
+};
+

@@ -54,7 +54,7 @@ const TopNav = ({ unreadCount = 0, onLogout }) => {
 
     return (
         <nav 
-            className="inline-flex items-center bg-white border border-gray-200 rounded-xl shadow-sm px-2 py-1.5 gap-1"
+            className="inline-flex items-center bg-white border border-gray-200 rounded-xl shadow-sm px-2 py-1.5 gap-1.5"
             aria-label="Main navigation"
             role="navigation"
         >

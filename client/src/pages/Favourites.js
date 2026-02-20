@@ -3,6 +3,8 @@ import Header from "../components/Header";
 import { Component } from "react";
 import api from "../api/http";
 import { getUserFavourites, getUserProfile } from "../api/ProfileAPI";
+import { PageHeader, Card, Input, Badge } from "../components/ui";
+import { formatUsername } from "../utils/usernameUtils";
 
 
 export default class Favourites extends Component {
@@ -135,109 +137,235 @@ export default class Favourites extends Component {
         const favouritesSafe = Array.isArray(this.state.favourites) ? this.state.favourites : [];
         const searchedItems = this.search(favouritesSafe);
         
+        const displayUsername = this.state.user ? formatUsername(this.state.user) : '';
+        const hasActiveFilters = this.state.keyword || (Array.isArray(this.state.searchCategories) && this.state.searchCategories.length > 0);
+        const resultCount = searchedItems.length;
+        
         return(
             <div className="min-h-screen bg-[var(--color-bg)]">
                 <Header/>
                 <div className="container py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    {/* Header */}
-                    <div className="mb-8">
-                        <h1 className="text-3xl md:text-4xl font-bold text-[var(--color-text)] mb-2">
-                            {this.state.user ? `${this.state.user}'s Saved Items` : 'My Saved Items'}
-                        </h1>
-                        <p className="text-[var(--color-muted)]">
-                            {favouritesSafe.length === 0 
-                                ? 'No saved items yet' 
-                                : `${favouritesSafe.length} ${favouritesSafe.length === 1 ? 'item' : 'items'} saved`}
-                        </p>
+                    <PageHeader 
+                        title={displayUsername ? `${displayUsername}'s Saved Items` : 'My Saved Items'}
+                        subtitle={resultCount > 0 ? `${resultCount} ${resultCount === 1 ? 'item' : 'items'} found` : 'No saved items yet'}
+                    />
+                    
+                    {/* Mobile Filter Bar */}
+                    <div className="lg:hidden mb-6 space-y-4">
+                        <Card>
+                            <div className="space-y-4">
+                                <Input
+                                    type="text"
+                                    placeholder="Search items..."
+                                    value={this.state.keyword}
+                                    onChange={(e) => this.setState({keyword: e.target.value})}
+                                    className="w-full"
+                                />
+                                {hasActiveFilters && (
+                                    <div className="flex flex-wrap gap-2 pt-2 border-t border-[var(--color-border)]">
+                                        {this.state.keyword && (
+                                            <Badge variant="primary">
+                                                "{this.state.keyword}"
+                                                <button
+                                                    onClick={() => this.setState({keyword: ''})}
+                                                    className="ml-2 hover:opacity-70 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                                    aria-label="Remove keyword filter"
+                                                >
+                                                    ×
+                                                </button>
+                                            </Badge>
+                                        )}
+                                        {Array.isArray(this.state.searchCategories) && this.state.searchCategories.map(cat => (
+                                            <Badge key={cat} variant="primary">
+                                                {cat}
+                                                <button
+                                                    onClick={() => this.addSearchCategory(cat)}
+                                                    className="ml-2 hover:opacity-70 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                                    aria-label={`Remove ${cat} filter`}
+                                                >
+                                                    ×
+                                                </button>
+                                            </Badge>
+                                        ))}
+                                        <button
+                                            onClick={() => {
+                                                this.setState({keyword: '', searchCategories: []});
+                                            }}
+                                            className="text-xs text-[var(--color-primary)] hover:underline px-3 py-2 min-h-[44px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] rounded"
+                                        >
+                                            Clear all
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </Card>
+                        
+                        {/* Mobile Categories */}
+                        <details className="group">
+                            <summary className="cursor-pointer list-none">
+                                <Card className="hover:shadow-md transition-shadow">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm font-medium text-[var(--color-text)]">Categories</span>
+                                        <svg className="w-5 h-5 text-[var(--color-muted)] transform transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </Card>
+                            </summary>
+                            <Card className="mt-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                    {categories.map(catg => {
+                                        const isSelected = Array.isArray(this.state.searchCategories) && this.state.searchCategories.includes(catg);
+                                        return (
+                                            <label
+                                                key={catg}
+                                                className="flex items-center cursor-pointer group min-h-[44px] px-3 py-2 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={() => this.addSearchCategory(catg)}
+                                                    className="w-4 h-4 mr-2 text-[var(--color-primary)] border-[var(--color-border)] rounded focus:ring-[var(--color-primary)] focus:ring-2"
+                                                />
+                                                <span className="text-sm text-[var(--color-text)] group-hover:text-[var(--color-primary)] transition-colors">
+                                                    {catg}
+                                                </span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </Card>
+                        </details>
                     </div>
 
-                    {/* Search and Filters */}
-                    {favouritesSafe.length > 0 && (
-                        <div className="mb-8 p-6 bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)]">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {/* Keyword Search */}
-                                <div className="flex flex-col gap-2">
-                                    <label className="text-sm font-semibold text-[var(--color-text)]">
-                                        Search by keyword
-                                    </label>
-                                    <input 
-                                        onChange={(e) => this.setState({keyword:e.target.value})} 
-                                        placeholder="Search items..." 
-                                        value={this.state.keyword}
-                                        className="border border-[var(--color-border)] py-2 px-4 rounded-md text-sm bg-[var(--color-bg)] text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent" 
-                                    />
-                                </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        {/* Left Column - Filters (Desktop) */}
+                        {favouritesSafe.length > 0 && (
+                            <aside className="hidden lg:block lg:col-span-1">
+                                <Card className="sticky top-24">
+                                    <div className="space-y-6">
+                                        {/* Search */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
+                                                Search
+                                            </label>
+                                            <Input
+                                                type="text"
+                                                placeholder="Search items..."
+                                                value={this.state.keyword}
+                                                onChange={(e) => this.setState({keyword: e.target.value})}
+                                                className="w-full"
+                                            />
+                                        </div>
 
-                                {/* Category Filters */}
-                                <div className="flex flex-col gap-2">
-                                    <label className="text-sm font-semibold text-[var(--color-text)]">
-                                        Filter by category
-                                    </label>
-                                    <div className="grid grid-cols-2 gap-2 text-sm">
-                                        {categories.map( catg => {
-                                            const isSelected = this.state.searchCategories.includes(catg);
-                                            return(
-                                                <label 
-                                                    key={catg}
-                                                    className={`flex gap-2 items-center cursor-pointer p-2 rounded hover:bg-[var(--color-surface-2)] transition-colors ${
-                                                        isSelected ? 'bg-[var(--color-primary)]/10' : ''
-                                                    }`}
-                                                >
-                                                    <input 
-                                                        type='checkbox' 
-                                                        checked={isSelected}
-                                                        onChange={() => this.addSearchCategory(catg)}
-                                                        className="accent-[var(--color-primary)]"
-                                                    />
-                                                    <span className="text-[var(--color-text)]">{catg}</span>
-                                                </label>
-                                            )
-                                        })}
+                                        {/* Categories */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-[var(--color-text)] mb-3">
+                                                Categories
+                                            </label>
+                                            <div className="space-y-2">
+                                                {categories.map(catg => {
+                                                    const isSelected = Array.isArray(this.state.searchCategories) && this.state.searchCategories.includes(catg);
+                                                    return (
+                                                        <label
+                                                            key={catg}
+                                                            className="flex items-center cursor-pointer group min-h-[44px] px-2 py-1.5 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors"
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isSelected}
+                                                                onChange={() => this.addSearchCategory(catg)}
+                                                                className="w-4 h-4 mr-3 text-[var(--color-primary)] border-[var(--color-border)] rounded focus:ring-[var(--color-primary)] focus:ring-2"
+                                                            />
+                                                            <span className="text-sm text-[var(--color-text)] group-hover:text-[var(--color-primary)] transition-colors">
+                                                                {catg}
+                                                            </span>
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {/* Active Filters */}
+                                        {hasActiveFilters && (
+                                            <div className="pt-4 border-t border-[var(--color-border)]">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <label className="block text-sm font-medium text-[var(--color-text)]">
+                                                        Active Filters
+                                                    </label>
+                                                    <button
+                                                        onClick={() => {
+                                                            this.setState({keyword: '', searchCategories: []});
+                                                        }}
+                                                        className="text-xs text-[var(--color-primary)] hover:underline"
+                                                    >
+                                                        Clear all
+                                                    </button>
+                                                </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {this.state.keyword && (
+                                                        <Badge variant="primary">
+                                                            "{this.state.keyword}"
+                                                            <button
+                                                                onClick={() => this.setState({keyword: ''})}
+                                                                className="ml-2 hover:opacity-70"
+                                                                aria-label="Remove keyword filter"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </Badge>
+                                                    )}
+                                                    {Array.isArray(this.state.searchCategories) && this.state.searchCategories.map(cat => (
+                                                        <Badge key={cat} variant="primary">
+                                                            {cat}
+                                                            <button
+                                                                onClick={() => this.addSearchCategory(cat)}
+                                                                className="ml-2 hover:opacity-70"
+                                                                aria-label={`Remove ${cat} filter`}
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </Badge>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </Card>
+                            </aside>
+                        )}
+
+                        {/* Right Column - Items Grid */}
+                        <div className={favouritesSafe.length > 0 ? "lg:col-span-3" : "lg:col-span-4"}>
+                            {/* Loading State */}
+                            {this.state.loading && (
+                                <div className="flex items-center justify-center py-16">
+                                    <div className="text-center">
+                                        <svg 
+                                            className="animate-spin h-8 w-8 text-[var(--color-primary)] mx-auto mb-4" 
+                                            xmlns="http://www.w3.org/2000/svg" 
+                                            fill="none" 
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <p className="text-base text-[var(--color-muted)]">Loading your saved items...</p>
                                     </div>
                                 </div>
+                            )}
 
-                                {/* Results Count */}
-                                <div className="flex flex-col gap-2">
-                                    <label className="text-sm font-semibold text-[var(--color-text)]">
-                                        Results
-                                    </label>
-                                    <div className="text-lg font-semibold text-[var(--color-primary)] pt-2">
-                                        {searchedItems.length} {searchedItems.length === 1 ? 'item' : 'items'}
-                                    </div>
-                                </div>
-                            </div>
+                            {/* Items Grid */}
+                            {!this.state.loading && (
+                                <StoreItems
+                                    refresh={this.refresh}
+                                    favourites={this.state.favourites2}
+                                    user={this.state.user}
+                                    data={searchedItems}
+                                />
+                            )}
                         </div>
-                    )}
-
-                    {/* Loading State */}
-                    {this.state.loading && (
-                        <div className="flex items-center justify-center py-16">
-                            <div className="text-center">
-                                <svg 
-                                    className="animate-spin h-8 w-8 text-[var(--color-primary)] mx-auto mb-4" 
-                                    xmlns="http://www.w3.org/2000/svg" 
-                                    fill="none" 
-                                    viewBox="0 0 24 24"
-                                >
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <p className="text-base text-[var(--color-muted)]">Loading your saved items...</p>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Items Grid */}
-                    {!this.state.loading && (
-                        <div className="">
-                            <StoreItems
-                                refresh={this.refresh}
-                                favourites={this.state.favourites2}
-                                user={this.state.user}
-                                data={searchedItems}
-                            />
-                        </div>
-                    )}
+                    </div>
                 </div>
             </div>
         )
