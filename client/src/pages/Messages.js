@@ -267,6 +267,23 @@ const Messages = props => {
         setUp();
     }, [users, user, allowed, receiver, sender]);
     
+    // Mark concierge conversation as opened when it's loaded
+    useEffect(() => {
+        if (id && Array.isArray(users) && users.includes('franklindesk')) {
+            const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
+            if (isDemoUser) {
+                const sessionId = sessionStorage.getItem('demoSessionId');
+                if (sessionId) {
+                    localStorage.setItem(`demoConciergeOpened:${sessionId}`, '1');
+                    // Trigger header unread update
+                    if (socketRef.current) {
+                        socketRef.current.emit('unread');
+                    }
+                }
+            }
+        }
+    }, [id, users, authUser]);
+    
     // Auto-select first conversation if none selected and conversations exist
     useEffect(() => {
         if (!id && Array.isArray(chats) && chats.length > 0 && user && !processed) {
@@ -561,6 +578,19 @@ const Messages = props => {
                 }
                 if(data && data.users){
                     setUsers(data.users)
+                    
+                    // Check if this is the concierge conversation and mark as opened
+                    const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
+                    if (isDemoUser && Array.isArray(data.users) && data.users.includes('franklindesk')) {
+                        const sessionId = sessionStorage.getItem('demoSessionId');
+                        if (sessionId) {
+                            localStorage.setItem(`demoConciergeOpened:${sessionId}`, '1');
+                            // Trigger header update by emitting unread update
+                            if (socketRef.current) {
+                                socketRef.current.emit('unread');
+                            }
+                        }
+                    }
                 }
             })
             

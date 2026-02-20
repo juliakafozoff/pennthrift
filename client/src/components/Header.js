@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getUserProfile } from '../api/ProfileAPI';
 import io from 'socket.io-client';
@@ -69,7 +69,19 @@ const Header = props =>{
         }
     }
 
-    async function updateUnread(){
+    // Check if concierge conversation has been opened in this demo session
+    const hasOpenedConcierge = () => {
+        if (typeof window === 'undefined') return false;
+        const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
+        if (!isDemoUser) return false;
+        
+        const sessionId = sessionStorage.getItem('demoSessionId');
+        if (!sessionId) return false;
+        
+        return localStorage.getItem(`demoConciergeOpened:${sessionId}`) === '1';
+    };
+
+    const updateUnread = useCallback(async () => {
         if (!authUser || !isAuthenticated || processing) return;
         
         setProcessing(true);
@@ -77,7 +89,41 @@ const Header = props =>{
             const profile = await getUserProfile(authUser.username);
             // Safely extract unread count: default to empty array if missing/invalid
             const unreadSafe = Array.isArray(profile?.unread) ? profile.unread : [];
-            const count = unreadSafe.length;
+            
+            // For demo users, if concierge has been opened, hide the red dot
+            const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
+            let effectiveUnread = unreadSafe;
+            
+            if (isDemoUser && hasOpenedConcierge()) {
+                // If concierge has been opened, don't show red dot
+                // Check if concierge conversation exists in chats
+                try {
+                    const { getUserChats } = await import('../api/ProfileAPI');
+                    const chats = await getUserChats(authUser.username);
+                    const conciergeChat = Array.isArray(chats) ? chats.find(chat => 
+                        Array.isArray(chat.users) && chat.users.includes('franklindesk')
+                    ) : null;
+                    
+                    if (conciergeChat && conciergeChat._id) {
+                        const conciergeId = typeof conciergeChat._id === 'string' 
+                            ? conciergeChat._id 
+                            : String(conciergeChat._id);
+                        // Filter out concierge conversation from unread count
+                        effectiveUnread = unreadSafe.filter(id => {
+                            const idStr = typeof id === 'string' ? id : String(id);
+                            return idStr !== conciergeId;
+                        });
+                    } else {
+                        // If concierge chat doesn't exist yet but flag is set, assume no unread
+                        effectiveUnread = [];
+                    }
+                } catch (e) {
+                    // If we can't check chats, assume concierge is only unread and hide dot
+                    effectiveUnread = [];
+                }
+            }
+            
+            const count = effectiveUnread.length;
             // Only set if count is a valid number (defensive check)
             setUnread(typeof count === 'number' && count >= 0 ? count : 0);
         } catch (e) {
@@ -93,7 +139,7 @@ const Header = props =>{
         } finally {
             setProcessing(false);
         }
-    }
+    }, [authUser, isAuthenticated, processing]);
     
     // Load unread count when authenticated user changes
     useEffect(() => {
@@ -113,13 +159,15 @@ const Header = props =>{
                         withCredentials: true,
                         transports: ['websocket', 'polling']
                     });
-                    
-                    socketRef.current.on('unread', () => {
-                        if (isAuthenticated) {
-                            updateUnread();
-                        }
-                    });
                 }
+                
+                // Set up unread listener (re-setup on each effect run to get latest updateUnread)
+                socketRef.current.off('unread'); // Remove old listener
+                socketRef.current.on('unread', () => {
+                    if (isAuthenticated) {
+                        updateUnread();
+                    }
+                });
             } catch (e) {
                 console.error('Error initializing socket:', e);
             }
@@ -134,6 +182,7 @@ const Header = props =>{
         // Cleanup on unmount or when auth changes
         return () => {
             if (socketRef.current) {
+                socketRef.current.off('unread');
                 socketRef.current.disconnect();
                 socketRef.current = null;
             }
@@ -142,7 +191,7 @@ const Header = props =>{
                 unreadIntervalRef.current = null;
             }
         };
-    }, [isAuthenticated, authUser?.username])
+    }, [isAuthenticated, authUser?.username, updateUnread])
 
    
     return(

@@ -77,7 +77,7 @@ const seedWelcomeConversation = async (demoUser) => {
             conversation.messages.length > 0 &&
             conversation.messages.some(msg => 
                 msg.sender === franklinUsername && 
-                (msg.message.includes('Welcome to PennThrift') || msg.message.includes('demo inbox'))
+                (msg.message.includes('Welcome to PennThrift') || msg.message.includes('Penn student marketplace'))
             );
         
         if (!hasWelcomeMessages) {
@@ -85,12 +85,17 @@ const seedWelcomeConversation = async (demoUser) => {
             const welcomeMessages = [
                 {
                     sender: franklinUsername,
-                    message: 'Welcome to PennThrift — browse the Store, then tap a listing to message a seller. Tip: Try favoriting an item too.',
+                    message: 'Welcome to PennThrift — a Penn student marketplace for buying, trading, gifting, and thrifting.',
                     timestamp: new Date()
                 },
                 {
                     sender: franklinUsername,
-                    message: 'This is a demo inbox — it resets when you log out.',
+                    message: 'Try: open any listing → Message seller (real-time chat). You can also favorite items and post a listing in the demo.',
+                    timestamp: new Date()
+                },
+                {
+                    sender: franklinUsername,
+                    message: 'This demo inbox resets when you log out.',
                     timestamp: new Date()
                 }
             ];

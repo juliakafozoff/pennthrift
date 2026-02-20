@@ -64,6 +64,23 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     setUser(null);
     
+    // Clear demo session storage
+    if (typeof window !== 'undefined') {
+      const sessionId = sessionStorage.getItem('demoSessionId');
+      if (sessionId) {
+        // Clear localStorage flags for this session
+        localStorage.removeItem(`demoConciergeOpened:${sessionId}`);
+        // Clear sessionStorage
+        sessionStorage.removeItem('demoSessionId');
+      }
+      // Also clear any old demoConciergeOpened keys (cleanup)
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('demoConciergeOpened:')) {
+          localStorage.removeItem(key);
+        }
+      });
+    }
+    
     try {
       if (isDemoUser) {
         // Call demo logout endpoint to wipe chat data
@@ -83,6 +100,22 @@ export const AuthProvider = ({ children }) => {
     await checkAuth(true);
   };
 
+  // Generate or retrieve demo session ID
+  const getDemoSessionId = () => {
+    if (typeof window === 'undefined') return null;
+    let sessionId = sessionStorage.getItem('demoSessionId');
+    if (!sessionId) {
+      // Generate UUID v4
+      sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+      sessionStorage.setItem('demoSessionId', sessionId);
+    }
+    return sessionId;
+  };
+
   const demoLogin = async () => {
     console.log('🟡 [AUTH CONTEXT] Demo login called');
     
@@ -90,6 +123,9 @@ export const AuthProvider = ({ children }) => {
       const res = await api.post('/api/auth/demo', {}, { withCredentials: true });
       
       if (res.data.success) {
+        // Generate/retrieve demo session ID
+        getDemoSessionId();
+        
         // Refresh auth state
         await checkAuth(true);
         console.log('🟢 [AUTH CONTEXT] Demo login successful');
@@ -121,7 +157,8 @@ export const AuthProvider = ({ children }) => {
     isLoading,
     checkAuth,
     logout,
-    demoLogin
+    demoLogin,
+    getDemoSessionId
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
