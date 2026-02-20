@@ -181,7 +181,7 @@ const Header = props =>{
                                             padding: 0,
                                             border: 'none',
                                             background: 'none',
-                                            transform: 'translate(4px, 2px)'
+                                            transform: 'translate(4px, 1px)'
                                         }}
                                         type="button"
                                     >
