@@ -120,6 +120,9 @@ export const AuthProvider = ({ children }) => {
     return sessionId;
   };
 
+  // Demo login - OPT-IN ONLY, never called automatically
+  // This function should ONLY be called when user explicitly clicks "Try Demo" button
+  // It is NOT called on page load, useEffect, or any automatic trigger
   const demoLogin = async () => {
     console.log('🟡 [AUTH CONTEXT] Demo login called');
     
