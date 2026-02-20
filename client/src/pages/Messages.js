@@ -644,8 +644,8 @@ const Messages = props => {
         if(socketRef.current && id){
             socketRef.current.emit('join-room', id);
         }
-        window.location.reload()
-
+        // Removed window.location.reload() - causes full page refresh
+        // State updates above are sufficient to refresh the UI
     }
 
     useEffect(() => {
