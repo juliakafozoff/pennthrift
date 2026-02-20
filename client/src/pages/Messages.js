@@ -25,20 +25,14 @@ import {
 } from '../utils/guestSession';
 import AuthRequiredModal from '../components/AuthRequiredModal';
 
-// Helper to normalize conversation ID (handle both _id and id)
-const getConvoId = (c) => {
-    if (!c) return null;
-    const convoId = c._id || c.id;
-    return typeof convoId === 'string' && convoId !== '[object Object]' && convoId !== 'undefined' 
-        ? convoId 
-        : (convoId ? String(convoId) : null);
-};
-
 const Messages = props => {
+    // Helper to normalize conversation ID (handle both _id and id)
+    const getConvoId = (c) => c?._id || c?.id;
+    
     const { isAuthenticated, user: authUser, demoLogin } = useAuth();
-    const {id: chatIdParam} = useParams();
+    const {id: conversationIdParam} = useParams();
     // Normalize route param ID
-    const routeConvoId = getConvoId({ id: chatIdParam });
+    const routeConvoId = getConvoId({ id: conversationIdParam });
     
     console.log('[MESSAGES] route convoId param:', routeConvoId);
 
