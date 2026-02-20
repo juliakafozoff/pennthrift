@@ -9,6 +9,7 @@ import { PageHeader, Card, Badge, Button } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
 import { normalizeImageUrl, getUserInitial } from "../utils/imageUtils";
 import { formatUsername } from "../utils/usernameUtils";
+import { VenmoIcon } from "../components/icons";
 
 
 class Profile extends Component {
@@ -212,8 +213,8 @@ class Profile extends Component {
                             <PageHeader
                                 title={displayUsername}
                                 subtitle={this.state.venmo && (
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <img className="w-5 h-5" src={require('../assets/vimeo.png')} alt="Venmo" />
+                                    <div className="flex items-center gap-1.5 mt-2">
+                                        <VenmoIcon className="w-4 h-4 flex-shrink-0" />
                                         <span className="text-base text-[var(--color-text)]">{this.state.venmo}</span>
                                     </div>
                                 )}
