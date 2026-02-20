@@ -8,6 +8,7 @@ import placeholder from '../assets/placeholder_user.png';
 import { PageHeader, Card, Badge, Button } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
 import { normalizeImageUrl, getUserInitial } from "../utils/imageUtils";
+import { formatUsername } from "../utils/usernameUtils";
 
 
 class Profile extends Component {
@@ -30,11 +31,15 @@ class Profile extends Component {
     }
 
     componentDidUpdate(prevProps){
-        // Only reload if auth user changes (e.g., after login/logout)
+        // Only reload if auth user changes (e.g., after login/logout or username change)
         const prevUser = prevProps.auth?.user?.username;
         const currentUser = this.props.auth?.user?.username;
         
-        if (prevUser !== currentUser) {
+        // Use case-insensitive comparison to catch username changes (e.g., "julia" -> "Julia")
+        const userChanged = prevUser !== currentUser || 
+            (prevUser && currentUser && prevUser.toLowerCase() !== currentUser.toLowerCase());
+        
+        if (userChanged) {
             // Reset state and reload if user changed
             this.setState({
                 items: [],
@@ -134,7 +139,8 @@ class Profile extends Component {
     }
 
     render(){
-        const user = this.props.auth?.user?.username || 'Profile';
+        const rawUsername = this.props.auth?.user?.username || 'Profile';
+        const displayUsername = formatUsername(rawUsername);
         
         return(
             <div className="min-h-screen bg-[var(--color-bg)]">
@@ -149,7 +155,7 @@ class Profile extends Component {
                                         <img
                                             className="w-48 h-48 rounded-full mx-auto lg:mx-0 mb-6 object-cover border-4 border-[var(--color-surface-2)]" 
                                             src={normalizeImageUrl(this.state.profile_pic)}
-                                            alt={user}
+                                            alt={displayUsername}
                                             onError={(e) => {
                                                 e.target.style.display = 'none';
                                                 const fallback = e.target.nextSibling;
@@ -160,12 +166,12 @@ class Profile extends Component {
                                             className="w-48 h-48 rounded-full mx-auto lg:mx-0 mb-6 border-4 border-[var(--color-surface-2)] bg-gray-600 flex items-center justify-center text-white text-6xl font-semibold"
                                             style={{ display: 'none' }}
                                         >
-                                            {getUserInitial(user)}
+                                            {getUserInitial(rawUsername)}
                                         </div>
                                     </>
                                 ) : (
                                     <div className="w-48 h-48 rounded-full mx-auto lg:mx-0 mb-6 border-4 border-[var(--color-surface-2)] bg-gray-600 flex items-center justify-center text-white text-6xl font-semibold">
-                                        {getUserInitial(user)}
+                                        {getUserInitial(rawUsername)}
                                     </div>
                                 )}
                                 
@@ -212,7 +218,7 @@ class Profile extends Component {
                         {/* Right Column - Listings */}
                         <div className="lg:col-span-2 space-y-6">
                             <PageHeader
-                                title={user}
+                                title={displayUsername}
                                 subtitle={this.state.venmo && (
                                     <div className="flex items-center gap-2 mt-2">
                                         <img className="w-5 h-5" src={require('../assets/vimeo.png')} alt="Venmo" />

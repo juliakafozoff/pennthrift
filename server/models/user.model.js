@@ -7,7 +7,9 @@ const userSchema = new Schema({
         required: true,
         minLength: 3,
         maxLength: 20,
-        match: [/^[a-zA-Z][a-zA-Z0-9_]*$/, 'Username must start with a letter and contain only letters, numbers, and underscores']
+        match: [/^[a-zA-Z][a-zA-Z0-9_]*$/, 'Username must start with a letter and contain only letters, numbers, and underscores'],
+        lowercase: true, // Always store username in lowercase
+        unique: true // Case-insensitive uniqueness (since stored lowercase)
     },
     usernameLower: {
         type: String,
@@ -67,10 +69,14 @@ const userSchema = new Schema({
     }
 }, { collection: 'User' });
 
-// Pre-save hook: Automatically populate usernameLower for backward compatibility
+// Pre-save hook: Ensure username is lowercase (backup to schema lowercase option)
 userSchema.pre('save', function(next) {
-    if (this.isModified('username') || !this.usernameLower) {
-        this.usernameLower = this.username ? this.username.toLowerCase() : null;
+    if (this.isModified('username') && this.username) {
+        this.username = this.username.toLowerCase();
+        // Keep usernameLower in sync for backward compatibility during migration
+        this.usernameLower = this.username;
+    } else if (!this.usernameLower && this.username) {
+        this.usernameLower = this.username.toLowerCase();
     }
     next();
 });
@@ -80,15 +86,17 @@ userSchema.pre(['findOneAndUpdate', 'updateOne'], function(next) {
     const update = this.getUpdate();
     if (update && (update.$set || update.username)) {
         const username = update.$set?.username || update.username;
-        if (username) {
+        if (username && typeof username === 'string') {
             if (!update.$set) update.$set = {};
-            update.$set.usernameLower = username.toLowerCase();
+            update.$set.username = username.toLowerCase();
+            update.$set.usernameLower = username.toLowerCase(); // Keep in sync
         }
     }
     next();
 });
 
 // Create index for case-insensitive username lookups (sparse to allow nulls for existing users)
+// Keep usernameLower index for backward compatibility during migration
 userSchema.index({ usernameLower: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('PennThriftBackend', userSchema, 'User');

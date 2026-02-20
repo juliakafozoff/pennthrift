@@ -183,12 +183,23 @@ const EditProfile = props => {
     const handleUsernameChange = (e) => {
         const newValue = e.target.value;
         setUser(newValue);
-        setUsernameChanged(newValue !== originalUsername);
+        // Compare normalized (lowercase) values to detect actual changes
+        const normalizedNew = normalizeUsername(newValue);
+        const normalizedOriginal = normalizeUsername(originalUsername);
+        setUsernameChanged(normalizedNew !== normalizedOriginal);
         
-        if (newValue !== originalUsername) {
+        if (normalizedNew !== normalizedOriginal) {
             validateUsername(newValue);
         } else {
             setUsernameError('');
+        }
+    };
+
+    const handleUsernameBlur = (e) => {
+        // Normalize to lowercase on blur for consistency
+        const normalized = normalizeUsername(e.target.value);
+        if (normalized !== e.target.value) {
+            setUser(normalized);
         }
     };
 
@@ -245,11 +256,13 @@ const EditProfile = props => {
                 }
 
                 try {
-                    const usernameResult = await changeUsername(user.trim());
-                    setSuccessMessage(`Username changed to ${usernameResult.username}! Updating profile...`);
+                    // Normalize username before sending to API
+                    const normalizedUsername = normalizeUsername(user);
+                    const usernameResult = await changeUsername(normalizedUsername);
+                    setSuccessMessage(`Username changed to ${formatUsername(usernameResult.username)}! Updating profile...`);
                     
-                    // Update original username for subsequent saves
-                    setOriginalUsername(usernameResult.username);
+                    // Update original username for subsequent saves (store normalized)
+                    setOriginalUsername(usernameResult.username); // Backend returns lowercase
                     setUsernameChanged(false);
                     
                     // Refresh auth context to get new username
@@ -257,8 +270,8 @@ const EditProfile = props => {
                         await auth.checkAuth(true);
                     }
                     
-                    // Update user state to new username for profile update
-                    setUser(usernameResult.username);
+                    // Update user state to normalized username for profile update
+                    setUser(usernameResult.username); // Backend returns lowercase
                     
                     // Update cooldown info
                     if (usernameResult.nextUsernameChangeAt) {
@@ -429,19 +442,20 @@ const EditProfile = props => {
                                         helperText={
                                             usernameCooldown 
                                                 ? `You can change your username again on ${new Date(usernameCooldown).toLocaleDateString()}`
-                                                : usernameChanged 
-                                                    ? "3-20 characters, letters/numbers/underscores, must start with a letter"
-                                                    : "3-20 characters, letters/numbers/underscores, must start with a letter"
+                                                : "3-20 characters, letters/numbers/underscores, must start with a letter. Usernames are not case-sensitive. We'll display it with a capital first letter."
                                         }
                                         error={usernameError}
                                     >
-                                        <Input
-                                            value={user}
-                                            onChange={handleUsernameChange}
-                                            disabled={!!usernameCooldown || loading}
-                                            className={usernameCooldown ? "bg-[var(--color-surface-2)] cursor-not-allowed" : ""}
-                                            placeholder="Enter username"
-                                        />
+                                        <div className="relative">
+                                            <Input
+                                                value={user}
+                                                onChange={handleUsernameChange}
+                                                onBlur={handleUsernameBlur}
+                                                disabled={!!usernameCooldown || loading}
+                                                className={usernameCooldown ? "bg-[var(--color-surface-2)] cursor-not-allowed" : ""}
+                                                placeholder="Enter username"
+                                            />
+                                        </div>
                                         {usernameCooldown && (
                                             <p className="mt-1 text-sm text-amber-600">
                                                 Username change on cooldown. Next change available: {new Date(usernameCooldown).toLocaleDateString()}

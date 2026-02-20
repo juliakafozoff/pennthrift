@@ -83,17 +83,29 @@ router.post('/', async(req, res) =>{
 router.post('/register', async (req, res) => {
     const { username, password } = req.body;
     
-    // Check if user already exists
-    const userExists = await User.exists({ username });
+    // Normalize username to lowercase for storage and uniqueness check
+    const normalizedUsername = username ? username.trim().toLowerCase() : null;
+    
+    if (!normalizedUsername) {
+        return res.status(400).json('Error: Username is required');
+    }
+    
+    // Check if user already exists (case-insensitive)
+    const userExists = await User.findOne({ 
+        $or: [
+            { username: normalizedUsername },
+            { usernameLower: normalizedUsername }
+        ]
+    });
     if (userExists) {
         return res.status(409).json('Error: User is already registered');
     }
     
     try {
-        // Create new user
+        // Create new user (username will be stored as lowercase via schema)
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = new User({
-            username,
+            username: normalizedUsername, // Store lowercase
             password: hashedPassword
         });
         

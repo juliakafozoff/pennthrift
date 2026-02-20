@@ -11,6 +11,7 @@ import { path } from "../api/ProfileAPI";
 import { useAuth } from "../contexts/AuthContext";
 import { Card, Badge, Button } from "../components/ui";
 import { normalizeImageUrl, getUserInitial } from "../utils/imageUtils";
+import { formatUsername } from "../utils/usernameUtils";
 
 const  User = props => {
     
@@ -178,9 +179,10 @@ const  User = props => {
 
 
 
-    const isOwnProfile = viewer === username;
+    const isOwnProfile = viewer && username && viewer.toLowerCase() === username.toLowerCase();
     const interestsSafe = Array.isArray(interests) ? interests : [];
     const itemsSafe = Array.isArray(items) ? items : [];
+    const displayUsername = formatUsername(username || '');
 
     // Loading state
     if (loading) {
@@ -223,7 +225,7 @@ const  User = props => {
                                             <img
                                                 className="w-48 h-48 rounded-full object-cover border-4 border-[var(--color-surface-2)] shadow-lg" 
                                                 src={normalizeImageUrl(imageDisplay)}
-                                                alt={username || 'Profile'}
+                                                alt={displayUsername || 'Profile'}
                                                 onError={(e) => {
                                                     e.target.style.display = 'none';
                                                     const fallback = e.target.nextSibling;
@@ -234,12 +236,12 @@ const  User = props => {
                                                 className="w-48 h-48 rounded-full border-4 border-[var(--color-surface-2)] shadow-lg bg-gray-600 flex items-center justify-center text-white text-6xl font-semibold"
                                                 style={{ display: 'none' }}
                                             >
-                                                {getUserInitial(username)}
+                                                {getUserInitial(username || '')}
                                             </div>
                                         </>
                                     ) : (
                                         <div className="w-48 h-48 rounded-full border-4 border-[var(--color-surface-2)] shadow-lg bg-gray-600 flex items-center justify-center text-white text-6xl font-semibold">
-                                            {getUserInitial(username)}
+                                            {getUserInitial(username || '')}
                                         </div>
                                     )}
                                 </div>
@@ -316,7 +318,7 @@ const  User = props => {
                             <div className="space-y-2">
                                 <div className="flex items-center gap-3">
                                     <h1 className="text-4xl md:text-5xl font-bold text-[var(--color-text)]">
-                                        {username}
+                                        {displayUsername}
                                     </h1>
                                     {/* Verified badge or other indicator could go here */}
                                 </div>

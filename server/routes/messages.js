@@ -1,6 +1,21 @@
 const User = require('../models/user.model');
 const Message = require('../models/message.model')
 
+// Helper function for case-insensitive username lookup
+const normalizeUsernameForLookup = (username) => {
+    return username ? username.toLowerCase() : username;
+};
+
+const buildUsernameQuery = (username) => {
+    const normalized = normalizeUsernameForLookup(username);
+    return {
+        $or: [
+            { username: normalized },
+            { usernameLower: normalized }
+        ]
+    };
+};
+
 function messages(io){
 
     const messages = io.of('/api/messages');
@@ -9,9 +24,11 @@ function messages(io){
 
         socket.on('clear-unread', data => {
             const { id, username } = data;
-            User.findOne({username:username}).then( user => {
+            const query = buildUsernameQuery(username);
+            User.findOne(query).then( user => {
+                if (!user) return;
                 let unread = [...user.unread].filter(element => ![id].includes(element));
-                User.findOneAndUpdate({username:username},{unread:unread}).then( res => {
+                User.findOneAndUpdate(query, {unread:unread}).then( res => {
                     socket.broadcast.emit('unread')
 
                 })
@@ -25,9 +42,11 @@ function messages(io){
                 Message.findById({_id:id}).then( out => {
                     let newMessage; try{ newMessage = [...out.messages, {sender, message, attachment}]}catch{newMessage = [{sender, message, attachment}]}
                     Message.findOneAndUpdate({_id:id},{messages:newMessage}).then( out => {
-                        User.findOne({username:receiver}).then( user => {
+                        const receiverQuery = buildUsernameQuery(receiver);
+                        User.findOne(receiverQuery).then( user => {
+                            if (!user) return;
                             let unread = [...user.unread, id];
-                            User.findOneAndUpdate({username:receiver},{unread:unread}).then( res => {
+                            User.findOneAndUpdate(receiverQuery, {unread:unread}).then( res => {
                                 socket.broadcast.emit('unread');
                                 messages.in(id).emit('receive-message',id)
                             })
@@ -83,8 +102,9 @@ function messages(io){
                 const message = new Message({users:users })
                 message.save().then(out => {
                     users.map( user => {
+                        const userQuery = buildUsernameQuery(user);
                         User.findOneAndUpdate(
-                            {username:user},
+                            userQuery,
                             {$addToSet: {chats:message}}
                         ).exec();
     

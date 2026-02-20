@@ -2,6 +2,23 @@ const User = require('../models/user.model');
 const Item = require('../models/item.model')
 const router = require('express').Router();
 
+// Helper function for case-insensitive username lookup
+// Usernames are stored lowercase, so normalize input to lowercase
+const normalizeUsernameForLookup = (username) => {
+    return username ? username.toLowerCase() : username;
+};
+
+// Helper function to build username query (supports both username and usernameLower for migration)
+const buildUsernameQuery = (username) => {
+    const normalized = normalizeUsernameForLookup(username);
+    return {
+        $or: [
+            { username: normalized },
+            { usernameLower: normalized }
+        ]
+    };
+};
+
 // Helper function to sanitize profile_pic URLs
 // Converts localhost URLs to relative paths or fixes them
 const sanitizeProfilePic = (profilePic) => {
@@ -60,9 +77,16 @@ router.route('/').get((req, res) => {
         .catch(err => res.status(400).json('Error! ' + err))
 });
 
-// get profile/ user info by username
+// get profile/ user info by username (case-insensitive lookup)
 router.route('/:username').get((req, res) => {
-    User.findOne({username: req.params.username}).select('-password')
+    // Normalize username to lowercase for lookup (usernames are stored lowercase)
+    const normalizedUsername = req.params.username.toLowerCase();
+    User.findOne({
+        $or: [
+            { username: normalizedUsername },
+            { usernameLower: normalizedUsername }
+        ]
+    }).select('-password')
     .then(user => {
         // Sanitize profile_pic URL before sending
         const sanitizedUser = sanitizeUser(user);
@@ -71,29 +95,40 @@ router.route('/:username').get((req, res) => {
     .catch(err => res.status(400).json('Error! ' + err))
 });
 
-// delete profile/user by username
+// delete profile/user by username (case-insensitive)
 router.route('/delete/:username').delete((req, res) => {
-    User.deleteOne({ username: req.params.username })
+    const query = buildUsernameQuery(req.params.username);
+    User.deleteOne(query)
         .then(success => res.json('Success! User deleted.'))
         .catch(err => res.status(400).json('Error! ' + err))
 });
 
-// edit profile/user info by username
+// edit profile/user info by username (case-insensitive)
 router.route('/edit/:username').put((req, res) => {
     // Sanitize profile_pic before saving if present
     if (req.body.profile_pic) {
         req.body.profile_pic = sanitizeProfilePic(req.body.profile_pic);
     }
     
-    User.findOneAndUpdate({username: req.params.username }, req.body)
+    // Normalize username in body if present (should already be lowercase, but ensure it)
+    if (req.body.username && typeof req.body.username === 'string') {
+        req.body.username = normalizeUsernameForLookup(req.body.username);
+    }
+    
+    const query = buildUsernameQuery(req.params.username);
+    User.findOneAndUpdate(query, req.body)
         .then(user => res.json('Success! User updated.'))
         .catch(err => res.status(400).json('Error! ' + err))
 });
 
-//add items under a user 
+//add items under a user (case-insensitive username lookup)
 router.route('/item/new').post((req, res) => {
-    User.findOne({username:req.body.username})
+    const query = buildUsernameQuery(req.body.username);
+    User.findOne(query)
         .then(user => {
+            if (!user) {
+                return res.status(404).json('Error! User not found');
+            }
             const newItem = new Item(req.body);
             newItem.save().then().catch((err) => res.status(400).json(err));
             User.findOneAndUpdate(
@@ -112,7 +147,8 @@ router.route('/favourites/update').post(( req, res) => {
         return res.status(400).json('Error! itemID and username are required');
     }
     
-    User.findOne({username:username}).then( user => {
+    const query = buildUsernameQuery(username);
+    User.findOne(query).then( user => {
         if(!user){
             return res.status(404).json('Error! User not found');
         }
@@ -127,22 +163,22 @@ router.route('/favourites/update').post(( req, res) => {
             if(remove){
                 // Remove from favourites
                 User.findOneAndUpdate(
-                    { username:username },
+                    query,
                     { $pull: {favourites: itemID } }
                 ).then(() => {
                     // Return updated user with populated favourites
-                    User.findOne({username:username}).select('-password').populate('favourites').then( updatedUser => {
+                    User.findOne(query).select('-password').populate('favourites').then( updatedUser => {
                         res.json(updatedUser.favourites);
                     }).catch(err => res.status(400).json('Error! ' + err));
                 }).catch(err => res.status(400).json('Error! ' + err));
             } else {
                 // Add to favourites
                 User.findOneAndUpdate(
-                    { username:username },
+                    query,
                     { $addToSet: {favourites: itemID } }
                 ).then(() => {
                     // Return updated user with populated favourites
-                    User.findOne({username:username}).select('-password').populate('favourites').then( updatedUser => {
+                    User.findOne(query).select('-password').populate('favourites').then( updatedUser => {
                         res.json(updatedUser.favourites);
                     }).catch(err => res.status(400).json('Error! ' + err));
                 }).catch(err => res.status(400).json('Error! ' + err));
@@ -156,7 +192,8 @@ router.route('/favourites').post( (req, res) => {
     if(!username){
         return res.status(400).json('Error! username is required');
     }
-    User.findOne({username:username}).select('-password').populate('favourites').then( user => {
+    const query = buildUsernameQuery(username);
+    User.findOne(query).select('-password').populate('favourites').then( user => {
         if(!user){
             return res.json([]);
         }
@@ -164,34 +201,42 @@ router.route('/favourites').post( (req, res) => {
     }).catch(err => res.status(400).json('Error! ' + err));
 })
 
-// get chats of user
+// get chats of user (case-insensitive)
 router.route('/chats/:username').get((req, res) => {
     try{
-        User.findOne({ username: req.params.username }, {username: 1, chats: 1})
+        const query = buildUsernameQuery(req.params.username);
+        User.findOne(query, {username: 1, chats: 1})
         .populate({
             path:'chats',
             options:{sort:{ updatedAt: -1 }}
          }).exec((err, user) => {
-            res.json(user.chats);
+            if (!user) {
+                return res.json([]);
+            }
+            res.json(user.chats || []);
         })
-    }catch{
-
+    }catch(err){
+        res.status(400).json('Error! ' + err);
     }
     
 });
 
 
 
-// get items of user
+// get items of user (case-insensitive)
 router.route('/items/:username').get((req, res) => {
     try{
-        User.findOne({ username: req.params.username }, {username: 1, items: 1})
+        const query = buildUsernameQuery(req.params.username);
+        User.findOne(query, {username: 1, items: 1})
        .populate('items').exec((err, user) => {
+           if (!user) {
+               return res.json({ items: [] });
+           }
            res.json(user);
        })
 
-    }catch{
-
+    }catch(err){
+        res.status(400).json('Error! ' + err);
     }
 });
 
@@ -217,33 +262,33 @@ router.route('/username').put((req, res) => {
         return res.status(400).json({ error: 'Username is required' });
     }
 
-    const trimmedUsername = username.trim();
+    // Normalize username: trim and convert to lowercase
+    const normalizedUsername = username.trim().toLowerCase();
 
     // Validation: length (3-20 characters)
-    if (trimmedUsername.length < 3 || trimmedUsername.length > 20) {
+    if (normalizedUsername.length < 3 || normalizedUsername.length > 20) {
         return res.status(400).json({ error: 'Username must be between 3 and 20 characters' });
     }
 
     // Validation: must start with a letter
-    if (!/^[a-zA-Z]/.test(trimmedUsername)) {
+    if (!/^[a-zA-Z]/.test(normalizedUsername)) {
         return res.status(400).json({ error: 'Username must start with a letter' });
     }
 
     // Validation: only letters, numbers, and underscores
-    if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(trimmedUsername)) {
+    if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(normalizedUsername)) {
         return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores' });
     }
 
     // Validation: check reserved words (case-insensitive)
-    const usernameLower = trimmedUsername.toLowerCase();
-    if (RESERVED_USERNAMES.includes(usernameLower)) {
+    if (RESERVED_USERNAMES.includes(normalizedUsername)) {
         return res.status(400).json({ error: 'This username is reserved and cannot be used' });
     }
 
-    // Check if username is the same (no change needed)
-    if (currentUser.username && currentUser.username.toLowerCase() === usernameLower) {
+    // Check if username is the same (no change needed) - compare normalized
+    if (currentUser.username && currentUser.username.toLowerCase() === normalizedUsername) {
         return res.status(200).json({
-            username: currentUser.username,
+            username: currentUser.username, // Return stored lowercase
             usernameLastChangedAt: currentUser.usernameLastChangedAt || null,
             message: 'Username unchanged'
         });
@@ -267,17 +312,20 @@ router.route('/username').put((req, res) => {
         }
     }
 
-    // Check uniqueness: case-insensitive via usernameLower
-    User.findOne({ usernameLower: usernameLower })
+    // Check uniqueness: case-insensitive via usernameLower (or username since it's now lowercase)
+    User.findOne({ $or: [
+        { usernameLower: normalizedUsername },
+        { username: normalizedUsername }
+    ]})
         .then(existingUser => {
             if (existingUser && existingUser._id.toString() !== currentUser._id.toString()) {
                 return res.status(409).json({ error: 'Username is already taken' });
             }
 
-            // Update username
+            // Update username (store as lowercase)
             const updateData = {
-                username: trimmedUsername,
-                usernameLower: usernameLower,
+                username: normalizedUsername, // Store lowercase
+                usernameLower: normalizedUsername, // Keep in sync
                 usernameLastChangedAt: new Date()
             };
 
@@ -292,14 +340,23 @@ router.route('/username').put((req, res) => {
                     return res.status(404).json({ error: 'User not found' });
                 }
 
-                // Calculate next change date
-                const nextChangeDate = new Date(updatedUser.usernameLastChangedAt.getTime() + COOLDOWN_MS);
+                // CRITICAL: Refresh Passport session with updated user
+                // This ensures req.user.username reflects the change immediately
+                req.logIn(updatedUser, (err) => {
+                    if (err) {
+                        console.error('Error refreshing session after username change:', err);
+                        // Still return success since DB update succeeded
+                    }
 
-                res.json({
-                    username: updatedUser.username,
-                    usernameLastChangedAt: updatedUser.usernameLastChangedAt,
-                    nextUsernameChangeAt: nextChangeDate.toISOString(),
-                    message: 'Username updated successfully'
+                    // Calculate next change date
+                    const nextChangeDate = new Date(updatedUser.usernameLastChangedAt.getTime() + COOLDOWN_MS);
+
+                    res.json({
+                        username: updatedUser.username,
+                        usernameLastChangedAt: updatedUser.usernameLastChangedAt,
+                        nextUsernameChangeAt: nextChangeDate.toISOString(),
+                        message: 'Username updated successfully'
+                    });
                 });
             })
             .catch(err => {

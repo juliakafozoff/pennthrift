@@ -3,17 +3,34 @@ const Item = require('../models/item.model');
 const Request = require('../models/request.model');
 const router = require('express').Router();
 
+// Helper function for case-insensitive username lookup
+const normalizeUsernameForLookup = (username) => {
+    return username ? username.toLowerCase() : username;
+};
+
+const buildUsernameQuery = (username) => {
+    const normalized = normalizeUsernameForLookup(username);
+    return {
+        $or: [
+            { username: normalized },
+            { usernameLower: normalized }
+        ]
+    };
+};
+
 
 
 
 router.route('/profile/views/:username').get((req, res) => {
-    User.findOne({username: req.params.username}, {profile_views: 1})
+    const query = buildUsernameQuery(req.params.username);
+    User.findOne(query, {profile_views: 1})
     .then(user => res.json(user))
     .catch(err => res.status(400).json('Error! ' + err))
 });
 
 router.route('/profile/update/:username').put((req, res) => {
-    User.findOneAndUpdate({username: req.params.username}, req.body)
+    const query = buildUsernameQuery(req.params.username);
+    User.findOneAndUpdate(query, req.body)
     .then(user => res.json('Success! User analytics updated.'))
     .catch(err => res.status(400).json('Error! ' + err))
 });
@@ -34,8 +51,10 @@ router.route('/seller/:username').get(async (req, res) => {
     try {
         const { username } = req.params;
         
-        // Get user and their items
-        const user = await User.findOne({username}).select('-password').populate('items').populate('favourites').populate('chats');
+        // Get user and their items (case-insensitive lookup)
+        const normalizedUsername = normalizeUsernameForLookup(username);
+        const query = buildUsernameQuery(normalizedUsername);
+        const user = await User.findOne(query).select('-password').populate('items').populate('favourites').populate('chats');
         if (!user) {
             return res.status(404).json('Error! User not found');
         }
