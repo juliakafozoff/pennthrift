@@ -3,6 +3,7 @@ const express       = require('express');
 const router        = express.Router();
 const User          = require('../models/user.model');
 const Message       = require('../models/message.model');
+const Item          = require('../models/item.model');
 const bcrypt        = require('bcrypt');
 const passport      = require('passport');
 const session       = require('express-session');
@@ -316,6 +317,41 @@ router.post('/demo', async (req, res) => {
                 // Don't fail login if seeding fails, but log it
             }
             
+            try {
+                // Ensure default favorites for demo user (only if count is 0)
+                const demoUserWithFavs = await User.findById(demoUser._id);
+                const favouritesCount = Array.isArray(demoUserWithFavs.favourites) ? demoUserWithFavs.favourites.length : 0;
+                if (favouritesCount === 0) {
+                    // Find and add default items
+                    const defaultItems = [
+                        { name: 'Introduction to Algorithms — 3rd Edition' },
+                        { name: 'Penn Crest Crewneck (Navy)' }
+                    ];
+                    
+                    for (const defaultItem of defaultItems) {
+                        // Try exact match first, then partial match
+                        let item = await Item.findOne({
+                            name: { $regex: new RegExp(`^${defaultItem.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+                        });
+                        
+                        if (!item) {
+                            item = await Item.findOne({
+                                name: { $regex: new RegExp(defaultItem.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }
+                            });
+                        }
+                        
+                        if (item && item._id) {
+                            await User.findByIdAndUpdate(demoUser._id, {
+                                $addToSet: { favourites: item._id }
+                            });
+                        }
+                    }
+                }
+            } catch (favError) {
+                console.error('Error ensuring default favorites:', favError);
+                // Don't fail login if favorites seeding fails
+            }
+            
             req.session.save((saveErr) => {
                 if (saveErr) {
                     return res.status(500).json({ error: 'Failed to save session' });
@@ -337,6 +373,84 @@ router.post('/demo', async (req, res) => {
     } catch (error) {
         console.error('Demo login error:', error);
         res.status(500).json({ error: 'Demo login failed' });
+    }
+});
+
+// Demo ensure default favorites endpoint - ensures demo user has default favorites if count is 0
+router.post('/demo/ensure-default-favorites', async (req, res) => {
+    try {
+        // Verify user is authenticated
+        if (!req.isAuthenticated() || !req.user) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+        
+        const user = req.user;
+        const DEMO_USERNAME = 'demo';
+        
+        // Verify this is the demo user
+        const isDemoUser = user.username === DEMO_USERNAME || 
+                          user.usernameLower === DEMO_USERNAME || 
+                          user.isDemo === true;
+        
+        if (!isDemoUser) {
+            return res.status(403).json({ error: 'Not a demo user' });
+        }
+        
+        // Get current user with favourites populated
+        const demoUser = await User.findById(user._id);
+        const favouritesCount = Array.isArray(demoUser.favourites) ? demoUser.favourites.length : 0;
+        
+        // Only add defaults if user has 0 favourites
+        if (favouritesCount === 0) {
+            // Default items to add
+            const defaultItems = [
+                { name: 'Introduction to Algorithms — 3rd Edition', owner: null }, // Will search by name only
+                { name: 'Penn Crest Crewneck (Navy)', owner: null } // Will search by name only
+            ];
+            
+            const addedIds = [];
+            
+            for (const defaultItem of defaultItems) {
+                // Find item by name (case-insensitive, partial match)
+                // Try exact match first, then partial match
+                let item = await Item.findOne({
+                    name: { $regex: new RegExp(`^${defaultItem.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+                });
+                
+                // If not found with exact match, try partial match
+                if (!item) {
+                    item = await Item.findOne({
+                        name: { $regex: new RegExp(defaultItem.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }
+                    });
+                }
+                
+                if (item && item._id) {
+                    // Check if already in favourites (shouldn't be, but be safe)
+                    if (!demoUser.favourites.includes(item._id)) {
+                        await User.findByIdAndUpdate(demoUser._id, {
+                            $addToSet: { favourites: item._id }
+                        });
+                        addedIds.push(item._id.toString());
+                    }
+                } else {
+                    console.warn(`Default favorite item not found: "${defaultItem.name}"`);
+                }
+            }
+            
+            res.json({ 
+                ok: true,
+                added: addedIds
+            });
+        } else {
+            // User already has favourites, don't modify
+            res.json({ 
+                ok: true,
+                added: []
+            });
+        }
+    } catch (error) {
+        console.error('Error ensuring default favorites:', error);
+        res.status(500).json({ error: 'Failed to ensure default favorites' });
     }
 });
 
@@ -406,13 +520,14 @@ router.post('/demo/logout', async (req, res) => {
             _id: { $in: messageIds } 
         });
         
-        // Clear demo user's chats and unread arrays
+        // Clear demo user's chats, unread, and favourites arrays
         await User.findOneAndUpdate(
             { _id: user._id },
             { 
                 $set: { 
                     chats: [], 
-                    unread: [] 
+                    unread: [],
+                    favourites: []
                 } 
             }
         );

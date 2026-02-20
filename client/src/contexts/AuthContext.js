@@ -79,6 +79,8 @@ export const AuthProvider = ({ children }) => {
           localStorage.removeItem(key);
         }
       });
+      // Clear demo favorites seeded flag
+      sessionStorage.removeItem('demoFavoritesSeeded');
     }
     
     try {

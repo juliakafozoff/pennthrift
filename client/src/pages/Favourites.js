@@ -57,6 +57,21 @@ export default class Favourites extends Component {
             if(user && !this.state.processed && !this.state.loading){
                 this.setState({loading: true});
                 
+                // For demo users, ensure default favorites exist before fetching (only on first load per session)
+                const isDemoUser = user === 'demo' || (user && typeof user === 'object' && (user.username === 'demo' || user.isDemo === true));
+                if (isDemoUser) {
+                    const hasSeededThisSession = sessionStorage.getItem('demoFavoritesSeeded') === '1';
+                    if (!hasSeededThisSession) {
+                        try {
+                            await api.post('/api/auth/demo/ensure-default-favorites', {}, { withCredentials: true });
+                            sessionStorage.setItem('demoFavoritesSeeded', '1');
+                        } catch (favError) {
+                            console.error('Error ensuring default favorites:', favError);
+                            // Continue even if ensure fails
+                        }
+                    }
+                }
+                
                 // Fetch favourites
                 const favourites = await getUserFavourites(user);
                 const favouritesSafe = Array.isArray(favourites) ? favourites : [];
