@@ -7,6 +7,7 @@ import { path } from '../api/ProfileAPI';
 import { Button, Badge } from './ui';
 import { useAuth } from '../contexts/AuthContext';
 import TopNav from './TopNav';
+import AboutPopover from './AboutPopover';
 
 
 const Header = props =>{
@@ -153,20 +154,22 @@ const Header = props =>{
                 <div className="flex items-center justify-between h-16 gap-4">
                     {/* Left side - Brand lockup */}
                     <div className="flex items-center gap-3 flex-shrink-0">
-                        <Link 
-                            to={isAuthenticated ? "/store" : "/"} 
-                            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-                            aria-label="PennThrift home"
-                        >
-                            <img 
-                                src={require('../assets/logo.png')} 
-                                alt="PennThrift logo" 
-                                className="h-8 w-8 object-contain"
-                            />
-                            <span className="text-xl font-semibold text-gray-900 hidden sm:inline">
-                                PennThrift
-                            </span>
-                        </Link>
+                        <AboutPopover trigger="hover">
+                            <Link 
+                                to={isAuthenticated ? "/store" : "/"} 
+                                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                                aria-label="PennThrift home"
+                            >
+                                <img 
+                                    src={require('../assets/logo.png')} 
+                                    alt="PennThrift logo" 
+                                    className="h-8 w-8 object-contain"
+                                />
+                                <span className="text-xl font-semibold text-gray-900 hidden sm:inline">
+                                    PennThrift
+                                </span>
+                            </Link>
+                        </AboutPopover>
                     </div>
 
                     {/* Right side - Navigation */}
