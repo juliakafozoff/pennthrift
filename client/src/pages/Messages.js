@@ -411,32 +411,36 @@ const Messages = props => {
     }, []); // Empty dependency array - run ONLY on mount
     
     // Initialize unreadCounts from sender.unread, filtering out:
-    // 1. Opened concierge for demo users (if demoConciergeOpened flag is set)
-    // 2. Currently selected conversation (user is viewing it, so it's read)
+    // 1. Currently selected conversation (user is viewing it, so it's read)
+    // 2. Opened concierge for demo users (if demoConciergeOpened flag is set)
+    // This ensures unreadCounts never includes conversations that are currently open or have been opened
     useEffect(() => {
-        if (!sender || !Array.isArray(sender.unread)) {
-            console.log('[UNREAD] No sender or sender.unread, clearing unreadCounts');
+        // Compute selectedId inside the effect
+        const selectedId = routeConvoId || activeConversationId;
+        
+        // Start with server unread array (default to empty if missing/invalid)
+        const serverUnread = Array.isArray(sender?.unread) ? sender.unread : [];
+        
+        if (!sender) {
+            console.log('[UNREAD] No sender, clearing unreadCounts');
             setUnreadCounts([]);
             return;
         }
         
-        const serverUnread = sender.unread;
-        const selectedId = routeConvoId || activeConversationId;
         console.log('[UNREAD] Initializing from sender.unread:', serverUnread);
         console.log('[UNREAD] Currently selected conversation:', selectedId);
         
-        let filtered = [...serverUnread];
-        
-        // Filter out currently selected conversation (user is viewing it, so it's read)
-        if (selectedId) {
-            const selectedIdStr = typeof selectedId === 'string' ? selectedId : String(selectedId);
-            filtered = filtered.filter(id => {
+        // ALWAYS filter out selectedId first (user is viewing it, so it's read)
+        let filtered = selectedId 
+            ? serverUnread.filter(id => {
                 const idStr = typeof id === 'string' ? id : String(id);
+                const selectedIdStr = typeof selectedId === 'string' ? selectedId : String(selectedId);
                 return idStr !== selectedIdStr;
-            });
-            if (filtered.length !== serverUnread.length) {
-                console.log('[UNREAD] Filtered out selected conversation', selectedId, 'from unreadCounts');
-            }
+            })
+            : [...serverUnread];
+        
+        if (selectedId && filtered.length !== serverUnread.length) {
+            console.log('[UNREAD] Filtered out selected conversation', selectedId, 'from unreadCounts');
         }
         
         // For demo users, filter out concierge if it's been opened
@@ -460,14 +464,15 @@ const Messages = props => {
                             return idStr !== conciergeIdStr;
                         });
                         if (filtered.length !== beforeFilter) {
-                            console.log('[UNREAD] Filtered out concierge', conciergeId, 'from unreadCounts');
+                            console.log('[UNREAD] Filtered out concierge', conciergeId, 'from unreadCounts (demoConciergeOpened flag set)');
                         }
                     }
                 }
             }
         }
         
-        console.log('[UNREAD] Final unreadCounts:', filtered);
+        console.log('[UNREAD] Final unreadCounts after filtering:', filtered);
+        // Always set filtered array (filtered already excludes selectedId and opened concierge)
         setUnreadCounts(filtered);
     }, [sender?.unread, chats, authUser, routeConvoId, activeConversationId, setUnreadCounts]);
     
