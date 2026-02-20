@@ -677,15 +677,21 @@ const Messages = props => {
         }
         
         // Defensive: Only proceed if id is a valid string
-        if(id && typeof id === 'string' && id !== '[object Object]' && id !== 'undefined'){
+        // Normalize id (handle both _id and id from route params)
+        const normalizedId = id && typeof id === 'string' && id !== '[object Object]' && id !== 'undefined' ? id : null;
+        
+        if(normalizedId){
+            console.log('📥 Loading conversation:', normalizedId);
             if(!stateId){
-            setStateId(id)
-        }
-            if(stateId !== id && stateId) {
-            setStateId(id)
-            refresh()
+                setStateId(normalizedId);
             }
-            if(socketRef.current)loadMessages(id);
+            if(stateId !== normalizedId && stateId) {
+                setStateId(normalizedId);
+                refresh();
+            }
+            if(socketRef.current) {
+                loadMessages(normalizedId);
+            }
         } else if(id && (typeof id === 'object' || id === '[object Object]')) {
             console.error('Invalid chat ID detected (object instead of string):', id);
             // Redirect to messages list if invalid ID
@@ -850,16 +856,28 @@ const Messages = props => {
                             {Array.isArray(chats) && chats.length > 0 ? (
                                 chats.map( chat => {
                             if(!chat || !chat._id) return null;
-                                    const chatId = typeof chat._id === 'string' ? chat._id : String(chat._id);
+                                    // Normalize conversation ID (handle both _id and id)
+                                    const convoId = chat._id || chat.id;
+                                    const chatId = typeof convoId === 'string' ? convoId : String(convoId);
                                     if(!chatId || chatId === '[object Object]' || chatId === 'undefined') {
+                                        console.warn('Invalid chat ID:', chat);
                                         return null;
                                     }
                                     
-                                    const otherUserInChat = Array.isArray(chat.users) 
-                                        ? chat.users.find(usr => usr !== user) 
-                                        : null;
+                                    // Find other user in chat (handle concierge thread)
+                                    const chatUsers = Array.isArray(chat.users) ? chat.users : [];
+                                    const currentUsername = user || authUser?.username || '';
+                                    const otherUserInChat = chatUsers.find(usr => usr !== currentUsername) || null;
                                     
-                                    if (!otherUserInChat) return null;
+                                    // Allow concierge thread even if otherUserInChat is null (for demo users)
+                                    const isConciergeThread = chatUsers.includes('franklindesk');
+                                    if (!otherUserInChat && !isConciergeThread) {
+                                        console.warn('No other user found in chat:', chat);
+                                        return null;
+                                    }
+                                    
+                                    // Use franklindesk as display name for concierge thread
+                                    const displayUser = isConciergeThread ? 'franklindesk' : otherUserInChat;
                                     
                                     let lastMessage = '';
                                     let lastMessageTime = null;
@@ -876,13 +894,18 @@ const Messages = props => {
                                     
                                     const isSelected = chatId === id;
                                     const hasUnread = Array.isArray(unreadCounts) && unreadCounts.includes(chatId);
-                                    const avatarKey = `sidebar-${otherUserInChat}`;
+                                    const avatarKey = `sidebar-${displayUser}`;
                                     const hasFailed = failedAvatars.has(avatarKey);
                                     
                                     return(
                                         <Link 
                                             key={chatId} 
-                                            to={`/profile/messages/${chatId}`} 
+                                            to={`/profile/messages/${chatId}`}
+                                            onClick={() => {
+                                                console.log('📩 Clicked conversation:', { chatId, displayUser, isConciergeThread, chat });
+                                                // Ensure navigation happens
+                                                navigate(`/profile/messages/${chatId}`, { replace: false });
+                                            }}
                                             state={chats}
                                             className={`block hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
                                         >
@@ -893,7 +916,7 @@ const Messages = props => {
                                                         <>
                                                             <img 
                                                                 src={normalizeImageUrl(chat.image)} 
-                                                                alt={otherUserInChat}
+                                                                alt={displayUser}
                                                                 className='rounded-full h-12 w-12 object-cover'
                                                                 onError={(e) => {
                                                                     setFailedAvatars(prev => new Set([...prev, avatarKey]));
@@ -906,12 +929,12 @@ const Messages = props => {
                                                                 className='rounded-full h-12 w-12 bg-gray-400 flex items-center justify-center text-white font-semibold text-base absolute top-0 left-0'
                                                                 style={{ display: 'none' }}
                                                             >
-                                                                {getUserInitial(otherUserInChat)}
+                                                                {getUserInitial(displayUser)}
                                                             </div>
                                                         </>
                                                     ) : (
                                                         <div className='rounded-full h-12 w-12 bg-gray-400 flex items-center justify-center text-white font-semibold text-base'>
-                                                            {getUserInitial(otherUserInChat)}
+                                                            {getUserInitial(displayUser)}
                                                         </div>
                                                     )}
                                                     {hasUnread && (
@@ -923,7 +946,7 @@ const Messages = props => {
                                                 <div className='flex-1 min-w-0'>
                                                     <div className='flex items-center justify-between mb-1'>
                                                         <div className='text-sm font-semibold text-gray-900 truncate'>
-                                                            {otherUserInChat}
+                                                            {isConciergeThread ? 'Franklin Desk' : displayUser}
                                                         </div>
                                                         {lastMessageTime && (
                                                             <div className='text-xs text-gray-500 flex-shrink-0 ml-2'>
