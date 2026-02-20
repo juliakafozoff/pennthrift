@@ -24,10 +24,18 @@ const IconButton = ({
         transition-all duration-200 ease-in-out
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2
         ${isActive 
-            ? 'bg-[var(--color-primary)] shadow-md' 
+            ? 'shadow-md' 
             : 'hover:bg-gray-100 active:bg-gray-200'
         }
     `;
+    
+    // GUARANTEED FIX: Use inline style for active background color
+    // This bypasses Tailwind arbitrary value emission issues and CSS specificity conflicts
+    // Tailwind's bg-[var(--color-primary)] may not be emitted, and Semantic UI's
+    // a { background-color: transparent; } could override it. Inline styles have highest specificity.
+    const activeBackgroundStyle = isActive 
+        ? { backgroundColor: 'var(--color-primary)' }
+        : {};
 
     // FIX: Ensure icons are always visible by explicitly setting color via inline styles
     // This bypasses any CSS specificity issues and ensures SVG stroke="currentColor" works
@@ -88,7 +96,8 @@ const IconButton = ({
                     // Fix: Override global link color rule (theme.css line 85-93)
                     // Global rule sets all <a> tags to var(--color-primary), which conflicts with active white icons
                     color: 'inherit', // Let children control color, don't inherit from global link rule
-                    textDecoration: 'none' // Ensure no underline
+                    textDecoration: 'none', // Ensure no underline
+                    ...activeBackgroundStyle // Apply active background color via inline style (guaranteed to work)
                 }}
             >
                 {content}
@@ -101,6 +110,7 @@ const IconButton = ({
             onClick={onClick}
             className={baseClasses}
             aria-label={ariaLabel}
+            style={activeBackgroundStyle} // Apply active background color via inline style (guaranteed to work)
         >
             {content}
         </button>
