@@ -143,6 +143,16 @@ class Profile extends Component {
         const rawUsername = this.props.auth?.user?.username || 'Profile';
         const displayUsername = formatUsername(rawUsername);
         
+        // Normalize Venmo handle: strip leading @ and trim whitespace
+        const normalizeVenmoHandle = (handle) => {
+            if (!handle) return null;
+            return handle.trim().replace(/^@+/, ''); // Remove leading @ symbols and trim
+        };
+        
+        const venmoHandle = normalizeVenmoHandle(this.state.venmo);
+        const venmoUrl = venmoHandle ? `https://venmo.com/u/${venmoHandle}` : null;
+        const venmoDisplayText = venmoHandle ? `@${venmoHandle}` : null;
+        
         return(
             <div className="min-h-screen bg-[var(--color-bg)]">
                 <Header/>
@@ -212,10 +222,17 @@ class Profile extends Component {
                         <div className="lg:col-span-2 space-y-6">
                             <PageHeader
                                 title={displayUsername}
-                                subtitle={this.state.venmo && (
+                                subtitle={venmoHandle && venmoUrl && (
                                     <div className="flex items-center gap-1.5 mt-2">
-                                        <img src={venmoLogo} alt="Venmo" className="w-4 h-4 object-contain flex-shrink-0" />
-                                        <span className="text-base text-[var(--color-text)]">{this.state.venmo}</span>
+                                        <img src={venmoLogo} alt="Venmo" className="w-5 h-5 object-contain flex-shrink-0" />
+                                        <a 
+                                            href={venmoUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-base text-[var(--color-text)] hover:text-[var(--color-primary)] hover:underline transition-colors"
+                                        >
+                                            {venmoDisplayText}
+                                        </a>
                                     </div>
                                 )}
                                 actions={
