@@ -1,7 +1,7 @@
 import Header from "../components/Header";
 import { useState, useEffect } from "react";
 import api from "../api/http";
-import { editUserProfile, getUserProfile } from "../api/ProfileAPI";
+import { editUserProfile, getUserProfile, changeUsername } from "../api/ProfileAPI";
 import placeholder from '../assets/placeholder_user.png';
 import { useNavigate } from "react-router-dom";
 import { PageHeader, Card, Field, Input, Textarea, Button, Badge, PhotoUpload } from "../components/ui";
@@ -48,6 +48,10 @@ const EditProfile = props => {
     const [initialLoading, setInitialLoading] = useState(true);
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
+    const [usernameChanged, setUsernameChanged] = useState(false);
+    const [usernameError, setUsernameError] = useState('');
+    const [usernameCooldown, setUsernameCooldown] = useState(null);
+    const [originalUsername, setOriginalUsername] = useState('');
     const navigate = useNavigate();
 
     const uClassList = [
@@ -112,7 +116,7 @@ const EditProfile = props => {
     }, [image, imageDisplay]);
 
     function processUserInfo(info){
-        const {class_year, bio, interests, venmo, profile_pic } = info;
+        const {class_year, bio, interests, venmo, profile_pic, username, usernameLastChangedAt } = info;
         // BUGFIX D: Default bio should be empty string or actual bio, not 'Edit description'
         setBio(bio || '');
         setYear(class_year || '');
@@ -123,7 +127,70 @@ const EditProfile = props => {
         }
         setVenmo(venmo || '');
         setImageDisplay(profile_pic || '');
+        
+        // Set username and track original
+        if (username) {
+            setUser(username);
+            setOriginalUsername(username);
+        }
+        
+        // Calculate cooldown if username was changed before
+        if (usernameLastChangedAt) {
+            const lastChanged = new Date(usernameLastChangedAt);
+            const nextChangeDate = new Date(lastChanged.getTime() + (30 * 24 * 60 * 60 * 1000)); // 30 days
+            const now = new Date();
+            if (now < nextChangeDate) {
+                setUsernameCooldown(nextChangeDate);
+            } else {
+                setUsernameCooldown(null);
+            }
+        } else {
+            setUsernameCooldown(null);
+        }
     }
+
+    // Username validation
+    const validateUsername = (value) => {
+        setUsernameError('');
+        
+        if (!value || value.trim().length === 0) {
+            return false;
+        }
+        
+        const trimmed = value.trim();
+        
+        // Length check
+        if (trimmed.length < 3 || trimmed.length > 20) {
+            setUsernameError('Username must be between 3 and 20 characters');
+            return false;
+        }
+        
+        // Must start with letter
+        if (!/^[a-zA-Z]/.test(trimmed)) {
+            setUsernameError('Username must start with a letter');
+            return false;
+        }
+        
+        // Only letters, numbers, underscores
+        if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(trimmed)) {
+            setUsernameError('Username can only contain letters, numbers, and underscores');
+            return false;
+        }
+        
+        return true;
+    };
+
+    const handleUsernameChange = (e) => {
+        const newValue = e.target.value;
+        setUser(newValue);
+        setUsernameChanged(newValue !== originalUsername);
+        
+        if (newValue !== originalUsername) {
+            validateUsername(newValue);
+        } else {
+            setUsernameError('');
+        }
+    };
 
     const handleImageSelect = (file) => {
         // Validate file type
@@ -166,8 +233,45 @@ const EditProfile = props => {
         setLoading(true);
         setError('');
         setSuccessMessage('');
+        setUsernameError('');
 
         try {
+            // If username changed, handle it separately
+            if (usernameChanged && user !== originalUsername) {
+                // Validate username first
+                if (!validateUsername(user)) {
+                    setLoading(false);
+                    return;
+                }
+
+                try {
+                    const usernameResult = await changeUsername(user.trim());
+                    setSuccessMessage(`Username changed to ${usernameResult.username}! Updating profile...`);
+                    
+                    // Update original username for subsequent saves
+                    setOriginalUsername(usernameResult.username);
+                    setUsernameChanged(false);
+                    
+                    // Refresh auth context to get new username
+                    if (auth?.checkAuth) {
+                        await auth.checkAuth(true);
+                    }
+                    
+                    // Update user state to new username for profile update
+                    setUser(usernameResult.username);
+                    
+                    // Update cooldown info
+                    if (usernameResult.nextUsernameChangeAt) {
+                        setUsernameCooldown(new Date(usernameResult.nextUsernameChangeAt));
+                    }
+                } catch (usernameErr) {
+                    const errorMsg = usernameErr.message || 'Failed to change username';
+                    setUsernameError(errorMsg);
+                    setLoading(false);
+                    return;
+                }
+            }
+
             let profilePicUrl = imageDisplay || '';
 
             // If a new image file is selected, upload it first
@@ -198,15 +302,22 @@ const EditProfile = props => {
             }
 
             // Build data object - BUGFIX A: Only ONE profile_pic field
+            // If username changed, don't include it in data (already updated via username endpoint)
             const data = {
                 bio: bio || '',
                 profile_pic: profilePicUrl,
-                username: user,
                 venmo: venmo || '',
                 class_year: year || '',
                 interests: Array.isArray(interests) ? interests : []
             };
+            
+            // Only include username if it hasn't changed (backward compatibility)
+            // If username changed, it's already updated, so don't send it again
+            if (!usernameChanged) {
+                data.username = user;
+            }
 
+            // Use current username for the edit endpoint URL (backend uses it to find user)
             const result = await editUserProfile(user, data);
             
             if (result === 'Success! User updated.') {
@@ -312,14 +423,30 @@ const EditProfile = props => {
                         <div className="space-y-6">
                             <Card>
                                 <div className="space-y-6">
-                                    {/* Username - Read Only */}
-                                    <Field label="Username" helperText="Your username cannot be changed">
+                                    {/* Username - Editable */}
+                                    <Field 
+                                        label="Username" 
+                                        helperText={
+                                            usernameCooldown 
+                                                ? `You can change your username again on ${new Date(usernameCooldown).toLocaleDateString()}`
+                                                : usernameChanged 
+                                                    ? "3-20 characters, letters/numbers/underscores, must start with a letter"
+                                                    : "3-20 characters, letters/numbers/underscores, must start with a letter"
+                                        }
+                                        error={usernameError}
+                                    >
                                         <Input
                                             value={user}
-                                            disabled={true}
-                                            className="bg-[var(--color-surface-2)] cursor-not-allowed"
-                                            readOnly
+                                            onChange={handleUsernameChange}
+                                            disabled={!!usernameCooldown || loading}
+                                            className={usernameCooldown ? "bg-[var(--color-surface-2)] cursor-not-allowed" : ""}
+                                            placeholder="Enter username"
                                         />
+                                        {usernameCooldown && (
+                                            <p className="mt-1 text-sm text-amber-600">
+                                                Username change on cooldown. Next change available: {new Date(usernameCooldown).toLocaleDateString()}
+                                            </p>
+                                        )}
                                     </Field>
 
                                     {/* Bio */}

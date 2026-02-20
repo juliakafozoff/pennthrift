@@ -74,11 +74,21 @@ const Header = props =>{
         setProcessing(true);
         try {
             const profile = await getUserProfile(authUser.username);
+            // Safely extract unread count: default to empty array if missing/invalid
             const unreadSafe = Array.isArray(profile?.unread) ? profile.unread : [];
-            setUnread(unreadSafe.length);
+            const count = unreadSafe.length;
+            // Only set if count is a valid number (defensive check)
+            setUnread(typeof count === 'number' && count >= 0 ? count : 0);
         } catch (e) {
-            console.error('Error updating unread:', e);
-            setUnread(0);
+            // On any error (network, 401, missing data), default to 0 (no badge)
+            // This prevents false positives
+            if (e?.response?.status === 401) {
+                // User not authenticated, clear unread count
+                setUnread(0);
+            } else {
+                console.error('Error updating unread:', e);
+                setUnread(0);
+            }
         } finally {
             setProcessing(false);
         }

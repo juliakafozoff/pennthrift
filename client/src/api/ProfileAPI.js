@@ -107,3 +107,17 @@ export const getUserFavourites = async(username) => {
 
     }
 }
+
+// Change username
+export const changeUsername = async (username) => {
+    try {
+        const res = await api.put('/api/profile/username', { username });
+        return res.data;
+    } catch (err) {
+        // Re-throw with error message from server
+        if (err.response?.data?.error) {
+            throw new Error(err.response.data.error);
+        }
+        throw err;
+    }
+}
