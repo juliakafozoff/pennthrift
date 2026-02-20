@@ -94,12 +94,12 @@ const AvatarMenu = ({ onLogout }) => {
                 onClick={() => setIsOpen(!isOpen)}
                 className={`
                     relative flex items-center justify-center
-                    w-11 h-11 rounded-full
+                    w-10 h-10 rounded-lg
                     transition-all duration-200 ease-in-out
-                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2
                     ${isOpen || isProfileActive
-                        ? 'bg-[var(--color-primary)] text-white shadow-md scale-105' 
-                        : 'hover:bg-gray-100 text-gray-700 hover:scale-105'
+                        ? 'bg-[var(--color-primary)] text-white' 
+                        : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
                     }
                 `}
                 aria-label="Profile menu"
