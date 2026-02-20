@@ -155,34 +155,39 @@ const Header = props =>{
                     {/* Left side - Brand lockup */}
                     <div className="flex items-center gap-3 flex-shrink-0">
                         <AboutPopover trigger="hover">
-                            <div className="flex items-baseline gap-2 cursor-pointer">
-                                <Link 
-                                    to={isAuthenticated ? "/store" : "/"} 
-                                    className="flex items-baseline gap-2 hover:opacity-80 transition-opacity"
-                                    aria-label="PennThrift home"
-                                >
-                                    <img 
-                                        src={require('../assets/logo.png')} 
-                                        alt="PennThrift logo" 
-                                        className="h-10 w-10 object-contain"
-                                    />
-                                    <span className="text-2xl font-semibold text-gray-900 hidden sm:inline">
+                            <div className="flex items-center gap-3 cursor-pointer">
+                                <img 
+                                    src={require('../assets/logo.png')} 
+                                    alt="PennThrift logo" 
+                                    className="block h-8 w-8 object-contain"
+                                    style={{ transform: 'translateY(1px)' }}
+                                />
+                                <div className="inline-flex items-center gap-1.5">
+                                    <Link 
+                                        to={isAuthenticated ? "/store" : "/"} 
+                                        className="inline-block text-2xl font-semibold text-gray-900 hover:opacity-80 transition-opacity hidden sm:inline"
+                                        style={{ lineHeight: '1.1' }}
+                                        aria-label="PennThrift home"
+                                    >
                                         PennThrift
-                                    </span>
-                                </Link>
-                                <button
-                                    className="inline-block ml-1.5 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] relative"
-                                    aria-label="About PennThrift"
-                                    style={{ 
-                                        fontSize: '14px', 
-                                        lineHeight: '1',
-                                        opacity: '0.7',
-                                        top: '-1px'
-                                    }}
-                                    type="button"
-                                >
-                                    ⓘ
-                                </button>
+                                    </Link>
+                                    <button
+                                        className="inline-block text-gray-500 hover:text-gray-700 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+                                        aria-label="About PennThrift"
+                                        style={{ 
+                                            fontSize: '14px', 
+                                            lineHeight: '1',
+                                            opacity: '0.65',
+                                            padding: 0,
+                                            border: 'none',
+                                            background: 'none',
+                                            transform: 'translateY(-2px)'
+                                        }}
+                                        type="button"
+                                    >
+                                        ⓘ
+                                    </button>
+                                </div>
                             </div>
                         </AboutPopover>
                     </div>
