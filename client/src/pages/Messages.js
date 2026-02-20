@@ -55,7 +55,9 @@ const Messages = props => {
     const socketRef = useRef(null);
     // Draft thread state (for demo users)
     const [draftTo, setDraftTo] = useState(null);
-    const [draftReceiver, setDraftReceiver] = useState(null); 
+    const [draftReceiver, setDraftReceiver] = useState(null);
+    // Socket connection state
+    const [socketConnected, setSocketConnected] = useState(false);
     // Track failed avatar loads to persist fallback state
     const [failedAvatars, setFailedAvatars] = useState(new Set());
     // Guest session state
