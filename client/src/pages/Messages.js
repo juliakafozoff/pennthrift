@@ -656,8 +656,9 @@ const Messages = props => {
 
     function loadMessages(chatId){
         // Defensive: Ensure chatId is a valid string
-        const validChatId = typeof chatId === 'string' && chatId !== '[object Object]' && chatId !== 'undefined' ? chatId : null;
-        if(messages.length == 0 && validChatId && socketRef.current){
+        const validChatId = chatId && typeof chatId === 'string' && chatId !== '[object Object]' && chatId !== 'undefined' ? chatId : null;
+        if(validChatId && socketRef.current){
+            console.log('[MESSAGES] Loading messages for conversation:', validChatId);
             socketRef.current.emit('load', validChatId);
         }
     }
