@@ -38,6 +38,15 @@ function messages(io){
         socket.on('send-message', data => {
             const {sender, receiver , message, attachment, id} = data;
 
+            // Block demo users from messaging real users
+            if (sender === 'demo' || sender === 'Demo') {
+                socket.emit('message-blocked', { 
+                    error: 'Demo users cannot message real users. Please create an account.',
+                    reason: 'demo_user_blocked'
+                });
+                return;
+            }
+
             try{
                 Message.findById({_id:id}).then( out => {
                     let newMessage; try{ newMessage = [...out.messages, {sender, message, attachment}]}catch{newMessage = [{sender, message, attachment}]}
@@ -65,6 +74,21 @@ function messages(io){
         });
 
         socket.on('get-open', users => {
+            // Block demo users from creating conversations with real users
+            if (Array.isArray(users) && users.length === 2) {
+                const sender = users[0];
+                const receiver = users[1];
+                
+                // Allow demo user to message franklindesk (system user)
+                if (sender === 'demo' && receiver !== 'franklindesk') {
+                    socket.emit('message-blocked', { 
+                        error: 'Demo users cannot message real users. Please create an account.',
+                        reason: 'demo_user_blocked'
+                    });
+                    return;
+                }
+            }
+            
             try{
                 Message.findOne({users:users}, {users:1})
                 .then(message => {
@@ -98,6 +122,21 @@ function messages(io){
         })
 
         const _messageNaviagate = (users) => { 
+            // Block demo users from creating conversations with real users
+            if (Array.isArray(users) && users.length === 2) {
+                const sender = users[0];
+                const receiver = users[1];
+                
+                // Allow demo user to message franklindesk (system user)
+                if (sender === 'demo' && receiver !== 'franklindesk') {
+                    socket.emit('message-blocked', { 
+                        error: 'Demo users cannot message real users. Please create an account.',
+                        reason: 'demo_user_blocked'
+                    });
+                    return;
+                }
+            }
+            
             try{
                 const message = new Message({users:users })
                 message.save().then(out => {

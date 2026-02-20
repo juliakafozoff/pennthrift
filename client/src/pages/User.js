@@ -12,6 +12,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { Card, Badge, Button } from "../components/ui";
 import { normalizeImageUrl, getUserInitial } from "../utils/imageUtils";
 import { formatUsername } from "../utils/usernameUtils";
+import MessagingBlockedModal from "../components/MessagingBlockedModal";
+import { requireAuthForMessaging } from "../utils/messagingGuard";
 
 const  User = props => {
     
@@ -104,8 +106,22 @@ const  User = props => {
 
     }
     async function processMessageRequest(){
+        // Check if user is demo - block messaging real users
+        if (viewer && !requireAuthForMessaging(viewer)) {
+            setShowMessagingBlockedModal(true);
+            return;
+        }
+        
         if(viewer && socketRef.current){
             const users = [viewer, username];
+            
+            // Listen for message-blocked events
+            socketRef.current.on('message-blocked', (data) => {
+                if (data?.reason === 'demo_user_blocked') {
+                    setShowMessagingBlockedModal(true);
+                }
+            });
+            
             socketRef.current.emit('get-open', users);
             socketRef.current.on('message-navigate', id => {
                 // Defensive: Ensure id is a string, never an object
@@ -167,6 +183,7 @@ const  User = props => {
             mounted = false;
             if (socketRef.current) {
                 socketRef.current.off('message-navigate');
+                socketRef.current.off('message-blocked');
                 if (!isAuthenticated) {
                     // Disconnect socket if user logs out
                     socketRef.current.disconnect();
@@ -212,6 +229,10 @@ const  User = props => {
     return(
         <div className="min-h-screen bg-[var(--color-bg)]">
             <Header/>
+            <MessagingBlockedModal 
+                isOpen={showMessagingBlockedModal}
+                onClose={() => setShowMessagingBlockedModal(false)}
+            />
             <div className="container py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
                     {/* Left Sidebar - Profile Info */}

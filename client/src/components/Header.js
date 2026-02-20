@@ -75,8 +75,17 @@ const Header = props =>{
         const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
         if (!isDemoUser) return false;
         
-        const sessionId = sessionStorage.getItem('demoSessionId');
-        if (!sessionId) return false;
+        // Ensure demoSessionId exists (generate if missing)
+        let sessionId = sessionStorage.getItem('demoSessionId');
+        if (!sessionId) {
+            // Generate UUID v4
+            sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+            sessionStorage.setItem('demoSessionId', sessionId);
+        }
         
         return localStorage.getItem(`demoConciergeOpened:${sessionId}`) === '1';
     };

@@ -13,6 +13,8 @@ import { path } from '../api/ProfileAPI';
 import { normalizeImageUrl, getUserInitial } from "../utils/imageUtils";
 import benFranklinThoughtBubble from '../assets/benjamin-franklin-thought-bubble.png';
 import { useAuth } from '../contexts/AuthContext';
+import MessagingBlockedModal from '../components/MessagingBlockedModal';
+import { requireAuthForMessaging } from '../utils/messagingGuard';
 import { 
     getGuestSessionId, 
     getGuestMessageCount, 
@@ -309,13 +311,24 @@ const Messages = props => {
         if (id && Array.isArray(users) && users.includes('franklindesk')) {
             const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
             if (isDemoUser) {
-                const sessionId = sessionStorage.getItem('demoSessionId');
-                if (sessionId) {
-                    localStorage.setItem(`demoConciergeOpened:${sessionId}`, '1');
-                    // Trigger header unread update
-                    if (socketRef.current) {
-                        socketRef.current.emit('unread');
-                    }
+                // Ensure demoSessionId exists (generate if missing)
+                let sessionId = sessionStorage.getItem('demoSessionId');
+                if (!sessionId) {
+                    // Generate UUID v4
+                    sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                        const r = Math.random() * 16 | 0;
+                        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                        return v.toString(16);
+                    });
+                    sessionStorage.setItem('demoSessionId', sessionId);
+                }
+                
+                // Set flag that concierge has been opened
+                localStorage.setItem(`demoConciergeOpened:${sessionId}`, '1');
+                
+                // Trigger header unread update
+                if (socketRef.current) {
+                    socketRef.current.emit('unread');
                 }
             }
         }
@@ -335,6 +348,12 @@ const Messages = props => {
     }, [chats, user, id, processed, navigate]);
     
     async function sendMessage(userParam, message, attachment){
+        // Block demo users from messaging real users
+        if (authUser && !requireAuthForMessaging(authUser)) {
+            setShowMessagingBlockedModal(true);
+            return;
+        }
+        
         // Handle guest sessions
         if (isGuest && !isAuthenticated) {
             // Check guest message limit
@@ -646,6 +665,13 @@ const Messages = props => {
                 }
                 updateChats()
             })
+            
+            // Listen for message-blocked events (demo user trying to message real user)
+            socketRef.current.on('message-blocked', (data) => {
+                if (data?.reason === 'demo_user_blocked') {
+                    setShowMessagingBlockedModal(true);
+                }
+            })
         }
         
         // Cleanup on unmount
@@ -653,6 +679,7 @@ const Messages = props => {
             if (socketRef.current) {
                 socketRef.current.off('allMessages');
                 socketRef.current.off('receive-message');
+                socketRef.current.off('message-blocked');
             }
         };
         
@@ -707,6 +734,10 @@ const Messages = props => {
                 onSuccess={handleGuestAuthModalSuccess}
                 title="Continue the conversation?"
                 body="Create an account to receive replies and send unlimited messages."
+            />
+            <MessagingBlockedModal 
+                isOpen={showMessagingBlockedModal}
+                onClose={() => setShowMessagingBlockedModal(false)}
             />
             <div className="flex flex-1 overflow-hidden">
                 {/* Recents Sidebar - Modern Inbox */}
