@@ -154,7 +154,7 @@ const Header = props =>{
                     {/* Left side - Brand lockup */}
                     <div className="flex items-center gap-3 flex-shrink-0">
                         <Link 
-                            to="/" 
+                            to={isAuthenticated ? "/store" : "/"} 
                             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
                             aria-label="PennThrift home"
                         >
