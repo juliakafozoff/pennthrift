@@ -6,6 +6,7 @@ import placeholder from '../assets/placeholder_user.png';
 import { useNavigate } from "react-router-dom";
 import { PageHeader, Card, Field, Input, Textarea, Button, Badge, PhotoUpload } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
+import { formatUsername, normalizeUsername } from "../utils/usernameUtils";
 
 // Helper function to normalize image URLs (same as Profile.js)
 const normalizeImageUrl = (url) => {
