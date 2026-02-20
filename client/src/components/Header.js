@@ -200,7 +200,7 @@ const Header = props =>{
             className="w-full bg-[var(--color-surface)] border-b border-[var(--color-border)] shadow-sm sticky top-0 z-50"
         >
             <div className="container max-w-7xl mx-auto px-4">
-                <div className="flex items-center justify-between h-20 gap-4">
+                <div className="flex items-center justify-between h-24 gap-4">
                     {/* Left side - Brand lockup */}
                     <div className="flex items-center gap-3 flex-shrink-0">
                         <AboutPopover trigger="hover">
@@ -208,13 +208,13 @@ const Header = props =>{
                                 <img 
                                     src={require('../assets/logo.png')} 
                                     alt="PennThrift logo" 
-                                    className="block h-8 w-8 object-contain"
+                                    className="block h-10 w-10 object-contain"
                                     style={{ transform: 'translateY(1px)' }}
                                 />
                                 <div className="inline-flex items-center gap-1.5">
                                     <Link 
                                         to={isAuthenticated ? "/store" : "/"} 
-                                        className="inline-block text-2xl font-semibold text-gray-900 hover:opacity-80 transition-opacity hidden sm:inline"
+                                        className="inline-block text-3xl font-semibold text-gray-900 hover:opacity-80 transition-opacity hidden sm:inline"
                                         style={{ lineHeight: '1.1' }}
                                         aria-label="PennThrift home"
                                     >
