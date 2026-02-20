@@ -33,11 +33,14 @@ app.set('trust proxy', 1);
 app.use(cookieParser())
 
 // CORS configuration - tightened for production
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  'https://pennthrift.netlify.app',
-  'http://localhost:3000'
-].filter(Boolean);
+// Single source of truth for allowed origins (used by both Express CORS and Socket.io)
+const allowedOrigins = process.env.FRONTEND_URL 
+  ? [
+      ...process.env.FRONTEND_URL.split(',').map(url => url.trim()),
+      'https://pennthrift.netlify.app',
+      'http://localhost:3000'
+    ].filter(Boolean)
+  : ['https://pennthrift.netlify.app', 'http://localhost:3000'];
 
 // CORS options object - reused for both middleware and OPTIONS handler
 const corsOptions = {
@@ -152,10 +155,7 @@ const server  = require('http').Server(app);
 
 
 //socket.io inititializtion for messages
-const allowedOrigins = process.env.FRONTEND_URL 
-  ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
-  : ['http://localhost:3000', 'https://pennthrift.netlify.app'];
-
+// Uses the same allowedOrigins declared above
 const io = require('socket.io')(server, {
   cors: {
     origin: (origin, callback) => {
