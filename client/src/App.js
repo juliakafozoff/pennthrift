@@ -8,7 +8,7 @@ import {
   Outlet,
   useLocation
 } from "react-router-dom";
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Welcome from './pages/Welcome';
