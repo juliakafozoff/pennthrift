@@ -11,6 +11,116 @@ const ExpressBrute = require('express-brute');
 const store = new ExpressBrute.MemoryStore(); // stores state locally, don't use this in production
 let message = '';
 
+// Helper function to ensure Franklin Desk system user exists
+const ensureFranklinDeskUser = async () => {
+    const FRANKLIN_DESK_USERNAME = 'franklindesk';
+    let franklinDesk = await User.findOne({ 
+        $or: [
+            { username: FRANKLIN_DESK_USERNAME },
+            { usernameLower: FRANKLIN_DESK_USERNAME }
+        ]
+    });
+    
+    if (!franklinDesk) {
+        const hashedPassword = await bcrypt.hash('system_user_no_login', 10);
+        franklinDesk = new User({
+            username: FRANKLIN_DESK_USERNAME,
+            usernameLower: FRANKLIN_DESK_USERNAME,
+            password: hashedPassword,
+            bio: 'PennThrift Welcome Concierge',
+            class_year: null,
+            isSystem: true // Flag to identify system user
+        });
+        await franklinDesk.save();
+    }
+    
+    return franklinDesk;
+};
+
+// Helper function to seed welcome conversation for demo user
+const seedWelcomeConversation = async (demoUser) => {
+    try {
+        // Ensure Franklin Desk user exists
+        const franklinDesk = await ensureFranklinDeskUser();
+        
+        const demoUsername = demoUser.username || 'demo';
+        const franklinUsername = franklinDesk.username;
+        
+        // Check if conversation already exists
+        const existingConversation = await Message.findOne({
+            users: { $all: [demoUsername, franklinUsername] }
+        });
+        
+        let conversation;
+        if (existingConversation) {
+            // Use existing conversation
+            conversation = existingConversation;
+        } else {
+            // Create new conversation
+            conversation = new Message({
+                users: [demoUsername, franklinUsername],
+                messages: []
+            });
+            await conversation.save();
+            
+            // Add conversation to both users' chats arrays
+            await User.findByIdAndUpdate(demoUser._id, {
+                $addToSet: { chats: conversation._id }
+            });
+            await User.findByIdAndUpdate(franklinDesk._id, {
+                $addToSet: { chats: conversation._id }
+            });
+        }
+        
+        // Check if welcome messages already exist
+        const hasWelcomeMessages = conversation.messages && 
+            conversation.messages.length > 0 &&
+            conversation.messages.some(msg => 
+                msg.sender === franklinUsername && 
+                (msg.message.includes('Welcome to PennThrift') || msg.message.includes('demo inbox'))
+            );
+        
+        if (!hasWelcomeMessages) {
+            // Add welcome messages
+            const welcomeMessages = [
+                {
+                    sender: franklinUsername,
+                    message: 'Welcome to PennThrift — browse the Store, then tap a listing to message a seller. Tip: Try favoriting an item too.',
+                    timestamp: new Date()
+                },
+                {
+                    sender: franklinUsername,
+                    message: 'This is a demo inbox — it resets when you log out.',
+                    timestamp: new Date()
+                }
+            ];
+            
+            const updatedMessages = [...(conversation.messages || []), ...welcomeMessages];
+            await Message.findByIdAndUpdate(conversation._id, {
+                messages: updatedMessages
+            });
+            
+            // Mark conversation as unread for demo user
+            await User.findByIdAndUpdate(demoUser._id, {
+                $addToSet: { unread: conversation._id }
+            });
+        } else {
+            // If messages exist but conversation is not in unread, add it
+            const demoUserUpdated = await User.findById(demoUser._id);
+            if (!demoUserUpdated.unread.includes(conversation._id)) {
+                await User.findByIdAndUpdate(demoUser._id, {
+                    $addToSet: { unread: conversation._id }
+                });
+            }
+        }
+        
+        return conversation;
+    } catch (error) {
+        console.error('Error seeding welcome conversation:', error);
+        throw error;
+    }
+};
+
 const lockoutCallback = function(req, res, next, nextValidRequestDate) {
     res.status(429).send({ status: 'lockedout', error: 'Too many attempts, please try again later' });
     // logger.auth.info(`Lockout: ${req.ip} Next Valid: ${nextValidRequestDate}`);
@@ -180,9 +290,17 @@ router.post('/demo', async (req, res) => {
         }
         
         // Log in the demo user
-        req.logIn(demoUser, (err) => {
+        req.logIn(demoUser, async (err) => {
             if (err) {
                 return res.status(500).json({ error: 'Failed to establish session' });
+            }
+            
+            try {
+                // Seed welcome conversation for demo user
+                await seedWelcomeConversation(demoUser);
+            } catch (seedError) {
+                console.error('Error seeding welcome conversation:', seedError);
+                // Don't fail login if seeding fails, but log it
             }
             
             req.session.save((saveErr) => {
@@ -249,6 +367,17 @@ router.post('/demo/logout', async (req, res) => {
                 $set: { 
                     chats: [], 
                     unread: [] 
+                } 
+            }
+        );
+        
+        // Also clean up Franklin Desk's chats array (remove conversations with demo user)
+        const FRANKLIN_DESK_USERNAME = 'franklindesk';
+        await User.findOneAndUpdate(
+            { username: FRANKLIN_DESK_USERNAME },
+            { 
+                $pull: { 
+                    chats: { $in: messageIds }
                 } 
             }
         );
