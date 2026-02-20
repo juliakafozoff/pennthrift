@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { cloneElement } from 'react';
 
 /**
  * Reusable icon button component for navigation
@@ -28,15 +29,26 @@ const IconButton = ({
         }
     `;
 
-    // Icon wrapper with explicit color classes to ensure SVG stroke inherits correctly
-    // Active: white stroke on navy background
-    // Default: dark gray stroke, always visible
+    // FIX: Ensure icons are always visible by explicitly setting color via inline styles
+    // This bypasses any CSS specificity issues and ensures SVG stroke="currentColor" works
+    // Active: white icons (#ffffff) on navy background
+    // Default: dark gray icons (#374151 = gray-700), always visible
+    const iconColor = isActive ? '#ffffff' : '#374151';
+    
+    // Clone icon element to inject explicit color style directly on SVG
+    // This ensures stroke="currentColor" inherits the correct color
+    const iconWithColor = icon ? cloneElement(icon, {
+        style: {
+            color: iconColor,
+            ...icon.props?.style
+        },
+        className: `${icon.props?.className || 'w-5 h-5'}`
+    }) : null;
+
+    // Icon wrapper classes - hover enhancement for non-active icons
     const iconWrapperClasses = `
         w-5 h-5 flex items-center justify-center
-        ${isActive 
-            ? 'text-white' 
-            : 'text-gray-700 hover:text-[var(--color-primary)]'
-        }
+        ${!isActive ? 'hover:[&>svg]:text-[var(--color-primary)]' : ''}
     `;
 
     const content = (
@@ -49,10 +61,15 @@ const IconButton = ({
                 />
             )}
 
-            {/* Icon wrapper - ensures SVG stroke="currentColor" inherits visible color */}
-            {/* SVG icons use stroke="currentColor" which inherits from parent text color */}
-            <div className={iconWrapperClasses} style={{ zIndex: 1 }}>
-                {icon}
+            {/* Icon wrapper - inline style ensures base color is always applied */}
+            <div 
+                className={iconWrapperClasses}
+                style={{ 
+                    zIndex: 1,
+                    color: iconColor // Base color always set, ensures visibility
+                }}
+            >
+                {iconWithColor}
             </div>
         </>
     );
