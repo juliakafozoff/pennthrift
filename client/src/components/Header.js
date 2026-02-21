@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getUserProfile, getUserChats } from '../api/ProfileAPI';
 import io from 'socket.io-client';
 import React from 'react';
@@ -13,6 +13,7 @@ import AboutPopover from './AboutPopover';
 
 const Header = props =>{
     const navigate = useNavigate();
+    const location = useLocation();
     const { isAuthenticated, user: authUser, logout: logoutFromContext, demoLogin } = useAuth();
     const { unreadCounts, setUnreadCounts } = useUnread();
     const [processing, setProcessing] = useState(false);
@@ -104,6 +105,8 @@ const Header = props =>{
                     
                     const fetchAndFilterUnread = async () => {
                         if (!authUser?.username) return;
+                        // Skip if on Messages page — Messages.js manages unreadCounts there
+                        if (location.pathname.startsWith('/profile/messages')) return;
                         try {
                             const profile = await getUserProfile(authUser.username);
                             let unread = Array.isArray(profile?.unread) ? profile.unread : [];
