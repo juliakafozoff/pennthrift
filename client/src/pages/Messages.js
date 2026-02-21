@@ -16,21 +16,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUnread } from '../contexts/UnreadContext';
 import MessagingBlockedModal from '../components/MessagingBlockedModal';
 import { requireAuthForMessaging } from '../utils/messagingGuard';
-import { 
-    getGuestSessionId, 
-    getGuestMessageCount, 
-    incrementGuestMessageCount, 
-    hasReachedGuestLimit,
-    resetGuestMessageCount,
-    getRemainingGuestMessages
-} from '../utils/guestSession';
-import AuthRequiredModal from '../components/AuthRequiredModal';
 
 const Messages = props => {
     // Helper to normalize conversation ID (handle both _id and id)
     const getConvoId = (c) => c?._id || c?.id;
     
-    const { isAuthenticated, user: authUser, demoLogin } = useAuth();
+    const { isAuthenticated, user: authUser } = useAuth();
     const {id: conversationIdParam} = useParams();
     // Normalize route param ID
     const routeConvoId = getConvoId({ id: conversationIdParam });
@@ -68,6 +59,7 @@ const Messages = props => {
     const [allowed, setAllowed] = useState(false)
     const [joined, setJoined] = useState(false);
     const socketRef = useRef(null);
+    const pendingStartConversationRef = useRef(null);
     // Managed unreadCounts state - single source of truth for unread indicators
     const { unreadCounts, setUnreadCounts } = useUnread();
     
@@ -84,10 +76,6 @@ const Messages = props => {
     const [socketConnected, setSocketConnected] = useState(false);
     // Track failed avatar loads to persist fallback state
     const [failedAvatars, setFailedAvatars] = useState(new Set());
-    // Guest session state
-    const [isGuest, setIsGuest] = useState(false);
-    const [guestMessageCount, setGuestMessageCount] = useState(0);
-    const [showGuestAuthModal, setShowGuestAuthModal] = useState(false);
     const [showMessagingBlockedModal, setShowMessagingBlockedModal] = useState(false);
     
     // Format timestamp helper - defined early to avoid hoisting issues
@@ -209,29 +197,9 @@ const Messages = props => {
                 })
                 
                 setProcessed(true)
-            } else if (!isAuthenticated && selectedId) {
-                // Allow guests to access if they have a chat ID
-                // Guest sessions are handled differently
-                setIsGuest(true);
-                setAllowed(true); // Allow guest to view/use messaging UI
-                setProcessed(true);
-                setGuestMessageCount(getGuestMessageCount());
             }
         }
     }
-    
-    // Check auth status and set guest mode
-    useEffect(() => {
-        if (!isAuthenticated && !user) {
-            setIsGuest(true);
-            setGuestMessageCount(getGuestMessageCount());
-        } else {
-            setIsGuest(false);
-            if (isAuthenticated) {
-                resetGuestMessageCount(); // Clear guest data after auth
-            }
-        }
-    }, [isAuthenticated, user]);
     
     // Clear chat state when user logs out (especially for demo user)
     useEffect(() => {
@@ -278,17 +246,10 @@ const Messages = props => {
                     console.error('Error loading draft receiver:', err);
                 });
             }
-        } else if (startConversationParam && authUser && socketRef.current) {
-            // Real user: start conversation via socket (non-blocking)
-            const users = [authUser.username, startConversationParam];
-            socketRef.current.emit('get-open', users);
-            socketRef.current.once('message-navigate', id => {
-                const chatId = typeof id === 'string' ? id : String(id);
-                if (chatId && chatId !== '[object Object]' && chatId !== 'undefined') {
-                    // Remove query param and navigate to conversation
-                    navigate(`/profile/messages/${chatId}`, { replace: true });
-                }
-            });
+        } else if (startConversationParam && authUser) {
+            // Real user: start conversation via socket
+            // Store target so it can be sent once socket is ready
+            pendingStartConversationRef.current = startConversationParam;
             // Clean up query param immediately
             navigate('/profile/messages', { replace: false });
         }
@@ -608,23 +569,6 @@ const Messages = props => {
             }
         }
         
-        // Handle guest sessions
-        if (isGuest && !isAuthenticated) {
-            // Check guest message limit
-            if (hasReachedGuestLimit()) {
-                setShowGuestAuthModal(true);
-                return;
-            }
-            
-            // Increment guest message count
-            const newCount = incrementGuestMessageCount();
-            setGuestMessageCount(newCount);
-            
-            // Use guest session ID as sender
-            const guestSessionId = getGuestSessionId();
-            userParam = guestSessionId;
-        }
-        
         // For draft threads, allow sending attempt (will be blocked by demo check above)
         const canSend = (allowed && receiver && socketRef.current) || (draftTo && draftReceiver);
         
@@ -664,8 +608,7 @@ const Messages = props => {
                         message: message, 
                         attachment: normalizedUrl || '', 
                         id: currentConversationId, 
-                        receiver: receiver.username,
-                        isGuest: isGuest && !isAuthenticated // Flag for server to handle guest messages
+                        receiver: receiver.username
                     };
                     await socketRef.current.emit('send-message', data );
                     setAttachment('');
@@ -678,8 +621,7 @@ const Messages = props => {
                     message: message, 
                     attachment: attachment, 
                     id: currentConversationId,
-                    receiver: receiver.username,
-                    isGuest: isGuest && !isAuthenticated // Flag for server to handle guest messages
+                    receiver: receiver.username
                 };
                 await socketRef.current.emit('send-message', data );
             }
@@ -687,18 +629,6 @@ const Messages = props => {
         }
     }
     
-    const handleGuestAuthModalSuccess = async () => {
-        setShowGuestAuthModal(false);
-        // After auth, refresh user state
-        try {
-            const res = await api.get('/api/auth/user');
-            setUser(res.data);
-            // Retry sending the message if there was one pending
-        } catch (error) {
-            console.error('Error refreshing user after auth:', error);
-        }
-    };
-
  
     // Helper to check if URL is an image
     const isImageUrl = (url) => {
@@ -893,6 +823,20 @@ const Messages = props => {
                         socketRef.current.emit('load', pendingId);
                         pendingConversationIdRef.current = null;
                     }
+                    
+                    // Flush deferred startConversation if the query param arrived before socket was ready
+                    if (pendingStartConversationRef.current && authUser) {
+                        const target = pendingStartConversationRef.current;
+                        pendingStartConversationRef.current = null;
+                        const users = [authUser.username, target];
+                        socketRef.current.emit('get-open', users);
+                        socketRef.current.once('message-navigate', id => {
+                            const chatId = typeof id === 'string' ? id : String(id);
+                            if (chatId && chatId !== '[object Object]' && chatId !== 'undefined') {
+                                navigate(`/profile/messages/${chatId}`, { replace: true });
+                            }
+                        });
+                    }
                 });
                 
                 socketRef.current.on('disconnect', (reason) => {
@@ -1041,13 +985,6 @@ const Messages = props => {
     return(
         <div className="h-screen flex flex-col bg-[var(--color-bg)]">
             <Header/>
-            <AuthRequiredModal
-                isOpen={showGuestAuthModal}
-                onClose={() => setShowGuestAuthModal(false)}
-                onSuccess={handleGuestAuthModalSuccess}
-                title="Continue the conversation?"
-                body="Create an account to receive replies and send unlimited messages."
-            />
             <MessagingBlockedModal 
                 isOpen={showMessagingBlockedModal}
                 onClose={() => setShowMessagingBlockedModal(false)}
@@ -1293,12 +1230,8 @@ const Messages = props => {
                                             <div className={`flex flex-col gap-1 ${isOwnMessage ? 'items-end' : 'items-start'} max-w-[70%]`}>
                                                 {group.messages.map((message, msgIndex) => {
                                                     const isLastInGroup = msgIndex === group.messages.length - 1;
-                                                    const isGuestMessage = isOwnMessage && isGuest && !isAuthenticated && (message.sender && message.sender.startsWith('guest_'));
                                                     return (
                                                         <div key={msgIndex} className='group'>
-                                                            {isGuestMessage && (
-                                                                <div className='text-xs opacity-75 mb-1 text-gray-600'>Guest</div>
-                                                            )}
                                                             <div 
                                                                 className={`px-4 py-2 rounded-2xl ${
                                                                     isOwnMessage 
@@ -1364,51 +1297,6 @@ const Messages = props => {
                         
                         {/* Input Area */}
                         <div className='border-t border-gray-200 bg-white p-4'>
-                            {/* Guest Limit Callout */}
-                            {isGuest && !isAuthenticated && hasReachedGuestLimit() && (
-                                <div className='mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg'>
-                                    <p className='text-sm text-yellow-800 mb-3'>
-                                        To receive replies and continue the conversation, create an account.
-                                    </p>
-                                    <div className='flex gap-2'>
-                                        <button
-                                            onClick={async () => {
-                                                try {
-                                                    await demoLogin();
-                                                    handleGuestAuthModalSuccess();
-                                                } catch (error) {
-                                                    console.error('Demo login failed:', error);
-                                                }
-                                            }}
-                                            className="text-sm px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:bg-[var(--color-primary)]/90 transition-colors font-medium"
-                                        >
-                                            Try Demo
-                                        </button>
-                                        <button
-                                            onClick={() => navigate('/login')}
-                                            className="text-sm px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-                                        >
-                                            Log in
-                                        </button>
-                                        <button
-                                            onClick={() => navigate('/register')}
-                                            className="text-sm px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-                                        >
-                                            Register
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                            
-                            {/* Guest Message Count Indicator */}
-                            {isGuest && !isAuthenticated && !hasReachedGuestLimit() && (
-                                <div className='mb-2 text-xs text-gray-500 text-center'>
-                                    Guest mode: {getRemainingGuestMessages()} message{getRemainingGuestMessages() !== 1 ? 's' : ''} remaining
-                                    <br />
-                                    <span className='text-yellow-600'>Create an account to deliver messages & receive replies.</span>
-                                </div>
-                            )}
-                            
                             {/* Attachment Preview */}
                             {attachmentDisplay && attachment && attachment.type && (
                                 <div className='mb-2'>
@@ -1440,7 +1328,6 @@ const Messages = props => {
                                     onClick={() => handleClick()}
                                     className='p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0'
                                     aria-label="Attach file"
-                                    disabled={isGuest && !isAuthenticated && hasReachedGuestLimit()}
                                 >
                                     <img 
                                         src={require('../assets/attachment.png')} 
@@ -1460,22 +1347,21 @@ const Messages = props => {
                                 style={{resize:'none'}}
                                 onChange={(e) => setText(e.target.value)}
                                 value={text}
-                                    placeholder={isGuest && !isAuthenticated && hasReachedGuestLimit() ? 'Create an account to continue...' : 'Type a message...'} 
+                                    placeholder='Type a message...'
                                     className='flex-1 min-h-[44px] max-h-32 px-4 py-2 rounded-2xl bg-gray-100 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed'
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter' && !e.shiftKey) {
                                             e.preventDefault();
                                             if (text.trim() || attachment) {
-                                                sendMessage(user || getGuestSessionId(), text, attachment);
+                                                sendMessage(user, text, attachment);
                                             }
                                         }
                                     }}
-                                    disabled={isGuest && !isAuthenticated && hasReachedGuestLimit()}
                                 />
                                 
                                 <button 
-                                onClick={() => sendMessage(user || getGuestSessionId(), text, attachment)}
-                                    disabled={(!text.trim() && !attachment) || (isGuest && !isAuthenticated && hasReachedGuestLimit())}
+                                onClick={() => sendMessage(user, text, attachment)}
+                                    disabled={!text.trim() && !attachment}
                                     className='p-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-lg transition-colors flex-shrink-0'
                                     aria-label="Send message"
                                 >

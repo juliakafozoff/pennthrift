@@ -9,12 +9,13 @@ import { normalizeImageUrl } from "../utils/imageUtils";
 import { Card, Badge } from "../components/ui";
 import AuthRequiredModal from "../components/AuthRequiredModal";
 import { useAuth } from "../contexts/AuthContext";
+import { openConversationUI } from "../utils/openConversation";
 
 
 
 
 const Item = props => {
-    const { demoLogin } = useAuth();
+    const { user: authUser } = useAuth();
     const [userInfo, setUserInfo]           = useState('');
     const [item, setItem]                   = useState({});
     const [viewer, setViewer]               = useState();
@@ -277,6 +278,24 @@ const Item = props => {
                                         />
                                     </button>
                                 </div>
+                                
+                                {/* Message Seller */}
+                                {viewer !== item.owner && (
+                                    <button
+                                        onClick={() => openConversationUI(item.owner, {
+                                            viewer,
+                                            authUser: authUser || (viewer ? { username: viewer } : null),
+                                            navigate,
+                                            setShowAuthModal: (show) => {
+                                                setAuthModalCallback(null);
+                                                setShowAuthModal(show);
+                                            }
+                                        })}
+                                        className="w-full py-3 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 transition-opacity font-medium"
+                                    >
+                                        Message Seller
+                                    </button>
+                                )}
                             </div>
                         </Card>
                     </div>
