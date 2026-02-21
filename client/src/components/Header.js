@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { getUserProfile, getUserChats } from '../api/ProfileAPI';
+import { getUserProfile } from '../api/ProfileAPI';
 import io from 'socket.io-client';
 import React from 'react';
 import { path } from '../api/ProfileAPI';
@@ -105,24 +105,18 @@ const Header = props =>{
                     
                     const fetchAndFilterUnread = async () => {
                         if (!authUser?.username) return;
-                        // Skip if on Messages page — Messages.js manages unreadCounts there
                         if (location.pathname.startsWith('/profile/messages')) return;
+
+                        const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
+                        if (isDemoUser) {
+                            // Demo: red dot is purely driven by the localStorage flag
+                            setUnreadCounts(hasOpenedConcierge() ? [] : ['concierge']);
+                            return;
+                        }
+
                         try {
                             const profile = await getUserProfile(authUser.username);
-                            let unread = Array.isArray(profile?.unread) ? profile.unread : [];
-
-                            // For demo users, filter out the concierge conversation if already opened
-                            if (hasOpenedConcierge() && unread.length > 0) {
-                                const chats = await getUserChats(authUser.username);
-                                const conciergeChat = Array.isArray(chats)
-                                    ? chats.find(c => Array.isArray(c.users) && c.users.includes('franklindesk'))
-                                    : null;
-                                if (conciergeChat) {
-                                    const cid = String(conciergeChat._id || conciergeChat.id);
-                                    unread = unread.filter(id => String(id) !== cid);
-                                }
-                            }
-
+                            const unread = Array.isArray(profile?.unread) ? profile.unread : [];
                             setUnreadCounts(unread);
                         } catch (e) {
                             console.error('Error fetching unread:', e);

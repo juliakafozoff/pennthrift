@@ -386,106 +386,61 @@ const Messages = props => {
         ensureConciergeOnlyForDemo();
     }, []); // Empty dependency array - run ONLY on mount
     
-    // Sync unreadCounts from sender.unread, filtering out:
-    // 1. Currently selected conversation
-    // 2. Conversations already read this session (tracked in readConversationsRef)
-    // 3. Opened concierge for demo users
+    // Sync unreadCounts from sender.unread (real users only).
+    // Demo users have their red dot managed entirely via localStorage in Header.
     useEffect(() => {
+        const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
+        if (isDemoUser || !sender) return;
+
         const selectedId = routeConvoId || activeConversationId;
         const serverUnread = Array.isArray(sender?.unread) ? sender.unread : [];
-        
-        if (!sender) {
-            return;
-        }
-        
-        // Filter out: selected conversation, locally-read conversations, and demo concierge
+
         let filtered = [...serverUnread];
-
-        // 1. Filter out currently selected conversation
         if (selectedId) {
-            const selectedIdStr = String(selectedId);
-            filtered = filtered.filter(id => String(id) !== selectedIdStr);
+            filtered = filtered.filter(id => String(id) !== String(selectedId));
         }
-
-        // 2. Filter out any conversations the user has already read this session
         if (readConversationsRef.current.size > 0) {
             filtered = filtered.filter(id => !readConversationsRef.current.has(String(id)));
         }
 
-        // 3. For demo users, filter out concierge if it's been opened
-        const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
-        if (isDemoUser) {
-            const sessionId = sessionStorage.getItem('demoSessionId');
-            if (sessionId && localStorage.getItem(`demoConciergeOpened:${sessionId}`) === '1') {
-                const conciergeChat = Array.isArray(chats) ? chats.find(c => {
-                    const users = Array.isArray(c.users) ? c.users : [];
-                    return users.includes('franklindesk');
-                }) : null;
-                
-                if (conciergeChat) {
-                    const conciergeId = getConvoId(conciergeChat);
-                    if (conciergeId) {
-                        filtered = filtered.filter(id => String(id) !== String(conciergeId));
-                    }
-                }
-            }
-        }
-        
         setUnreadCounts(filtered);
-    }, [sender?.unread, chats, authUser, routeConvoId, activeConversationId, setUnreadCounts]);
+    }, [sender?.unread, authUser, routeConvoId, activeConversationId, setUnreadCounts]);
     
     // Mark conversation as read when it becomes selected
     useEffect(() => {
         const selectedId = routeConvoId || activeConversationId;
-        if (!selectedId) {
+        if (!selectedId) return;
+
+        const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
+
+        if (isDemoUser) {
+            // Demo: set the localStorage flag and clear unreadCounts — no server needed
+            let sessionId = sessionStorage.getItem('demoSessionId');
+            if (!sessionId) {
+                sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                    const r = Math.random() * 16 | 0;
+                    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+                sessionStorage.setItem('demoSessionId', sessionId);
+            }
+            localStorage.setItem(`demoConciergeOpened:${sessionId}`, '1');
+            setUnreadCounts([]);
             return;
         }
-        
-        // Record this conversation as read so the initialization effect
-        // never re-adds it from stale sender.unread data
-        readConversationsRef.current.add(String(selectedId));
 
-        setUnreadCounts(prev => {
-            const selectedIdStr = String(selectedId);
-            return prev.filter(id => String(id) !== selectedIdStr);
-        });
-        
-        // Sync with server — if socket isn't ready yet, defer for flush on connect
+        // Real users: track locally and sync with server
+        readConversationsRef.current.add(String(selectedId));
+        setUnreadCounts(prev => prev.filter(id => String(id) !== String(selectedId)));
+
         const username = user || authUser?.username;
         if (socketRef.current && socketConnected && username) {
             socketRef.current.emit('clear-unread', { id: selectedId, username });
         } else if (username) {
             pendingClearUnreadRef.current = { id: selectedId, username };
         }
-        
-        // For demo concierge, persist opened state
-        const selectedConversation = Array.isArray(chats) ? chats.find(c => getConvoId(c) === selectedId) : null;
-        if (selectedConversation) {
-            const selectedUsers = Array.isArray(selectedConversation.users) ? selectedConversation.users : [];
-            const isConcierge = selectedUsers.includes('franklindesk');
-            const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
-            
-            if (isConcierge && isDemoUser) {
-                let sessionId = sessionStorage.getItem('demoSessionId');
-                if (!sessionId) {
-                    sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-                        const r = Math.random() * 16 | 0;
-                        const v = c === 'x' ? r : (r & 0x3 | 0x8);
-                        return v.toString(16);
-                    });
-                    sessionStorage.setItem('demoSessionId', sessionId);
-                }
-                localStorage.setItem(`demoConciergeOpened:${sessionId}`, '1');
-                console.log('[UNREAD] Set demoConciergeOpened flag for session:', sessionId);
-            }
-        }
-        
-        // Trigger header update (no-op in Header, but kept for compatibility)
-        if (socketRef.current) {
-            socketRef.current.emit('unread');
-        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [routeConvoId, activeConversationId]); // Run when selection changes (unreadCounts excluded to avoid loops)
+    }, [routeConvoId, activeConversationId]);
     
     // Sync users state from selected conversation and set receiver for concierge
     useEffect(() => {
