@@ -100,6 +100,17 @@ const Header = props =>{
             const profile = await getUserProfile(authUser.username);
             let unread = Array.isArray(profile?.unread) ? profile.unread : [];
 
+            // Deduplicate (DB may have mixed ObjectId/string entries that serialize the same)
+            unread = [...new Set(unread.map(id => String(id)))];
+
+            // Only keep IDs that match an actual conversation the user has
+            const chatIds = Array.isArray(profile?.chats)
+                ? new Set(profile.chats.map(id => String(id)))
+                : new Set();
+            if (chatIds.size > 0) {
+                unread = unread.filter(id => chatIds.has(String(id)));
+            }
+
             // Filter out conversations already read this session
             try {
                 const read = JSON.parse(sessionStorage.getItem('readConversations') || '[]');

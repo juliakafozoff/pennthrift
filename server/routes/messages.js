@@ -64,7 +64,7 @@ function messages(io){
                 catch { newMessages = [newMsg]; }
                 Message.findOneAndUpdate({_id:id},{messages:newMessages}).then( () => {
                     const receiverQuery = buildUsernameQuery(receiver);
-                    User.findOneAndUpdate(receiverQuery, { $addToSet: { unread: id } }).then( () => {
+                    User.findOneAndUpdate(receiverQuery, { $addToSet: { unread: String(id) } }).then( () => {
                         socket.broadcast.emit('unread');
                         messages.in(id).emit('receive-message',id)
                     }).catch(err => console.error('[SEND-MESSAGE] Error updating receiver unread:', err));

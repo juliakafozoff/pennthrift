@@ -62,6 +62,7 @@ const Messages = props => {
     const pendingStartConversationRef = useRef(null);
     
     const readConversationsRef = useRef(new Set());
+    const autoSelectedRef = useRef(false);
     // Managed unreadCounts state - single source of truth for unread indicators
     const { unreadCounts, setUnreadCounts } = useUnread();
     
@@ -388,15 +389,13 @@ const Messages = props => {
     }, []); // Empty dependency array - run ONLY on mount
     
     
-    // Mark conversation as read when it becomes selected
-    useEffect(() => {
-        const selectedId = routeConvoId || activeConversationId;
-        if (!selectedId) return;
+    // Mark conversation as read when user explicitly selects it (not on auto-select)
+    const markConversationAsRead = (conversationId) => {
+        if (!conversationId) return;
 
         const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
 
         if (isDemoUser) {
-            // Demo: set the localStorage flag and clear unreadCounts — no server needed
             let sessionId = sessionStorage.getItem('demoSessionId');
             if (!sessionId) {
                 sessionId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -411,8 +410,7 @@ const Messages = props => {
             return;
         }
 
-        // Real users: persist to sessionStorage so Header can filter on other pages
-        const idStr = String(selectedId);
+        const idStr = String(conversationId);
         readConversationsRef.current.add(idStr);
         try {
             const stored = JSON.parse(sessionStorage.getItem('readConversations') || '[]');
@@ -424,14 +422,26 @@ const Messages = props => {
 
         setUnreadCounts(prev => prev.filter(id => String(id) !== idStr));
 
-        // Clear on server via REST (reliable, no socket dependency)
         const username = user || authUser?.username;
         if (username) {
             api.post('/api/profile/clear-unread', {
                 username,
-                conversationId: selectedId
+                conversationId
             }).catch(() => {});
         }
+    };
+    
+    // Only mark as read when conversation changes and it wasn't auto-selected
+    useEffect(() => {
+        const selectedId = routeConvoId || activeConversationId;
+        if (!selectedId) return;
+
+        if (autoSelectedRef.current) {
+            autoSelectedRef.current = false;
+            return;
+        }
+
+        markConversationAsRead(selectedId);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [routeConvoId, activeConversationId]);
     
@@ -486,6 +496,7 @@ const Messages = props => {
             const firstChatId = getConvoId(firstChat);
             if (firstChatId) {
                 console.log('[MESSAGES] Auto-selecting first conversation:', firstChatId);
+                autoSelectedRef.current = true;
                 navigate(`/profile/messages/${firstChatId}`, { replace: true });
                 setActiveConversationId(firstChatId);
             }
@@ -1015,7 +1026,7 @@ const Messages = props => {
                                     
                                     const currentRouteId = routeConvoId || activeConversationId;
                                     const isSelected = chatId === currentRouteId;
-                                    const hasUnread = Array.isArray(unreadCounts) && unreadCounts.includes(chatId);
+                                    const hasUnread = Array.isArray(unreadCounts) && unreadCounts.some(id => String(id) === String(chatId));
                                     const avatarKey = `sidebar-${displayUser}`;
                                     const hasFailed = failedAvatars.has(avatarKey);
                                     
@@ -1027,16 +1038,14 @@ const Messages = props => {
                                                 e.preventDefault();
                                                 console.log('[MESSAGES] click row', chat, 'id:', chatId);
                                                 
-                                                // Don't navigate if already selected
                                                 const currentRouteId = routeConvoId || activeConversationId;
                                                 if (chatId === currentRouteId) {
                                                     console.log('[MESSAGES] Conversation already selected:', chatId);
+                                                    markConversationAsRead(chatId);
                                                     setActiveConversationId(chatId);
                                                     return;
                                                 }
                                                 
-                                                // Navigate to conversation
-                                                // Note: Unread clearing is handled by the useEffect that watches selectedId
                                                 console.log('[MESSAGES] Navigating to conversation:', chatId);
                                                 navigate(`/profile/messages/${chatId}`, { replace: false });
                                                 setActiveConversationId(chatId);
