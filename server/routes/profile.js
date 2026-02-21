@@ -396,4 +396,35 @@ router.route('/clear-unread').post((req, res) => {
     }).catch(err => res.status(400).json('Error! ' + err));
 });
 
+// Deduplicate and prune stale entries from user's unread array
+router.route('/cleanup-unread').post((req, res) => {
+    const { username } = req.body;
+    if (!username) {
+        return res.status(400).json('Error! username is required');
+    }
+    const query = buildUsernameQuery(username);
+    User.findOne(query).then(user => {
+        if (!user) return res.status(404).json('Error! User not found');
+
+        const chatIds = new Set((user.chats || []).map(id => String(id)));
+        const seen = new Set();
+        const cleaned = (user.unread || []).filter(id => {
+            const s = String(id);
+            if (seen.has(s)) return false;
+            seen.add(s);
+            return chatIds.has(s);
+        });
+
+        if (cleaned.length === (user.unread || []).length) {
+            return res.json({ success: true, unread: cleaned, changed: false });
+        }
+
+        User.findOneAndUpdate(query, { unread: cleaned }).then(() => {
+            const io = req.app.get('io');
+            if (io) io.of('/api/messages').emit('unread');
+            res.json({ success: true, unread: cleaned, changed: true });
+        }).catch(err => res.status(400).json('Error! ' + err));
+    }).catch(err => res.status(400).json('Error! ' + err));
+});
+
 module.exports = router;

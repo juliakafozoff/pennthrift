@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getUserProfile } from '../api/ProfileAPI';
+import api from '../api/http';
 import io from 'socket.io-client';
 import React from 'react';
 import { path } from '../api/ProfileAPI';
@@ -125,6 +126,20 @@ const Header = props =>{
             console.error('Error fetching unread:', e);
         }
     };
+
+    // One-time cleanup: deduplicate and prune stale unread entries in the DB
+    useEffect(() => {
+        if (!authUser?.username) return;
+        const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
+        if (isDemoUser) return;
+        const key = `unreadCleaned:${authUser.username}`;
+        if (sessionStorage.getItem(key)) return;
+        sessionStorage.setItem(key, '1');
+        api.post('/api/profile/cleanup-unread', { username: authUser.username })
+            .then(() => fetchAndFilterUnread())
+            .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [authUser?.username]);
 
     // Initialize socket on /api/messages namespace (same as Messages page) so we receive unread events
     useEffect(() => {
