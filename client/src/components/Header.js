@@ -20,6 +20,7 @@ const Header = props =>{
     const [loggingOut, setLoggingOut] = useState(false);
     const socketRef = useRef(null);
     const unreadFetchedRef = useRef(false);
+    const pollIntervalRef = useRef(null);
 
     async function logOut(){
         // Prevent multiple simultaneous logout attempts
@@ -85,17 +86,45 @@ const Header = props =>{
         return localStorage.getItem(`demoConciergeOpened:${sessionId}`) === '1';
     };
     
-    // Initialize socket only when authenticated
+    // Fetch unread from server and update context (shared between socket events and polling)
+    const fetchAndFilterUnread = async () => {
+        if (!authUser?.username) return;
+
+        const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
+        if (isDemoUser) {
+            setUnreadCounts(hasOpenedConcierge() ? [] : ['concierge']);
+            return;
+        }
+
+        try {
+            const profile = await getUserProfile(authUser.username);
+            let unread = Array.isArray(profile?.unread) ? profile.unread : [];
+
+            // Filter out conversations already read this session
+            try {
+                const read = JSON.parse(sessionStorage.getItem('readConversations') || '[]');
+                if (read.length > 0) {
+                    const readSet = new Set(read);
+                    unread = unread.filter(id => !readSet.has(String(id)));
+                }
+            } catch (_) { /* ignore parse errors */ }
+
+            setUnreadCounts(unread);
+        } catch (e) {
+            console.error('Error fetching unread:', e);
+        }
+    };
+
+    // Initialize socket on /api/messages namespace (same as Messages page) so we receive unread events
     useEffect(() => {
         if (typeof window !== 'undefined' && path && isAuthenticated && authUser) {
             try {
                 if (!socketRef.current) {
-                    // Use proper socket.io URL (base URL, socket.io handles /socket.io path)
-                    const socketUrl = path.replace(/\/$/, ''); // Remove trailing slash
-                    socketRef.current = io.connect(socketUrl, {
+                    const socketUrl = path.replace(/\/$/, '');
+                    socketRef.current = io(`${socketUrl}/api/messages`, {
                         path: '/socket.io',
                         withCredentials: true,
-                        transports: ['websocket', 'polling'], // Allow fallback to polling
+                        transports: ['websocket', 'polling'],
                         reconnection: true,
                         reconnectionAttempts: 5,
                         reconnectionDelay: 1000,
@@ -103,63 +132,46 @@ const Header = props =>{
                         timeout: 20000
                     });
                     
-                    const fetchAndFilterUnread = async () => {
-                        if (!authUser?.username) return;
-                        if (location.pathname.startsWith('/profile/messages')) return;
-
-                        const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
-                        if (isDemoUser) {
-                            // Demo: red dot is purely driven by the localStorage flag
-                            setUnreadCounts(hasOpenedConcierge() ? [] : ['concierge']);
-                            return;
-                        }
-
-                        try {
-                            const profile = await getUserProfile(authUser.username);
-                            let unread = Array.isArray(profile?.unread) ? profile.unread : [];
-
-                            // Filter out conversations already read this session
-                            try {
-                                const read = JSON.parse(sessionStorage.getItem('readConversations') || '[]');
-                                if (read.length > 0) {
-                                    const readSet = new Set(read);
-                                    unread = unread.filter(id => !readSet.has(String(id)));
-                                }
-                            } catch (_) { /* ignore parse errors */ }
-
-                            setUnreadCounts(unread);
-                        } catch (e) {
-                            console.error('Error fetching unread:', e);
-                        }
-                    };
-
                     socketRef.current.on('connect', () => {
-                        console.log('✅ Socket.io connected (Header)');
+                        console.log('✅ Socket.io connected to /api/messages (Header)');
                         fetchAndFilterUnread();
                     });
                     
-                    socketRef.current.on('unread', fetchAndFilterUnread);
+                    socketRef.current.on('unread', () => {
+                        fetchAndFilterUnread();
+                    });
                     
                     socketRef.current.on('connect_error', (error) => {
                         console.error('❌ Socket.io connection error (Header):', error);
                     });
                 }
+
+                // Polling fallback: refetch every 30s in case socket events are missed
+                if (!pollIntervalRef.current) {
+                    pollIntervalRef.current = setInterval(fetchAndFilterUnread, 30000);
+                }
             } catch (e) {
                 console.error('Error initializing socket:', e);
             }
         } else {
-            // Disconnect socket if not authenticated
             if (socketRef.current) {
                 socketRef.current.disconnect();
                 socketRef.current = null;
             }
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+                pollIntervalRef.current = null;
+            }
         }
         
-        // Cleanup on unmount or when auth changes
         return () => {
             if (socketRef.current) {
                 socketRef.current.disconnect();
                 socketRef.current = null;
+            }
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+                pollIntervalRef.current = null;
             }
         };
     }, [isAuthenticated, authUser?.username])

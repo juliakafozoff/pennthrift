@@ -386,6 +386,11 @@ router.route('/clear-unread').post((req, res) => {
         if (!user) return res.status(404).json('Error! User not found');
         const unread = user.unread.filter(el => String(el) !== idStr);
         User.findOneAndUpdate(query, { unread }).then(() => {
+            // Broadcast on /api/messages namespace so Header sockets learn about the change
+            const io = req.app.get('io');
+            if (io) {
+                io.of('/api/messages').emit('unread');
+            }
             res.json({ success: true, unread });
         }).catch(err => res.status(400).json('Error! ' + err));
     }).catch(err => res.status(400).json('Error! ' + err));

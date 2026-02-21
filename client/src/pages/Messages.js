@@ -387,25 +387,6 @@ const Messages = props => {
         ensureConciergeOnlyForDemo();
     }, []); // Empty dependency array - run ONLY on mount
     
-    // Sync unreadCounts from sender.unread (real users only).
-    // Demo users have their red dot managed entirely via localStorage in Header.
-    useEffect(() => {
-        const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
-        if (isDemoUser || !sender) return;
-
-        const selectedId = routeConvoId || activeConversationId;
-        const serverUnread = Array.isArray(sender?.unread) ? sender.unread : [];
-
-        let filtered = [...serverUnread];
-        if (selectedId) {
-            filtered = filtered.filter(id => String(id) !== String(selectedId));
-        }
-        if (readConversationsRef.current.size > 0) {
-            filtered = filtered.filter(id => !readConversationsRef.current.has(String(id)));
-        }
-
-        setUnreadCounts(filtered);
-    }, [sender?.unread, authUser, routeConvoId, activeConversationId, setUnreadCounts]);
     
     // Mark conversation as read when it becomes selected
     useEffect(() => {

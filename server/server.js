@@ -174,6 +174,7 @@ const io = require('socket.io')(server, {
   transports: ['websocket', 'polling'], // Allow both transports
   allowEIO3: true // Support older clients
 });
+app.set('io', io);
 require('./routes/messages')(io);
 
 
