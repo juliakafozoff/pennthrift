@@ -65,3 +65,4 @@ export const getRemainingGuestMessages = () => {
     return Math.max(0, GUEST_MESSAGE_LIMIT - count);
 };
 
+

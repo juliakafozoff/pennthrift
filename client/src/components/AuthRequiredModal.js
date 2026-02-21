@@ -87,3 +87,4 @@ const AuthRequiredModal = ({ isOpen, onClose, onSuccess, title, body }) => {
 
 export default AuthRequiredModal;
 
+
