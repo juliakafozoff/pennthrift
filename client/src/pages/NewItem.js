@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import Header from "../components/Header";
 import api from "../api/http";
 import { useNavigate } from "react-router-dom";
 import { PageHeader, Card, Field, Input, Textarea, Button, Badge, PhotoUpload } from "../components/ui";
@@ -98,7 +97,6 @@ const NewItem = props => {
     };
     return(
         <div className="min-h-screen bg-[var(--color-bg)]">
-            <Header/>
             <div className="container py-8 max-w-6xl">
                 <PageHeader 
                     title="Create listing"

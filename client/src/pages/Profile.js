@@ -1,7 +1,6 @@
 import api from "../api/http";
 import { Component } from "react";
 import { Link } from "react-router-dom";
-import Header from "../components/Header";
 import ProfileListings from "../components/ProfileListings";
 import { getUserProfile } from "../api/ProfileAPI";
 import placeholder from '../assets/placeholder_user.png';
@@ -155,7 +154,6 @@ class Profile extends Component {
         
         return(
             <div className="min-h-screen bg-[var(--color-bg)]">
-                <Header/>
                 <div className="container py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Left Column - Profile Info */}

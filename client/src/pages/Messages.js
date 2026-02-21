@@ -1,5 +1,4 @@
 
-import Header from '../components/Header';
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getUserChats, getUserProfile, getUserImage } from "../api/ProfileAPI";
@@ -927,7 +926,6 @@ const Messages = props => {
 
     return(
         <div className="h-screen flex flex-col bg-[var(--color-bg)]">
-            <Header/>
             <MessagingBlockedModal 
                 isOpen={showMessagingBlockedModal}
                 onClose={() => setShowMessagingBlockedModal(false)}

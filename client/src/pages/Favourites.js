@@ -1,5 +1,4 @@
 import StoreItems from "../components/StoreItems";
-import Header from "../components/Header";
 import { Component } from "react";
 import api from "../api/http";
 import { getUserFavourites, getUserProfile } from "../api/ProfileAPI";
@@ -158,7 +157,6 @@ export default class Favourites extends Component {
         
         return(
             <div className="min-h-screen bg-[var(--color-bg)]">
-                <Header/>
                 <div className="container py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <PageHeader 
                         title={displayUsername ? `${displayUsername}'s Saved Items` : 'My Saved Items'}

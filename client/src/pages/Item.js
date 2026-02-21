@@ -1,7 +1,6 @@
 import api from "../api/http";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import Header from "../components/Header";
 import StoreItems from '../components/StoreItems';
 import placeholder from '../assets/placeholder_item.png';
 import { getUserFavourites } from "../api/ProfileAPI";
@@ -185,7 +184,6 @@ const Item = props => {
     if (!item || !item._id) {
         return (
             <div className="min-h-screen bg-[var(--color-bg)]">
-                <Header/>
                 <div className="container py-8 max-w-6xl">
                     <div className="flex items-center justify-center py-16">
                         <div className="text-center">
@@ -208,7 +206,6 @@ const Item = props => {
 
     return(
         <div className="min-h-screen bg-[var(--color-bg)]">
-            <Header/>
             <AuthRequiredModal
                 isOpen={showAuthModal}
                 onClose={handleAuthModalClose}

@@ -10,6 +10,7 @@ import {
 } from "react-router-dom";
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UnreadProvider } from './contexts/UnreadContext';
+import Header from './components/Header';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Welcome from './pages/Welcome';
@@ -24,12 +25,12 @@ import Messages from './pages/Messages';
 import Favourites from './pages/Favourites';
 import NotFound from './pages/NotFound';
 
-// Simple ProtectedRoute - uses AuthContext
+const HIDE_HEADER_PATHS = ['/welcome', '/login', '/register'];
+
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
-  // Show loading while checking
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center">
@@ -38,13 +39,49 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  // Redirect to login if not authenticated
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Render protected content
   return children ? children : <Outlet />;
+};
+
+const AppLayout = () => {
+  const location = useLocation();
+  const hideHeader = HIDE_HEADER_PATHS.includes(location.pathname);
+
+  return (
+    <>
+      {!hideHeader && <Header />}
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<Navigate to="/store" replace />} />
+        <Route path="/welcome" element={<Welcome />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/store" element={<Store />} />
+        <Route path="/user/:username" element={<User />} />
+        
+        {/* Item routes */}
+        <Route path="/store/item" element={<Navigate to="/store" replace />} />
+        <Route path="/store/item/:id" element={<Item />} />
+        
+        {/* Protected routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/profile/messages" element={<Messages />} />
+          <Route path="/profile/messages/:id" element={<Messages />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/edit" element={<EditProfile />} />
+          <Route path="/profile/newitem" element={<NewItem />} />
+          <Route path="/profile/analytics" element={<Analytics />} />
+          <Route path="/profile/favourites" element={<Favourites />} />
+        </Route>
+        
+        {/* 404 catch-all */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
+  );
 };
 
 function App() {
@@ -53,34 +90,8 @@ function App() {
       <AuthProvider>
         <UnreadProvider>
           <BrowserRouter>
-          <Routes>
-          {/* Public routes */}
-          <Route path="/" element={<Navigate to="/store" replace />} />
-          <Route path="/welcome" element={<Welcome />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/store" element={<Store />} />
-          <Route path="/user/:username" element={<User />} />
-          
-          {/* Item routes */}
-          <Route path="/store/item" element={<Navigate to="/store" replace />} />
-          <Route path="/store/item/:id" element={<Item />} />
-          
-          {/* Protected routes */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/profile/messages" element={<Messages />} />
-            <Route path="/profile/messages/:id" element={<Messages />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/profile/edit" element={<EditProfile />} />
-            <Route path="/profile/newitem" element={<NewItem />} />
-            <Route path="/profile/analytics" element={<Analytics />} />
-            <Route path="/profile/favourites" element={<Favourites />} />
-          </Route>
-          
-          {/* 404 catch-all */}
-          <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+            <AppLayout />
+          </BrowserRouter>
         </UnreadProvider>
       </AuthProvider>
     </div>

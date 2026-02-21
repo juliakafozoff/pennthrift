@@ -1,7 +1,6 @@
 import api from "../api/http";
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import Header from "../components/Header";
 import placeholder from '../assets/placeholder_user.png';
 import StoreItems from '../components/StoreItems';
 import { updateViews, getUserProfile } from "../api/ProfileAPI";
@@ -201,7 +200,6 @@ const  User = props => {
     if (loading) {
         return (
             <div className="min-h-screen bg-[var(--color-bg)]">
-                <Header/>
                 <div className="container py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-center py-16">
                         <div className="text-center">
@@ -224,7 +222,6 @@ const  User = props => {
 
     return(
         <div className="min-h-screen bg-[var(--color-bg)]">
-            <Header/>
             <MessagingBlockedModal 
                 isOpen={showMessagingBlockedModal}
                 onClose={() => setShowMessagingBlockedModal(false)}

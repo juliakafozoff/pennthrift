@@ -1,4 +1,3 @@
-import Header from "../components/Header";
 import { useState, useEffect } from "react";
 import api from "../api/http";
 import { editUserProfile, getUserProfile, changeUsername } from "../api/ProfileAPI";
@@ -367,7 +366,6 @@ const EditProfile = props => {
     if (initialLoading) {
         return (
             <div className="min-h-screen bg-[var(--color-bg)]">
-                <Header/>
                 <div className="container py-8 max-w-6xl">
                     <div className="flex items-center justify-center py-16">
                         <div className="text-center">
@@ -390,7 +388,6 @@ const EditProfile = props => {
 
     return(
         <div className="min-h-screen bg-[var(--color-bg)]">
-            <Header/>
             <div className="container py-8 max-w-6xl">
                 <PageHeader 
                     title="Edit Profile"

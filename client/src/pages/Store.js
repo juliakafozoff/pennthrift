@@ -1,5 +1,4 @@
 import StoreItems from "../components/StoreItems";
-import Header from "../components/Header";
 import { Component } from "react";
 import api from "../api/http";
 import { getUserFavourites } from "../api/ProfileAPI";
@@ -172,7 +171,6 @@ export default class Store extends Component {
 
         return(
             <div className="min-h-screen bg-[var(--color-bg)]">
-                <Header/>
                 <AuthRequiredModal
                     isOpen={this.state.showAuthModal}
                     onClose={this.handleAuthModalClose}
