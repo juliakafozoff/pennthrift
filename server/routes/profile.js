@@ -388,4 +388,18 @@ router.route('/clear-unread').post((req, res) => {
     }).catch(err => res.status(400).json('Error! ' + err));
 });
 
+// Reset unread array to empty (for clearing stale data)
+router.route('/reset-unread').post((req, res) => {
+    const { username } = req.body;
+    if (!username) {
+        return res.status(400).json('Error! username is required');
+    }
+    const query = buildUsernameQuery(username);
+    User.findOneAndUpdate(query, { $set: { unread: [] } }).then(() => {
+        const io = req.app.get('io');
+        if (io) io.of('/api/messages').emit('unread');
+        res.json({ success: true });
+    }).catch(err => res.status(400).json('Error! ' + err));
+});
+
 module.exports = router;
