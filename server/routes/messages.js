@@ -25,12 +25,12 @@ function messages(io){
         socket.on('clear-unread', data => {
             const { id, username } = data;
             const query = buildUsernameQuery(username);
+            const idStr = String(id);
             User.findOne(query).then( user => {
                 if (!user) return;
-                let unread = [...user.unread].filter(element => ![id].includes(element));
-                User.findOneAndUpdate(query, {unread:unread}).then( res => {
+                const unread = user.unread.filter(el => String(el) !== idStr);
+                User.findOneAndUpdate(query, { unread }).then( () => {
                     socket.broadcast.emit('unread')
-
                 })
             })
         })
