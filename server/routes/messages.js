@@ -38,7 +38,6 @@ function messages(io){
         socket.on('send-message', data => {
             const {sender, receiver , message, attachment, id} = data;
 
-            // Block demo users from messaging real users
             if (sender === 'demo' || sender === 'Demo') {
                 socket.emit('message-blocked', { 
                     error: 'Demo users cannot message real users. Please create an account.',
@@ -47,21 +46,36 @@ function messages(io){
                 return;
             }
 
-            try{
-                Message.findById({_id:id}).then( out => {
-                    let newMessage; try{ newMessage = [...out.messages, {sender, message, attachment}]}catch{newMessage = [{sender, message, attachment}]}
-                    Message.findOneAndUpdate({_id:id},{messages:newMessage}).then( out => {
-                        const receiverQuery = buildUsernameQuery(receiver);
-                        User.findOneAndUpdate(receiverQuery, { $addToSet: { unread: id } }).then( res => {
-                            socket.broadcast.emit('unread');
-                            messages.in(id).emit('receive-message',id)
-                        })
-                    })
-                })
-
-            }catch{
-
+            if (!id || !sender || !receiver) {
+                console.error('[SEND-MESSAGE] Missing required fields:', { id, sender, receiver });
+                socket.emit('send-error', { error: 'Missing required fields' });
+                return;
             }
+
+            Message.findById({_id:id}).then( out => {
+                if (!out) {
+                    console.error('[SEND-MESSAGE] Conversation not found:', id);
+                    socket.emit('send-error', { error: 'Conversation not found' });
+                    return;
+                }
+                const newMsg = {sender, message, attachment, timestamp: new Date().toISOString()};
+                let newMessages;
+                try { newMessages = [...(out.messages || []), newMsg]; }
+                catch { newMessages = [newMsg]; }
+                Message.findOneAndUpdate({_id:id},{messages:newMessages}).then( () => {
+                    const receiverQuery = buildUsernameQuery(receiver);
+                    User.findOneAndUpdate(receiverQuery, { $addToSet: { unread: id } }).then( () => {
+                        socket.broadcast.emit('unread');
+                        messages.in(id).emit('receive-message',id)
+                    }).catch(err => console.error('[SEND-MESSAGE] Error updating receiver unread:', err));
+                }).catch(err => {
+                    console.error('[SEND-MESSAGE] Error saving message:', err);
+                    socket.emit('send-error', { error: 'Failed to save message' });
+                });
+            }).catch(err => {
+                console.error('[SEND-MESSAGE] Error finding conversation:', err);
+                socket.emit('send-error', { error: 'Failed to find conversation' });
+            });
         });
 
         socket.on('join-room', id => {

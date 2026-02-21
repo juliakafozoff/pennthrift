@@ -79,6 +79,7 @@ const Messages = props => {
     // Track failed avatar loads to persist fallback state
     const [failedAvatars, setFailedAvatars] = useState(new Set());
     const [showMessagingBlockedModal, setShowMessagingBlockedModal] = useState(false);
+    const [sendError, setSendError] = useState(null);
     
     // Format timestamp helper - defined early to avoid hoisting issues
     const formatTimestamp = (date) => {
@@ -511,32 +512,47 @@ const Messages = props => {
     }, [chats, user, routeConvoId, activeConversationId, processed, navigate]);
     
     async function sendMessage(userParam, message, attachment){
-        // Get current conversation ID
         const currentConversationId = routeConvoId || activeConversationId;
         
-        // Block demo users from sending messages (including draft threads)
         if (authUser && !requireAuthForMessaging(authUser)) {
-            // Check if this is a draft thread (demo user trying to message real user)
             if (draftTo || (receiver && receiver.username !== 'franklindesk')) {
                 setShowMessagingBlockedModal(true);
                 return;
             }
         }
         
-        // For draft threads, allow sending attempt (will be blocked by demo check above)
-        const canSend = (allowed && receiver && socketRef.current) || (draftTo && draftReceiver);
+        if (!currentConversationId) {
+            console.error('[SEND] No conversation ID available');
+            return;
+        }
+        
+        if (!socketRef.current || !socketConnected) {
+            console.error('[SEND] Socket not connected, cannot send message');
+            setSendError('Connection lost. Please refresh and try again.');
+            return;
+        }
+        
+        if (!receiver || !receiver.username) {
+            console.error('[SEND] No receiver set');
+            setSendError('Could not determine recipient. Please refresh and try again.');
+            return;
+        }
+        
+        if (!allowed && !draftTo) {
+            console.error('[SEND] Not allowed to send in this conversation');
+            return;
+        }
+        
+        const canSend = (allowed && receiver && socketRef.current && socketConnected) || (draftTo && draftReceiver);
         
         if(canSend){
-            if(attachment){
-                var formData = new FormData();
-                formData.append("file", attachment);
-                api.post('/api/file/upload', formData,{
-                    headers: {
-                    'Content-Type': 'multipart/form-data'
-                    }
-                }).then( async res => {
-                    // Fix: Extract URL from response object, normalize to absolute URL
-                    // Upload endpoint returns: {path: '/api/file/...', url: 'https://...', filename: '...'}
+            try {
+                if(attachment){
+                    var formData = new FormData();
+                    formData.append("file", attachment);
+                    const res = await api.post('/api/file/upload', formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
+                    });
                     let attachmentUrl = null;
                     if(res.data) {
                         if(typeof res.data === 'string') {
@@ -548,13 +564,12 @@ const Messages = props => {
                         }
                     }
                     
-                    // Normalize to absolute URL if we have a string
                     const normalizedUrl = attachmentUrl && typeof attachmentUrl === 'string'
                         ? normalizeImageUrl(attachmentUrl) 
                         : null;
                     
                     if(!normalizedUrl) {
-                        console.error('Failed to extract attachment URL from upload response:', res.data);
+                        console.error('[SEND] Failed to extract attachment URL from upload response:', res.data);
                     }
                     
                     const data = { 
@@ -564,22 +579,25 @@ const Messages = props => {
                         id: currentConversationId, 
                         receiver: receiver.username
                     };
-                    await socketRef.current.emit('send-message', data );
+                    socketRef.current.emit('send-message', data);
                     setAttachment('');
                     setAttachmentDisplay('');
-    
-                })
-            }else{
-                const data = { 
-                    sender: userParam, 
-                    message: message, 
-                    attachment: attachment, 
-                    id: currentConversationId,
-                    receiver: receiver.username
-                };
-                await socketRef.current.emit('send-message', data );
+                } else {
+                    const data = { 
+                        sender: userParam, 
+                        message: message, 
+                        attachment: '', 
+                        id: currentConversationId,
+                        receiver: receiver.username
+                    };
+                    socketRef.current.emit('send-message', data);
+                }
+                setText('');
+                setSendError(null);
+            } catch (err) {
+                console.error('[SEND] Error sending message:', err);
+                setSendError('Failed to send message. Please try again.');
             }
-            setText('');
         }
     }
     
@@ -769,12 +787,12 @@ const Messages = props => {
                     console.log('✅ Socket.io connected to /api/messages namespace');
                     setSocketConnected(true);
                     
-                    // If there's a pending conversation, load it now
-                    if (pendingConversationIdRef.current) {
-                        const pendingId = pendingConversationIdRef.current;
-                        console.log('[MESSAGES] Loading pending conversation after socket connect:', pendingId);
-                        socketRef.current.emit('join-room', pendingId);
-                        socketRef.current.emit('load', pendingId);
+                    // Reload current conversation on (re)connect
+                    const currentId = pendingConversationIdRef.current || routeConvoId || activeConversationId;
+                    if (currentId) {
+                        console.log('[MESSAGES] Loading conversation after socket (re)connect:', currentId);
+                        socketRef.current.emit('join-room', currentId);
+                        socketRef.current.emit('load', currentId);
                         pendingConversationIdRef.current = null;
                     }
                     
@@ -816,21 +834,14 @@ const Messages = props => {
         
         if(selectedId && selectedConversation){
             console.log('[MESSAGES] Loading conversation:', selectedId);
-            // Only refresh if conversation ID actually changed
             if(stateId !== selectedId) {
                 if(stateId) {
-                    // Conversation changed - refresh messages
                     setStateId(selectedId);
                     refresh(selectedId);
                 } else {
-                    // First load - just set state
                     setStateId(selectedId);
-                    // Load messages for first load
                     loadMessages(selectedId);
                 }
-            } else if (stateId === selectedId && socketRef.current && socketConnected) {
-                // Same conversation but ensure messages are loaded if socket just connected
-                loadMessages(selectedId);
             }
         } else if(routeConvoId && !selectedConversation) {
             console.warn('[MESSAGES] Route ID exists but conversation not found:', routeConvoId);
@@ -877,11 +888,15 @@ const Messages = props => {
                 updateChats()
             })
             
-            // Listen for message-blocked events (demo user trying to message real user)
             socketRef.current.on('message-blocked', (data) => {
                 if (data?.reason === 'demo_user_blocked') {
                     setShowMessagingBlockedModal(true);
                 }
+            })
+            
+            socketRef.current.on('send-error', (data) => {
+                console.error('[MESSAGES] Server send error:', data);
+                setSendError(data?.error || 'Failed to send message. Please try again.');
             })
         }
         
@@ -891,10 +906,11 @@ const Messages = props => {
                 socketRef.current.off('allMessages');
                 socketRef.current.off('receive-message');
                 socketRef.current.off('message-blocked');
+                socketRef.current.off('send-error');
             }
         };
         
-    },[routeConvoId, activeConversationId, messages,receiver, processed, allowed, chats, user, users, attachmentDisplay, attachment, sender, joined])
+    },[routeConvoId, activeConversationId, processed, allowed, chats, user, joined, socketConnected])
     
     function handleClick(){
         document.getElementById('selectFile').click()
@@ -1251,6 +1267,13 @@ const Messages = props => {
                         
                         {/* Input Area */}
                         <div className='border-t border-gray-200 bg-white p-4'>
+                            {/* Send error banner */}
+                            {sendError && (
+                                <div className='mb-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between'>
+                                    <span className='text-sm text-red-700'>{sendError}</span>
+                                    <button onClick={() => setSendError(null)} className='text-red-400 hover:text-red-600 ml-2 text-xs'>dismiss</button>
+                                </div>
+                            )}
                             {/* Attachment Preview */}
                             {attachmentDisplay && attachment && attachment.type && (
                                 <div className='mb-2'>
