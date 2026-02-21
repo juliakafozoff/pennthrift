@@ -60,7 +60,7 @@ const Messages = props => {
     const [joined, setJoined] = useState(false);
     const socketRef = useRef(null);
     const pendingStartConversationRef = useRef(null);
-    const pendingClearUnreadRef = useRef([]);
+    
     const readConversationsRef = useRef(new Set());
     // Managed unreadCounts state - single source of truth for unread indicators
     const { unreadCounts, setUnreadCounts } = useUnread();
@@ -442,11 +442,13 @@ const Messages = props => {
 
         setUnreadCounts(prev => prev.filter(id => String(id) !== idStr));
 
+        // Clear on server via REST (reliable, no socket dependency)
         const username = user || authUser?.username;
-        if (socketRef.current && socketConnected && username) {
-            socketRef.current.emit('clear-unread', { id: selectedId, username });
-        } else if (username) {
-            pendingClearUnreadRef.current.push({ id: selectedId, username });
+        if (username) {
+            api.post('/api/profile/clear-unread', {
+                username,
+                conversationId: selectedId
+            }).catch(() => {});
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [routeConvoId, activeConversationId]);
@@ -766,13 +768,6 @@ const Messages = props => {
                 socketRef.current.on('connect', () => {
                     console.log('✅ Socket.io connected to /api/messages namespace');
                     setSocketConnected(true);
-                    
-                    // Flush all deferred clear-unread items
-                    if (pendingClearUnreadRef.current.length > 0) {
-                        const pending = pendingClearUnreadRef.current;
-                        pendingClearUnreadRef.current = [];
-                        pending.forEach(item => socketRef.current.emit('clear-unread', item));
-                    }
                     
                     // If there's a pending conversation, load it now
                     if (pendingConversationIdRef.current) {
