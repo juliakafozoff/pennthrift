@@ -60,6 +60,7 @@ const Messages = props => {
     const [joined, setJoined] = useState(false);
     const socketRef = useRef(null);
     const pendingStartConversationRef = useRef(null);
+    const pendingClearUnreadRef = useRef(null);
     // Managed unreadCounts state - single source of truth for unread indicators
     const { unreadCounts, setUnreadCounts } = useUnread();
     
@@ -344,7 +345,20 @@ const Messages = props => {
                                     if (conciergeId) {
                                         console.log('[MESSAGES] Auto-selecting concierge conversation:', conciergeId);
                                         setActiveConversationId(conciergeId);
-                                        // Navigate to concierge conversation
+                                        
+                                        // Set demoConciergeOpened immediately so the Header
+                                        // can filter it out on the next page navigation
+                                        let sid = sessionStorage.getItem('demoSessionId');
+                                        if (!sid) {
+                                            sid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                                                const r = Math.random() * 16 | 0;
+                                                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                                                return v.toString(16);
+                                            });
+                                            sessionStorage.setItem('demoSessionId', sid);
+                                        }
+                                        localStorage.setItem(`demoConciergeOpened:${sid}`, '1');
+                                        
                                         navigate(`/profile/messages/${conciergeId}`, { replace: false });
                                     }
                                 }
@@ -465,9 +479,12 @@ const Messages = props => {
             return filtered;
         });
         
-        // Sync with server if socket connected
-        if (socketRef.current && socketConnected && user) {
-            socketRef.current.emit('clear-unread', { id: selectedId, username: user || authUser?.username });
+        // Sync with server — if socket isn't ready yet, defer for flush on connect
+        const username = user || authUser?.username;
+        if (socketRef.current && socketConnected && username) {
+            socketRef.current.emit('clear-unread', { id: selectedId, username });
+        } else if (username) {
+            pendingClearUnreadRef.current = { id: selectedId, username };
         }
         
         // For demo concierge, persist opened state
@@ -814,6 +831,13 @@ const Messages = props => {
                 socketRef.current.on('connect', () => {
                     console.log('✅ Socket.io connected to /api/messages namespace');
                     setSocketConnected(true);
+                    
+                    // Flush any deferred clear-unread that couldn't fire before socket was ready
+                    if (pendingClearUnreadRef.current) {
+                        const pending = pendingClearUnreadRef.current;
+                        pendingClearUnreadRef.current = null;
+                        socketRef.current.emit('clear-unread', pending);
+                    }
                     
                     // If there's a pending conversation, load it now
                     if (pendingConversationIdRef.current) {
