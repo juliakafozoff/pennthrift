@@ -84,7 +84,7 @@ const Header = props =>{
         return localStorage.getItem(`demoConciergeOpened:${sessionId}`) === '1';
     };
     
-    // Fetch unread from server and update context
+    // Fetch unread from server and update context (v2 - clean rewrite)
     const fetchUnread = async () => {
         if (!authUser?.username) return;
 
