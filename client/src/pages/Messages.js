@@ -397,8 +397,6 @@ const Messages = props => {
         const serverUnread = Array.isArray(sender?.unread) ? sender.unread : [];
         
         if (!sender) {
-            console.log('[UNREAD] No sender, clearing unreadCounts');
-            setUnreadCounts([]);
             return;
         }
         
