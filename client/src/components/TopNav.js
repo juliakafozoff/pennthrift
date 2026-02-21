@@ -1,12 +1,15 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useUnread } from '../contexts/UnreadContext';
 import { getUserProfile } from '../api/ProfileAPI';
 import { normalizeImageUrl, getUserInitial } from '../utils/imageUtils';
 
 const TopNav = () => {
     const location = useLocation();
     const { isAuthenticated, user: authUser } = useAuth();
+    const { unreadCounts } = useUnread();
+    const hasUnreadMessages = Array.isArray(unreadCounts) && unreadCounts.length > 0;
     const [userProfile, setUserProfile] = useState(null);
     const [avatarFailed, setAvatarFailed] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -131,11 +134,16 @@ const TopNav = () => {
                             </div>
                         ) : (
                             // Regular icon
-                            <img
-                                src={item.icon}
-                                alt={item.label}
-                                className={`w-5 h-5 ${item.isActive ? 'brightness-0 invert' : 'opacity-80 group-hover:opacity-100'}`}
-                            />
+                            <>
+                                <img
+                                    src={item.icon}
+                                    alt={item.label}
+                                    className={`w-5 h-5 ${item.isActive ? 'brightness-0 invert' : 'opacity-80 group-hover:opacity-100'}`}
+                                />
+                                {item.to === '/profile/messages' && hasUnreadMessages && (
+                                    <span className="absolute top-1 right-1 h-2.5 w-2.5 bg-blue-500 rounded-full border-2 border-white" />
+                                )}
+                            </>
                         )}
                     </Link>
                     

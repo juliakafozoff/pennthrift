@@ -52,13 +52,9 @@ function messages(io){
                     let newMessage; try{ newMessage = [...out.messages, {sender, message, attachment}]}catch{newMessage = [{sender, message, attachment}]}
                     Message.findOneAndUpdate({_id:id},{messages:newMessage}).then( out => {
                         const receiverQuery = buildUsernameQuery(receiver);
-                        User.findOne(receiverQuery).then( user => {
-                            if (!user) return;
-                            let unread = [...user.unread, id];
-                            User.findOneAndUpdate(receiverQuery, {unread:unread}).then( res => {
-                                socket.broadcast.emit('unread');
-                                messages.in(id).emit('receive-message',id)
-                            })
+                        User.findOneAndUpdate(receiverQuery, { $addToSet: { unread: id } }).then( res => {
+                            socket.broadcast.emit('unread');
+                            messages.in(id).emit('receive-message',id)
                         })
                     })
                 })
