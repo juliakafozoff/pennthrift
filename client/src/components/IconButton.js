@@ -44,6 +44,7 @@ const IconButton = ({
             <Link
                 to={to}
                 className={baseClasses}
+                style={{ color: 'inherit' }}
                 aria-label={ariaLabel}
                 aria-current={isActive ? 'page' : undefined}
             >
