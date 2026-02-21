@@ -6,6 +6,7 @@ import React from 'react';
 import { path } from '../api/ProfileAPI';
 import { Button, Badge } from './ui';
 import { useAuth } from '../contexts/AuthContext';
+import { useUnread } from '../contexts/UnreadContext';
 import TopNav from './TopNav';
 import AboutPopover from './AboutPopover';
 
@@ -13,9 +14,11 @@ import AboutPopover from './AboutPopover';
 const Header = props =>{
     const navigate = useNavigate();
     const { isAuthenticated, user: authUser, logout: logoutFromContext, demoLogin } = useAuth();
+    const { unreadCounts, setUnreadCounts } = useUnread();
     const [processing, setProcessing] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
     const socketRef = useRef(null);
+    const unreadFetchedRef = useRef(false);
 
     async function logOut(){
         // Prevent multiple simultaneous logout attempts
@@ -101,6 +104,23 @@ const Header = props =>{
                     
                     socketRef.current.on('connect', () => {
                         console.log('✅ Socket.io connected (Header)');
+                        // Fetch unread counts once socket is connected
+                        if (authUser?.username) {
+                            getUserProfile(authUser.username).then(profile => {
+                                const serverUnread = Array.isArray(profile?.unread) ? profile.unread : [];
+                                setUnreadCounts(serverUnread);
+                            }).catch(e => console.error('Error fetching unread:', e));
+                        }
+                    });
+                    
+                    // Re-fetch unread when another client sends a message to this user
+                    socketRef.current.on('unread', () => {
+                        if (authUser?.username) {
+                            getUserProfile(authUser.username).then(profile => {
+                                const serverUnread = Array.isArray(profile?.unread) ? profile.unread : [];
+                                setUnreadCounts(serverUnread);
+                            }).catch(e => console.error('Error refreshing unread:', e));
+                        }
                     });
                     
                     socketRef.current.on('connect_error', (error) => {
@@ -127,7 +147,14 @@ const Header = props =>{
         };
     }, [isAuthenticated, authUser?.username])
 
-   
+    // Clear unread on logout
+    useEffect(() => {
+        if (!isAuthenticated) {
+            unreadFetchedRef.current = false;
+            setUnreadCounts([]);
+        }
+    }, [isAuthenticated, setUnreadCounts]);
+
     return(
         <header 
             data-testid="header" 
