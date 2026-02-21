@@ -381,7 +381,7 @@ router.route('/clear-unread').post((req, res) => {
         return res.status(400).json('Error! username and conversationId are required');
     }
     const query = buildUsernameQuery(username);
-    User.findOneAndUpdate(query, { $pull: { unread: conversationId } }).then(() => {
+    User.findOneAndUpdate(query, { $pull: { unread: String(conversationId) } }).then(() => {
         const io = req.app.get('io');
         if (io) io.of('/api/messages').emit('unread');
         res.json({ success: true });

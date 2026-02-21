@@ -25,7 +25,7 @@ function messages(io){
         socket.on('clear-unread', data => {
             const { id, username } = data;
             const query = buildUsernameQuery(username);
-            User.findOneAndUpdate(query, { $pull: { unread: id } }).then(() => {
+            User.findOneAndUpdate(query, { $pull: { unread: String(id) } }).then(() => {
                 socket.broadcast.emit('unread');
             }).catch(err => console.error('[CLEAR-UNREAD] Error:', err));
         })
@@ -59,7 +59,7 @@ function messages(io){
                 catch { newMessages = [newMsg]; }
                 Message.findOneAndUpdate({_id:id},{messages:newMessages}).then( () => {
                     const receiverQuery = buildUsernameQuery(receiver);
-                    User.findOneAndUpdate(receiverQuery, { $addToSet: { unread: id } }).then( () => {
+                    User.findOneAndUpdate(receiverQuery, { $addToSet: { unread: String(id) } }).then( () => {
                         socket.broadcast.emit('unread');
                         messages.in(id).emit('receive-message',id)
                     }).catch(err => console.error('[SEND-MESSAGE] Error updating receiver unread:', err));
