@@ -27,7 +27,7 @@ export default class StoreItems extends Component{
     }
     componentDidMount(){
         const dataSafe = Array.isArray(this.props.data) ? this.props.data : [];
-        if(JSON.stringify(this.state.items) !== JSON.stringify(dataSafe)){
+        if(this.state.items !== dataSafe){
             this.setState({items: dataSafe});
         }
         if(Array.isArray(this.props.favourites)){
@@ -35,11 +35,11 @@ export default class StoreItems extends Component{
         }
     }
     componentDidUpdate(prevProps){
-        const dataSafe = Array.isArray(this.props.data) ? this.props.data : [];
-        if(JSON.stringify(prevProps.data) !== JSON.stringify(this.props.data)){
+        if(prevProps.data !== this.props.data){
+            const dataSafe = Array.isArray(this.props.data) ? this.props.data : [];
             this.setState({items: dataSafe});
         }
-        if(Array.isArray(this.props.favourites) && JSON.stringify(prevProps.favourites) !== JSON.stringify(this.props.favourites)){
+        if(prevProps.favourites !== this.props.favourites && Array.isArray(this.props.favourites)){
             this.setState({favourites: this.props.favourites});
         }
     }

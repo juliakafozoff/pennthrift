@@ -5,13 +5,18 @@ const router = require('express').Router();
 router.route('/all').get((req, res) => {
     Item.find()
         .sort({name: 'asc'})
-        .then(allItems => res.json(allItems))
+        .lean()
+        .then(allItems => {
+            res.set('Cache-Control', 'public, max-age=30');
+            res.json(allItems);
+        })
         .catch(err => res.status(400).json('Error! ' + err))
 });
 
 // get item by id
 router.route('/:id').get((req, res) => {
     Item.findById(req.params.id)
+    .lean()
     .then(item => res.status(200).json(item))
     .catch(err => res.status(400).json('Error! ' + err))
 });

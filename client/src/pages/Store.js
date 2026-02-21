@@ -393,7 +393,7 @@ export default class Store extends Component {
                                 </Card>
                             )}
                             
-                            {!this.state.loading && !this.state.error && this.state.processed && (
+                            {!this.state.loading && !this.state.error && (
                                 <StoreItems
                                     refresh={this.refresh}
                                     favourites={Array.isArray(this.state.favourites) ? this.state.favourites : []}

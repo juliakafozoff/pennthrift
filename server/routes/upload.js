@@ -58,9 +58,10 @@ router.get("/:filename", async (req, res) => {
         
         const file = files[0];
         
-        // Set proper content type headers
         res.set('Content-Type', file.contentType || 'image/jpeg');
         res.set('Content-Disposition', `inline; filename="${file.filename}"`);
+        res.set('Cache-Control', 'public, max-age=86400, immutable');
+        res.set('ETag', `"${file._id}"`);
         
         const readStream = gridfsBucket.openDownloadStream(file._id);
         
