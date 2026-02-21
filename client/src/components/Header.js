@@ -116,7 +116,17 @@ const Header = props =>{
 
                         try {
                             const profile = await getUserProfile(authUser.username);
-                            const unread = Array.isArray(profile?.unread) ? profile.unread : [];
+                            let unread = Array.isArray(profile?.unread) ? profile.unread : [];
+
+                            // Filter out conversations already read this session
+                            try {
+                                const read = JSON.parse(sessionStorage.getItem('readConversations') || '[]');
+                                if (read.length > 0) {
+                                    const readSet = new Set(read);
+                                    unread = unread.filter(id => !readSet.has(String(id)));
+                                }
+                            } catch (_) { /* ignore parse errors */ }
+
                             setUnreadCounts(unread);
                         } catch (e) {
                             console.error('Error fetching unread:', e);
@@ -159,6 +169,7 @@ const Header = props =>{
         if (!isAuthenticated) {
             unreadFetchedRef.current = false;
             setUnreadCounts([]);
+            try { sessionStorage.removeItem('readConversations'); } catch (_) {}
         }
     }, [isAuthenticated, setUnreadCounts]);
 

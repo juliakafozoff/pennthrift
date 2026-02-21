@@ -60,7 +60,7 @@ const Messages = props => {
     const [joined, setJoined] = useState(false);
     const socketRef = useRef(null);
     const pendingStartConversationRef = useRef(null);
-    const pendingClearUnreadRef = useRef(null);
+    const pendingClearUnreadRef = useRef([]);
     const readConversationsRef = useRef(new Set());
     // Managed unreadCounts state - single source of truth for unread indicators
     const { unreadCounts, setUnreadCounts } = useUnread();
@@ -429,15 +429,24 @@ const Messages = props => {
             return;
         }
 
-        // Real users: track locally and sync with server
-        readConversationsRef.current.add(String(selectedId));
-        setUnreadCounts(prev => prev.filter(id => String(id) !== String(selectedId)));
+        // Real users: persist to sessionStorage so Header can filter on other pages
+        const idStr = String(selectedId);
+        readConversationsRef.current.add(idStr);
+        try {
+            const stored = JSON.parse(sessionStorage.getItem('readConversations') || '[]');
+            if (!stored.includes(idStr)) {
+                stored.push(idStr);
+                sessionStorage.setItem('readConversations', JSON.stringify(stored));
+            }
+        } catch (_) { /* ignore parse errors */ }
+
+        setUnreadCounts(prev => prev.filter(id => String(id) !== idStr));
 
         const username = user || authUser?.username;
         if (socketRef.current && socketConnected && username) {
             socketRef.current.emit('clear-unread', { id: selectedId, username });
         } else if (username) {
-            pendingClearUnreadRef.current = { id: selectedId, username };
+            pendingClearUnreadRef.current.push({ id: selectedId, username });
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [routeConvoId, activeConversationId]);
@@ -758,11 +767,11 @@ const Messages = props => {
                     console.log('✅ Socket.io connected to /api/messages namespace');
                     setSocketConnected(true);
                     
-                    // Flush any deferred clear-unread that couldn't fire before socket was ready
-                    if (pendingClearUnreadRef.current) {
+                    // Flush all deferred clear-unread items
+                    if (pendingClearUnreadRef.current.length > 0) {
                         const pending = pendingClearUnreadRef.current;
-                        pendingClearUnreadRef.current = null;
-                        socketRef.current.emit('clear-unread', pending);
+                        pendingClearUnreadRef.current = [];
+                        pending.forEach(item => socketRef.current.emit('clear-unread', item));
                     }
                     
                     // If there's a pending conversation, load it now
