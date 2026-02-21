@@ -374,56 +374,17 @@ router.route('/username').put((req, res) => {
         });
 });
 
-// Clear a specific conversation from user's unread array (REST alternative to socket)
+// Clear a specific conversation from user's unread array
 router.route('/clear-unread').post((req, res) => {
     const { username, conversationId } = req.body;
     if (!username || !conversationId) {
         return res.status(400).json('Error! username and conversationId are required');
     }
     const query = buildUsernameQuery(username);
-    const idStr = String(conversationId);
-    User.findOne(query).then(user => {
-        if (!user) return res.status(404).json('Error! User not found');
-        const unread = user.unread.filter(el => String(el) !== idStr);
-        User.findOneAndUpdate(query, { unread }).then(() => {
-            // Broadcast on /api/messages namespace so Header sockets learn about the change
-            const io = req.app.get('io');
-            if (io) {
-                io.of('/api/messages').emit('unread');
-            }
-            res.json({ success: true, unread });
-        }).catch(err => res.status(400).json('Error! ' + err));
-    }).catch(err => res.status(400).json('Error! ' + err));
-});
-
-// Deduplicate and prune stale entries from user's unread array
-router.route('/cleanup-unread').post((req, res) => {
-    const { username } = req.body;
-    if (!username) {
-        return res.status(400).json('Error! username is required');
-    }
-    const query = buildUsernameQuery(username);
-    User.findOne(query).then(user => {
-        if (!user) return res.status(404).json('Error! User not found');
-
-        const chatIds = new Set((user.chats || []).map(id => String(id)));
-        const seen = new Set();
-        const cleaned = (user.unread || []).filter(id => {
-            const s = String(id);
-            if (seen.has(s)) return false;
-            seen.add(s);
-            return chatIds.has(s);
-        });
-
-        if (cleaned.length === (user.unread || []).length) {
-            return res.json({ success: true, unread: cleaned, changed: false });
-        }
-
-        User.findOneAndUpdate(query, { unread: cleaned }).then(() => {
-            const io = req.app.get('io');
-            if (io) io.of('/api/messages').emit('unread');
-            res.json({ success: true, unread: cleaned, changed: true });
-        }).catch(err => res.status(400).json('Error! ' + err));
+    User.findOneAndUpdate(query, { $pull: { unread: conversationId } }).then(() => {
+        const io = req.app.get('io');
+        if (io) io.of('/api/messages').emit('unread');
+        res.json({ success: true });
     }).catch(err => res.status(400).json('Error! ' + err));
 });
 

@@ -50,7 +50,7 @@ const userSchema = new Schema({
     },
     favourites: [{type: Schema.Types.ObjectId, ref: 'Item'}],
     items: [{type: Schema.Types.ObjectId, ref: 'Item'}],
-    unread:Array,
+    unread: [{type: Schema.Types.ObjectId, ref: 'Messages'}],
     reviews_for: [{type: Schema.Types.ObjectId, ref: 'Review'}],
     reviews_to: [{type: Schema.Types.ObjectId, ref: 'Review'}],
     requests_for: [{type: Schema.Types.ObjectId, ref: 'Request'}],

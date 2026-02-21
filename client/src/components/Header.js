@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getUserProfile } from '../api/ProfileAPI';
-import api from '../api/http';
 import io from 'socket.io-client';
 import React from 'react';
 import { path } from '../api/ProfileAPI';
@@ -17,10 +16,8 @@ const Header = props =>{
     const location = useLocation();
     const { isAuthenticated, user: authUser, logout: logoutFromContext, demoLogin } = useAuth();
     const { unreadCounts, setUnreadCounts } = useUnread();
-    const [processing, setProcessing] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
     const socketRef = useRef(null);
-    const unreadFetchedRef = useRef(false);
     const pollIntervalRef = useRef(null);
 
     async function logOut(){
@@ -87,8 +84,8 @@ const Header = props =>{
         return localStorage.getItem(`demoConciergeOpened:${sessionId}`) === '1';
     };
     
-    // Fetch unread from server and update context (shared between socket events and polling)
-    const fetchAndFilterUnread = async () => {
+    // Fetch unread from server and update context
+    const fetchUnread = async () => {
         if (!authUser?.username) return;
 
         const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
@@ -99,49 +96,16 @@ const Header = props =>{
 
         try {
             const profile = await getUserProfile(authUser.username);
-            let unread = Array.isArray(profile?.unread) ? profile.unread : [];
-
-            // Deduplicate (DB may have mixed ObjectId/string entries that serialize the same)
-            unread = [...new Set(unread.map(id => String(id)))];
-
-            // Only keep IDs that match an actual conversation the user has
-            const chatIds = Array.isArray(profile?.chats)
-                ? new Set(profile.chats.map(id => String(id)))
-                : new Set();
-            if (chatIds.size > 0) {
-                unread = unread.filter(id => chatIds.has(String(id)));
-            }
-
-            // Filter out conversations already read this session
-            try {
-                const read = JSON.parse(sessionStorage.getItem('readConversations') || '[]');
-                if (read.length > 0) {
-                    const readSet = new Set(read);
-                    unread = unread.filter(id => !readSet.has(String(id)));
-                }
-            } catch (_) { /* ignore parse errors */ }
-
+            const unread = Array.isArray(profile?.unread)
+                ? profile.unread.map(id => String(id))
+                : [];
             setUnreadCounts(unread);
         } catch (e) {
             console.error('Error fetching unread:', e);
         }
     };
 
-    // One-time cleanup: deduplicate and prune stale unread entries in the DB
-    useEffect(() => {
-        if (!authUser?.username) return;
-        const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
-        if (isDemoUser) return;
-        const key = `unreadCleaned:${authUser.username}`;
-        if (sessionStorage.getItem(key)) return;
-        sessionStorage.setItem(key, '1');
-        api.post('/api/profile/cleanup-unread', { username: authUser.username })
-            .then(() => fetchAndFilterUnread())
-            .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [authUser?.username]);
-
-    // Initialize socket on /api/messages namespace (same as Messages page) so we receive unread events
+    // Initialize socket on /api/messages namespace so we receive unread events
     useEffect(() => {
         if (typeof window !== 'undefined' && path && isAuthenticated && authUser) {
             try {
@@ -160,11 +124,11 @@ const Header = props =>{
                     
                     socketRef.current.on('connect', () => {
                         console.log('✅ Socket.io connected to /api/messages (Header)');
-                        fetchAndFilterUnread();
+                        fetchUnread();
                     });
                     
                     socketRef.current.on('unread', () => {
-                        fetchAndFilterUnread();
+                        fetchUnread();
                     });
                     
                     socketRef.current.on('connect_error', (error) => {
@@ -174,7 +138,7 @@ const Header = props =>{
 
                 // Polling fallback: refetch every 30s in case socket events are missed
                 if (!pollIntervalRef.current) {
-                    pollIntervalRef.current = setInterval(fetchAndFilterUnread, 30000);
+                    pollIntervalRef.current = setInterval(fetchUnread, 30000);
                 }
             } catch (e) {
                 console.error('Error initializing socket:', e);
@@ -205,9 +169,7 @@ const Header = props =>{
     // Clear unread on logout
     useEffect(() => {
         if (!isAuthenticated) {
-            unreadFetchedRef.current = false;
             setUnreadCounts([]);
-            try { sessionStorage.removeItem('readConversations'); } catch (_) {}
         }
     }, [isAuthenticated, setUnreadCounts]);
 

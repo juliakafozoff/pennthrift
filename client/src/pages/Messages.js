@@ -61,8 +61,6 @@ const Messages = props => {
     const socketRef = useRef(null);
     const pendingStartConversationRef = useRef(null);
     
-    const readConversationsRef = useRef(new Set());
-    const autoSelectedRef = useRef(false);
     // Managed unreadCounts state - single source of truth for unread indicators
     const { unreadCounts, setUnreadCounts } = useUnread();
     
@@ -389,7 +387,7 @@ const Messages = props => {
     }, []); // Empty dependency array - run ONLY on mount
     
     
-    // Mark conversation as read when user explicitly selects it (not on auto-select)
+    // Mark conversation as read
     const markConversationAsRead = (conversationId) => {
         if (!conversationId) return;
 
@@ -410,17 +408,7 @@ const Messages = props => {
             return;
         }
 
-        const idStr = String(conversationId);
-        readConversationsRef.current.add(idStr);
-        try {
-            const stored = JSON.parse(sessionStorage.getItem('readConversations') || '[]');
-            if (!stored.includes(idStr)) {
-                stored.push(idStr);
-                sessionStorage.setItem('readConversations', JSON.stringify(stored));
-            }
-        } catch (_) { /* ignore parse errors */ }
-
-        setUnreadCounts(prev => prev.filter(id => String(id) !== idStr));
+        setUnreadCounts(prev => prev.filter(id => String(id) !== String(conversationId)));
 
         const username = user || authUser?.username;
         if (username) {
@@ -431,16 +419,10 @@ const Messages = props => {
         }
     };
     
-    // Only mark as read when conversation changes and it wasn't auto-selected
+    // Mark as read when conversation changes (click, direct URL, or auto-select)
     useEffect(() => {
         const selectedId = routeConvoId || activeConversationId;
         if (!selectedId) return;
-
-        if (autoSelectedRef.current) {
-            autoSelectedRef.current = false;
-            return;
-        }
-
         markConversationAsRead(selectedId);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [routeConvoId, activeConversationId]);
@@ -496,7 +478,6 @@ const Messages = props => {
             const firstChatId = getConvoId(firstChat);
             if (firstChatId) {
                 console.log('[MESSAGES] Auto-selecting first conversation:', firstChatId);
-                autoSelectedRef.current = true;
                 navigate(`/profile/messages/${firstChatId}`, { replace: true });
                 setActiveConversationId(firstChatId);
             }
