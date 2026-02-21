@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getUserProfile } from '../api/ProfileAPI';
+import { getUserProfile, getUserChats } from '../api/ProfileAPI';
 import io from 'socket.io-client';
 import React from 'react';
 import { path } from '../api/ProfileAPI';
@@ -102,26 +102,36 @@ const Header = props =>{
                         timeout: 20000
                     });
                     
+                    const fetchAndFilterUnread = async () => {
+                        if (!authUser?.username) return;
+                        try {
+                            const profile = await getUserProfile(authUser.username);
+                            let unread = Array.isArray(profile?.unread) ? profile.unread : [];
+
+                            // For demo users, filter out the concierge conversation if already opened
+                            if (hasOpenedConcierge() && unread.length > 0) {
+                                const chats = await getUserChats(authUser.username);
+                                const conciergeChat = Array.isArray(chats)
+                                    ? chats.find(c => Array.isArray(c.users) && c.users.includes('franklindesk'))
+                                    : null;
+                                if (conciergeChat) {
+                                    const cid = String(conciergeChat._id || conciergeChat.id);
+                                    unread = unread.filter(id => String(id) !== cid);
+                                }
+                            }
+
+                            setUnreadCounts(unread);
+                        } catch (e) {
+                            console.error('Error fetching unread:', e);
+                        }
+                    };
+
                     socketRef.current.on('connect', () => {
                         console.log('✅ Socket.io connected (Header)');
-                        // Fetch unread counts once socket is connected
-                        if (authUser?.username) {
-                            getUserProfile(authUser.username).then(profile => {
-                                const serverUnread = Array.isArray(profile?.unread) ? profile.unread : [];
-                                setUnreadCounts(serverUnread);
-                            }).catch(e => console.error('Error fetching unread:', e));
-                        }
+                        fetchAndFilterUnread();
                     });
                     
-                    // Re-fetch unread when another client sends a message to this user
-                    socketRef.current.on('unread', () => {
-                        if (authUser?.username) {
-                            getUserProfile(authUser.username).then(profile => {
-                                const serverUnread = Array.isArray(profile?.unread) ? profile.unread : [];
-                                setUnreadCounts(serverUnread);
-                            }).catch(e => console.error('Error refreshing unread:', e));
-                        }
-                    });
+                    socketRef.current.on('unread', fetchAndFilterUnread);
                     
                     socketRef.current.on('connect_error', (error) => {
                         console.error('❌ Socket.io connection error (Header):', error);
