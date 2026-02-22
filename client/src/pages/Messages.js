@@ -993,10 +993,12 @@ const Messages = props => {
                                     let lastMessage = '';
                                     let lastMessageTime = null;
                                     try {
-                                                    const messagesSafe = Array.isArray(chat.messages) ? chat.messages : [];
+                                        const messagesSafe = Array.isArray(chat.messages) ? chat.messages : [];
                                         if (messagesSafe.length > 0) {
                                             const lastMsg = messagesSafe[messagesSafe.length - 1];
-                                            lastMessage = lastMsg?.message || '';
+                                            const lastMsgText = lastMsg?.message || '';
+                                            const isOwnLastMsg = lastMsg?.sender === currentUsername;
+                                            lastMessage = isOwnLastMsg && lastMsgText ? `You: ${lastMsgText}` : lastMsgText;
                                             lastMessageTime = lastMsg?.timestamp || chat.updatedAt || null;
                                         }
                                     } catch {
@@ -1135,10 +1137,10 @@ const Messages = props => {
                                 </div>
                                 <div className='text-xs text-gray-500'>
                                     {draftReceiver?.bio 
-                                        ? draftReceiver.bio.substring(0, 50) + '...' 
+                                        ? draftReceiver.bio.substring(0, 50) + (draftReceiver.bio.length > 50 ? '...' : '')
                                         : receiver?.bio 
-                                            ? receiver.bio.substring(0, 50) + '...' 
-                                            : 'Active'}
+                                            ? receiver.bio.substring(0, 50) + (receiver.bio.length > 50 ? '...' : '')
+                                            : ''}
                                 </div>
                             </div>
                         </div>
