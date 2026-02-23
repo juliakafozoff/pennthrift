@@ -280,7 +280,7 @@ const Item = props => {
                                 {viewer === item.owner && (
                                     <button
                                         onClick={() => navigate(`/profile/edititem/${item._id}`)}
-                                        className="w-full py-3 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 transition-opacity font-medium"
+                                        className="w-full py-3 bg-[#001f54] text-white rounded-lg hover:opacity-90 transition-opacity font-medium"
                                     >
                                         Edit Listing
                                     </button>
@@ -298,7 +298,7 @@ const Item = props => {
                                                 setShowAuthModal(show);
                                             }
                                         })}
-                                        className="w-full py-3 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 transition-opacity font-medium"
+                                        className="w-full py-3 bg-[#001f54] text-white rounded-lg hover:opacity-90 transition-opacity font-medium"
                                     >
                                         Message Seller
                                     </button>
