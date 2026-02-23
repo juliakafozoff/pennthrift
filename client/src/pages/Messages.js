@@ -387,7 +387,7 @@ const Messages = props => {
     
     
     // Mark conversation as read
-    const markConversationAsRead = (conversationId) => {
+    const markConversationAsRead = async (conversationId) => {
         if (!conversationId) return;
 
         const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
@@ -411,10 +411,14 @@ const Messages = props => {
 
         const username = user || authUser?.username;
         if (username) {
-            api.post('/api/profile/clear-unread', {
-                username,
-                conversationId
-            }).catch(() => {});
+            try {
+                await api.post('/api/profile/clear-unread', {
+                    username,
+                    conversationId
+                });
+            } catch (err) {
+                console.error('[MESSAGES] Failed to clear unread on server:', err.message || err);
+            }
         }
     };
     
