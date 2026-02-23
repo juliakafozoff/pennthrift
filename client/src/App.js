@@ -18,6 +18,7 @@ import Profile from './pages/Profile';
 import EditProfile from './pages/EditProfile';
 import Store from './pages/Store';
 import NewItem from './pages/NewItem';
+import EditItem from './pages/EditItem';
 import User from './pages/User';
 import Analytics from './pages/Analytics';
 import Item from './pages/Item';
@@ -73,6 +74,7 @@ const AppLayout = () => {
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/edit" element={<EditProfile />} />
           <Route path="/profile/newitem" element={<NewItem />} />
+          <Route path="/profile/edititem/:id" element={<EditItem />} />
           <Route path="/profile/analytics" element={<Analytics />} />
           <Route path="/profile/favourites" element={<Favourites />} />
         </Route>

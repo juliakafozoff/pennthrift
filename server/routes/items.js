@@ -28,11 +28,22 @@ router.route('/delete/:id').delete((req, res) => {
         .catch(err => res.status(400).json('Error! ' + err))
 });
 
-// edit item by id
-router.route('/edit/:id').put((req, res) => {
-    Item.findByIdAndUpdate(req.params.id, req.body)
-        .then(item => res.status(204).json('Success! Item updated.'))
-        .catch(err => res.status(400).json('Error! ' + err))
+// edit item by id (with ownership check)
+router.route('/edit/:id').put(async (req, res) => {
+    try {
+        const item = await Item.findById(req.params.id);
+        if (!item) {
+            return res.status(404).json('Error! Item not found');
+        }
+        const username = req.user?.username;
+        if (username && item.owner && username !== item.owner) {
+            return res.status(403).json('Error! You can only edit your own listings');
+        }
+        await Item.findByIdAndUpdate(req.params.id, req.body);
+        res.json('Success! Item updated.');
+    } catch (err) {
+        res.status(400).json('Error! ' + err);
+    }
 });
 
 //create a new item

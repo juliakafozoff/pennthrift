@@ -276,8 +276,18 @@ const Item = props => {
                                     </button>
                                 </div>
                                 
+                                {/* Owner actions */}
+                                {viewer === item.owner && (
+                                    <button
+                                        onClick={() => navigate(`/profile/edititem/${item._id}`)}
+                                        className="w-full py-3 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 transition-opacity font-medium"
+                                    >
+                                        Edit Listing
+                                    </button>
+                                )}
+
                                 {/* Message Seller */}
-                                {viewer !== item.owner && (
+                                {viewer && viewer !== item.owner && (
                                     <button
                                         onClick={() => openConversationUI(item.owner, {
                                             viewer,
