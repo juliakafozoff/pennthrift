@@ -10,7 +10,7 @@ const itemSchema = new Schema({
     description: {
         type: String,
         required: true,
-        maxLength: 100,
+        maxLength: 1000,
     },
     image: {
         type: String,
@@ -18,6 +18,9 @@ const itemSchema = new Schema({
     },
     category:{
         type:String,
+    },
+    condition: {
+        type: String,
     },
     price: {
         type:Number

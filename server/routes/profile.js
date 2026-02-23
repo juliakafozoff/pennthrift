@@ -122,23 +122,24 @@ router.route('/edit/:username').put((req, res) => {
 });
 
 //add items under a user (case-insensitive username lookup)
-router.route('/item/new').post((req, res) => {
-    const query = buildUsernameQuery(req.body.username);
-    User.findOne(query)
-        .then(user => {
-            if (!user) {
-                return res.status(404).json('Error! User not found');
-            }
-            const newItem = new Item(req.body);
-            newItem.save().then().catch((err) => res.status(400).json(err));
-            User.findOneAndUpdate(
-                { _id:user._id },
-                { $addToSet: { items:newItem } }
-            ).exec();
-            res.json('Item added succesfully');
-        })
-        .catch(err => res.status(400).json('Error! ' + err))
-    
+router.route('/item/new').post(async (req, res) => {
+    try {
+        const query = buildUsernameQuery(req.body.username);
+        const user = await User.findOne(query);
+        if (!user) {
+            return res.status(404).json('Error! User not found');
+        }
+        const newItem = new Item(req.body);
+        await newItem.save();
+        await User.findOneAndUpdate(
+            { _id: user._id },
+            { $addToSet: { items: newItem } }
+        );
+        res.json('Item added succesfully');
+    } catch (err) {
+        console.error('[ITEM/NEW] Error creating item:', err.message || err);
+        res.status(400).json('Error! ' + (err.message || err));
+    }
 })
 
 router.route('/favourites/update').post(( req, res) => {

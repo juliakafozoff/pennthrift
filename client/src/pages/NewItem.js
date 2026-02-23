@@ -38,21 +38,18 @@ const NewItem = props => {
         e.preventDefault();
         const priceValue = price === '' ? 0 : parseFloat(price);
         
-        if(itemName && description && category && priceValue && user && userID && image){
+        if(itemName && description && category && condition && priceValue && user && userID && image){
             setLoading(true);
             setError('');
             var formData = new FormData();
             formData.append("file", image);
-            // Don't set Content-Type header - browser must set it with boundary parameter
             api.post('/api/file/upload', formData).then( res => {
-                // Backend returns JSON: { path, url, filename }
-                // Use url (full URL) for better compatibility, fallback to path or old format
-                // The normalizeImageUrl utility will handle both relative paths and full URLs
                 let imageUrl = res.data?.url || res.data?.path || res.data; 
                 const data = {
                     name:itemName,
                     description:description,
                     category:category,
+                    condition:condition,
                     username:user,
                     price:priceValue,
                     owner:user,
@@ -66,10 +63,12 @@ const NewItem = props => {
                         navigate('/profile', { replace:true })
                     }
                 }).catch(err => {
+                    console.error('[NEW ITEM] Failed to create listing:', err.response?.data || err.message);
                     setError('Failed to create listing. Please try again.');
                     setLoading(false);
                 });
             }).catch(err => {
+                console.error('[NEW ITEM] Failed to upload image:', err.response?.data || err.message);
                 setError('Failed to upload image. Please try again.');
                 setLoading(false);
             });
