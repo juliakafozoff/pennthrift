@@ -59,6 +59,7 @@ const Messages = props => {
     const [joined, setJoined] = useState(false);
     const socketRef = useRef(null);
     const pendingStartConversationRef = useRef(null);
+    const chatRefreshAttemptedRef = useRef(null);
     
     // Managed unreadCounts state - single source of truth for unread indicators
     const { unreadCounts, setUnreadCounts } = useUnread();
@@ -778,9 +779,20 @@ const Messages = props => {
                         pendingStartConversationRef.current = null;
                         const users = [authUser.username, target];
                         socketRef.current.emit('get-open', users);
-                        socketRef.current.once('message-navigate', id => {
+                        socketRef.current.once('message-navigate', async (id) => {
                             const chatId = typeof id === 'string' ? id : String(id);
                             if (chatId && chatId !== '[object Object]' && chatId !== 'undefined') {
+                                const currentUser = user || authUser?.username;
+                                if (currentUser) {
+                                    try {
+                                        const updatedChats = await getUserChats(currentUser);
+                                        if (Array.isArray(updatedChats)) {
+                                            setChats(updatedChats);
+                                        }
+                                    } catch (e) {
+                                        console.error('Error refreshing chats after conversation created:', e);
+                                    }
+                                }
                                 navigate(`/profile/messages/${chatId}`, { replace: true });
                             }
                         });
@@ -821,7 +833,15 @@ const Messages = props => {
             }
         } else if(routeConvoId && !selectedConversation) {
             console.warn('[MESSAGES] Route ID exists but conversation not found:', routeConvoId);
-            // Don't redirect - might be loading
+            const currentUser = user || authUser?.username;
+            if (currentUser && chatRefreshAttemptedRef.current !== routeConvoId) {
+                chatRefreshAttemptedRef.current = routeConvoId;
+                getUserChats(currentUser).then(updatedChats => {
+                    if (Array.isArray(updatedChats)) {
+                        setChats(updatedChats);
+                    }
+                }).catch(e => console.error('Error refreshing chats:', e));
+            }
         }
         
         if(socketRef.current){
@@ -929,7 +949,7 @@ const Messages = props => {
     // unreadCounts is now managed state (defined above)
 
     return(
-        <div className="h-screen flex flex-col bg-[var(--color-bg)]">
+        <div className="h-[calc(100vh-6rem)] flex flex-col bg-[var(--color-bg)]">
             <MessagingBlockedModal 
                 isOpen={showMessagingBlockedModal}
                 onClose={() => setShowMessagingBlockedModal(false)}
