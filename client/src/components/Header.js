@@ -176,7 +176,7 @@ const Header = props =>{
     return(
         <header 
             data-testid="header" 
-            className="w-full bg-[var(--color-surface)] border-b border-[var(--color-border)] shadow-sm sticky top-0 z-50"
+            className="w-full bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50"
         >
             <div className="container max-w-7xl mx-auto px-4">
                 <div className="flex items-center justify-between h-24 gap-4">

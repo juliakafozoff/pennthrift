@@ -215,7 +215,7 @@ const Item = props => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Left Column - Item Details */}
                     <div className="lg:col-span-1">
-                        <Card className="overflow-hidden">
+                        <Card padding="none">
                             <div className="aspect-square overflow-hidden bg-[var(--color-surface-2)] rounded-t-lg">
                                 <img 
                                     src={item.image ? normalizeImageUrl(item.image) : placeholder} 
