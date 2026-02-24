@@ -245,7 +245,7 @@ const Header = props =>{
                                         }
                                     }}
                                 >
-                                    Try Demo Quaker
+                                    Try Demo
                                 </Button>
                                 <Link to="/login">
                                     <Button variant="secondary" className="text-sm">

@@ -53,7 +53,7 @@ const AuthRequiredModal = ({ isOpen, onClose, onSuccess, title, body }) => {
                         disabled={isLoading}
                         className="w-full"
                     >
-                        {isLoading ? 'Loading...' : 'Try Demo Quaker'}
+                        {isLoading ? 'Loading...' : 'Try Demo'}
                     </Button>
                     
                     <div className="flex gap-2">
