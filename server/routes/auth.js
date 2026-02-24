@@ -30,9 +30,13 @@ const ensureFranklinDeskUser = async () => {
             password: hashedPassword,
             bio: 'PennThrift Welcome Concierge',
             class_year: null,
-            isSystem: true // Flag to identify system user
+            isSystem: true,
+            profile_pic: '/ben-franklin-demo-user.png'
         });
         await franklinDesk.save();
+    } else if (!franklinDesk.profile_pic || !String(franklinDesk.profile_pic).trim()) {
+        await User.findByIdAndUpdate(franklinDesk._id, { $set: { profile_pic: '/ben-franklin-demo-user.png' } });
+        franklinDesk.profile_pic = '/ben-franklin-demo-user.png';
     }
     
     return franklinDesk;

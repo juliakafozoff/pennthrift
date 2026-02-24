@@ -242,10 +242,16 @@ router.route('/chats/:username').get((req, res) => {
                 ]
             }).select('username usernameLower profile_pic').lean();
 
+            const FRANKLIN_DESK_PIC = '/ben-franklin-demo-user.png';
             const picByLower = {};
             otherUsers.forEach(u => {
                 const key = (u.usernameLower || u.username || '').toLowerCase();
-                if (key) picByLower[key] = sanitizeProfilePic(u.profile_pic) || null;
+                if (!key) return;
+                if (key === 'franklindesk') {
+                    picByLower[key] = FRANKLIN_DESK_PIC;
+                } else {
+                    picByLower[key] = sanitizeProfilePic(u.profile_pic) || null;
+                }
             });
 
             const enriched = chats.map(chat => {

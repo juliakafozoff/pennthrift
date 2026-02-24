@@ -11,6 +11,7 @@ import io from 'socket.io-client';
 import { path } from '../api/ProfileAPI';
 import { normalizeImageUrl, getUserInitial } from "../utils/imageUtils";
 import benFranklinThoughtBubble from '../assets/benjamin-franklin-thought-bubble.png';
+import conciergeAvatar from '../assets/ben-franklin-demo-user.png';
 import { useAuth } from '../contexts/AuthContext';
 import { useUnread } from '../contexts/UnreadContext';
 import MessagingBlockedModal from '../components/MessagingBlockedModal';
@@ -445,11 +446,11 @@ const Messages = props => {
         // Special case for concierge: set receiver immediately
         const isConcierge = selectedUsers.includes('franklindesk');
         if (isConcierge) {
-            // Set lightweight receiver object immediately for concierge
+            // Set lightweight receiver object immediately for concierge (bundled avatar so it always loads)
             setReceiver({
                 username: 'franklindesk',
                 name: 'Franklin Desk',
-                profile_pic: '/ben-franklin-demo-user.png',
+                profile_pic: conciergeAvatar,
                 bio: 'Your PennThrift concierge'
             });
             return; // Don't fetch profile for concierge
@@ -1052,14 +1053,16 @@ const Messages = props => {
                                             <div className='flex items-center gap-3 px-4 py-3'>
                                                 {/* Avatar */}
                                                 <div className='flex-shrink-0 relative'>
-                                                    {chat.image && !hasFailed && normalizeImageUrl(chat.image) ? (
+                                                    {(isConciergeThread ? conciergeAvatar : (chat.image && !hasFailed && normalizeImageUrl(chat.image))) ? (
                                                         <>
                                                             <img 
-                                                                src={normalizeImageUrl(chat.image)} 
+                                                                src={isConciergeThread ? conciergeAvatar : normalizeImageUrl(chat.image)} 
                                                                 alt={displayUser}
                                                                 className='rounded-full h-12 w-12 object-cover'
                                                                 onError={(e) => {
-                                                                    setFailedAvatars(prev => new Set([...prev, avatarKey]));
+                                                                    if (!isConciergeThread) {
+                                                                        setFailedAvatars(prev => new Set([...prev, avatarKey]));
+                                                                    }
                                                                     e.target.style.display = 'none';
                                                                     const fallback = e.target.nextSibling;
                                                                     if (fallback) fallback.style.display = 'flex';
