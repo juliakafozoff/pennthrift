@@ -310,40 +310,34 @@ const Messages = props => {
         setUp();
     }, [users, user, allowed, receiver, sender]);
     
-    // Ensure concierge-only conversation exists for demo users on mount ONLY
-    // This deletes any old conversations and ensures only concierge thread exists
-    // Use ref guard to prevent re-running on route changes or state updates
+    // Ensure concierge conversation exists for demo users on mount (does NOT delete other conversations)
+    // Demo can have concierge + any user-to-user sessions (e.g. Jude) in their chat list
     useEffect(() => {
-        // Only run once on mount, not on every route change
         if (didEnsureConciergeRef.current) {
             return;
         }
         
-        const ensureConciergeOnlyForDemo = async () => {
+        const ensureConciergeForDemo = async () => {
             const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
-            // Capture startConversation/draftTo from initial URL; another effect may clear query before async completes
             const hadStartConversation = new URLSearchParams(location.search).get('startConversation');
             const hadDraftTo = new URLSearchParams(location.search).get('draftTo');
             if (isDemoUser && isAuthenticated) {
-                didEnsureConciergeRef.current = true; // Set guard immediately to prevent re-runs
+                didEnsureConciergeRef.current = true;
                 try {
-                    // Call ensure-concierge-only endpoint (deletes all, then creates concierge)
-                    await api.post('/api/auth/demo/ensure-concierge-only', {}, { withCredentials: true });
+                    // Ensure concierge exists only (no delete); other sessions (e.g. Jude) stay in list
+                    await api.post('/api/auth/demo/ensure-concierge-thread', {}, { withCredentials: true });
                     
-                    // Refresh chats after ensuring concierge-only
                     const currentUser = user || authUser?.username;
                     if (currentUser) {
                         const updatedChats = await getUserChats(currentUser);
                         if (Array.isArray(updatedChats)) {
-                            console.log('[MESSAGES] Chats updated after ensure:', updatedChats.map(c => getConvoId(c)));
+                            console.log('[MESSAGES] Chats after ensure-concierge-thread:', updatedChats.map(c => getConvoId(c)));
                             setChats(updatedChats);
                             
-                            // When demo opened draft or is starting a conversation, do NOT redirect to concierge.
                             if (hadDraftTo || hadStartConversation) {
                                 return;
                             }
                             
-                            // Auto-select concierge conversation if none selected
                             const currentSelectedId = routeConvoId || activeConversationId;
                             if (!currentSelectedId) {
                                 const conciergeChat = updatedChats.find(c => {
@@ -353,11 +347,7 @@ const Messages = props => {
                                 if (conciergeChat) {
                                     const conciergeId = getConvoId(conciergeChat);
                                     if (conciergeId) {
-                                        console.log('[MESSAGES] Auto-selecting concierge conversation:', conciergeId);
                                         setActiveConversationId(conciergeId);
-                                        
-                                        // Set demoConciergeOpened immediately so the Header
-                                        // can filter it out on the next page navigation
                                         let sid = sessionStorage.getItem('demoSessionId');
                                         if (!sid) {
                                             sid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -368,7 +358,6 @@ const Messages = props => {
                                             sessionStorage.setItem('demoSessionId', sid);
                                         }
                                         localStorage.setItem(`demoConciergeOpened:${sid}`, '1');
-                                        
                                         navigate(`/profile/messages/${conciergeId}`, { replace: false });
                                     }
                                 }
@@ -376,14 +365,11 @@ const Messages = props => {
                         }
                     }
                 } catch (error) {
-                    console.error('Error ensuring concierge only:', error);
-                    // If ensure fails, still try to load chats
+                    console.error('Error ensuring concierge thread:', error);
                     if (user) {
                         try {
                             const updatedChats = await getUserChats(user);
-                            if (Array.isArray(updatedChats)) {
-                                setChats(updatedChats);
-                            }
+                            if (Array.isArray(updatedChats)) setChats(updatedChats);
                         } catch (e) {
                             console.error('Error loading chats:', e);
                         }
@@ -392,8 +378,8 @@ const Messages = props => {
             }
         };
         
-        ensureConciergeOnlyForDemo();
-    }, []); // Empty dependency array - run ONLY on mount
+        ensureConciergeForDemo();
+    }, []);
     
     
     // Mark conversation as read
