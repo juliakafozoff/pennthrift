@@ -19,6 +19,11 @@ class Form extends Component{
         }
     }
 
+    handleFormSubmit = (e) => {
+        e.preventDefault();
+        this.handleSubmit();
+    }
+
     render(){
         const {name, error, userDetails, reset, loading, variant} = this.props;
         const isLoginVariant = variant === 'login';
@@ -27,51 +32,66 @@ class Form extends Component{
             ? 'w-full flex flex-col text-start'
             : `w-fit flex-col items-center text-start flex border-2 rounded-3xl pt-10 pb-2 px-16 ${hasError ? 'border-[#B31212]' : 'border-black'}`;
         const inputClasses = isLoginVariant
-            ? 'w-full text-sm my-2 h-11 px-3 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] focus:outline-none disabled:opacity-50'
+            ? 'w-full text-sm my-1.5 h-11 px-3 rounded-lg border border-gray-300 bg-white placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-0 focus-visible:border-[var(--color-primary)] disabled:opacity-50'
             : 'w-64 text-xs my-3 h-[45px] p-2 bg-[#F8F8F8]';
-        const labelClasses = isLoginVariant ? 'block text-sm font-medium text-gray-700 mt-3 mb-1' : 'w-full justify-self-start';
+        const labelClasses = isLoginVariant ? 'block text-sm font-medium text-gray-700 mt-2.5 first:mt-0 mb-0.5' : 'w-full justify-self-start';
         const submitIsPrimary = isLoginVariant;
         const submitClasses = submitIsPrimary
-            ? `my-4 w-full h-11 flex justify-center items-center rounded-lg font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-primary)] ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)]'}`
+            ? `mt-4 w-full h-11 flex justify-center items-center rounded-lg font-medium text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#001f54] disabled:opacity-60 disabled:cursor-not-allowed ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#001f54] hover:bg-[#003366] active:bg-[#001a47]'}`
             : `my-3 w-28 h-8 flex justify-center items-center ${loading ? 'bg-[#A0A0A0] cursor-not-allowed opacity-50' : 'bg-[#C4C4C4] cursor-pointer'}`;
+        const submitButton = (
+            <button
+                type={isLoginVariant ? 'submit' : 'button'}
+                className={submitClasses}
+                onClick={isLoginVariant ? undefined : this.handleSubmit}
+                disabled={loading}
+                aria-busy={loading}
+            >
+                {loading ? 'Loading...' : name}
+            </button>
+        );
+        const formContent = (
+            <>
+                <label data-testid="username-label" htmlFor="form-username" className={labelClasses}>Username</label>
+                <input
+                    id="form-username"
+                    data-testid="email"
+                    type="text"
+                    autoComplete="username"
+                    placeholder={isLoginVariant ? 'pennstudent' : undefined}
+                    className={inputClasses}
+                    onChange={(event) => this.setState({email:event.target.value})}
+                    onKeyPress={this.handleKeyPress}
+                    value={this.state.email}
+                    disabled={loading}
+                    aria-invalid={hasError}
+                />
+                <label className={labelClasses} htmlFor="form-password">Password</label>
+                <input
+                    id="form-password"
+                    type="password"
+                    autoComplete="current-password"
+                    placeholder={isLoginVariant ? '••••••••' : undefined}
+                    className={inputClasses}
+                    onChange={(event) => this.setState({password:event.target.value})}
+                    onKeyPress={this.handleKeyPress}
+                    value={this.state.password}
+                    disabled={loading}
+                    aria-invalid={hasError}
+                />
+                {submitButton}
+            </>
+        );
         return(
             <div data-testid="form" className="flex items-center flex-col">
                 <div className={containerClasses}>
-                    <label data-testid="username-label" htmlFor="form-username" className={labelClasses}>Username</label>
-                    <input
-                        id="form-username"
-                        data-testid="email"
-                        type="text"
-                        autoComplete="username"
-                        className={inputClasses}
-                        onChange={(event) => this.setState({email:event.target.value})}
-                        onKeyPress={this.handleKeyPress}
-                        value={this.state.email}
-                        disabled={loading}
-                        aria-invalid={hasError}
-                    />
-                    <label className={labelClasses} htmlFor="form-password">Password</label>
-                    <input
-                        id="form-password"
-                        type="password"
-                        autoComplete="current-password"
-                        className={inputClasses}
-                        onChange={(event) => this.setState({password:event.target.value})}
-                        onKeyPress={this.handleKeyPress}
-                        value={this.state.password}
-                        disabled={loading}
-                        aria-invalid={hasError}
-                    />
-                    <button
-                        type="button"
-                        className={submitClasses}
-                        onClick={this.handleSubmit}
-                        disabled={loading}
-                        onKeyPress={(e) => e.key === 'Enter' && !loading && this.handleSubmit()}
-                        aria-busy={loading}
-                    >
-                        {loading ? 'Loading...' : name}
-                    </button>
+                    {isLoginVariant ? (
+                        <form onSubmit={this.handleFormSubmit} className="w-full flex flex-col text-start">
+                            {formContent}
+                        </form>
+                    ) : (
+                        formContent
+                    )}
                 </div>
                 {hasError && (
                     <div className="mt-4 w-full rounded-lg bg-red-50 border border-red-200 flex justify-between items-center px-4 py-3">

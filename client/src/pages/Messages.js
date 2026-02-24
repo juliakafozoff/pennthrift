@@ -335,6 +335,13 @@ const Messages = props => {
                             console.log('[MESSAGES] Chats updated after ensure:', updatedChats.map(c => getConvoId(c)));
                             setChats(updatedChats);
                             
+                            // When demo opened a draft thread with another user (draftTo in URL),
+                            // do NOT redirect to concierge — keep them on the draft view; send will show the blocked modal.
+                            const draftToParam = new URLSearchParams(location.search).get('draftTo');
+                            if (draftToParam) {
+                                return;
+                            }
+                            
                             // Auto-select concierge conversation if none selected
                             const currentSelectedId = routeConvoId || activeConversationId;
                             if (!currentSelectedId) {

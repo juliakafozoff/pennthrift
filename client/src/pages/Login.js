@@ -3,7 +3,6 @@ import Form from '../components/Form';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import api from '../api/http';
 import { useAuth } from '../contexts/AuthContext';
-import { Button } from '../components/ui';
 
 const logoImg = require('../assets/logo.png');
 
@@ -108,11 +107,11 @@ const Login = () => {
     
     return (
         <div className="min-h-screen w-full bg-[var(--color-surface-2)] flex flex-col">
-            {/* Back to Home - top-left, outside card */}
-            <div className="flex-shrink-0 pt-4 pl-4 sm:pl-6">
+            {/* Back to Home - top-left, aligned to card column */}
+            <div className="flex-shrink-0 w-full max-w-[420px] mx-auto px-4 sm:px-6 pt-4 pb-0">
                 <Link 
                     to="/" 
-                    className="inline-block text-sm text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] rounded"
+                    className="inline-block text-sm text-gray-600 hover:text-[var(--color-text)] hover:underline transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] rounded"
                 >
                     ← Back to Home
                 </Link>
@@ -120,19 +119,19 @@ const Login = () => {
 
             {/* Centered card */}
             <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
-                <div className="w-full max-w-[420px] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-[var(--shadow-md)] p-6 sm:p-8">
+                <div className="w-full max-w-[420px] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-[var(--shadow-md)] p-5 sm:p-6">
                     {/* Brand: logo + wordmark */}
-                    <div className="flex items-center justify-center gap-2.5 mb-6">
+                    <div className="flex items-center justify-center gap-2.5 mb-4">
                         <img 
                             src={logoImg} 
                             alt="" 
-                            className="h-9 w-9 object-contain"
+                            className="h-10 w-10 object-contain"
                             aria-hidden
                         />
-                        <span className="text-xl font-semibold text-[var(--color-text)]">PennThrift</span>
+                        <span className="text-xl font-bold text-[var(--color-text)]">PennThrift</span>
                     </div>
-                    <h1 className="text-2xl font-semibold text-center text-[var(--color-text)] mb-1">Welcome back!</h1>
-                    <p className="text-sm text-[var(--color-muted)] text-center mb-6">Log in to buy, sell, and message Penn students.</p>
+                    <h1 className="text-2xl font-semibold text-center text-[var(--color-text)] mb-0.5">Welcome back!</h1>
+                    <p className="text-sm text-[var(--color-muted)] text-center mb-4">Log in to buy, sell, and message Penn students.</p>
 
                     {/* Login form (primary flow) */}
                     <Form
@@ -144,23 +143,22 @@ const Login = () => {
                         variant="login"
                     />
 
-                    {/* Demo: secondary below form */}
-                    <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
-                        <Button
-                            variant="secondary"
+                    {/* Demo: secondary (outline) below form */}
+                    <div className="mt-4 pt-4 border-t border-[var(--color-border)]">
+                        <p className="mb-2 text-xs text-[var(--color-muted)] text-center">Uses a sample account — no password needed.</p>
+                        <button
                             type="button"
                             onClick={handleDemoLogin}
                             disabled={demoLoading || loading}
-                            className="w-full"
+                            className="w-full min-h-[44px] py-2.5 px-4 rounded-lg font-medium text-[#001f54] bg-transparent border-2 border-[#001f54] hover:bg-[var(--color-primary-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#001f54] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             aria-label="Try demo account"
                         >
                             {demoLoading ? 'Loading...' : 'Try demo'}
-                        </Button>
-                        <p className="mt-2 text-xs text-[var(--color-muted)] text-center">Uses a sample account — no password needed.</p>
+                        </button>
                     </div>
 
                     {/* Register link */}
-                    <div className="mt-6 text-center text-sm text-[var(--color-muted)]">
+                    <div className="mt-4 text-center text-sm text-[var(--color-muted)]">
                         Don&apos;t have an account?{' '}
                         <Link 
                             to="/register" 
