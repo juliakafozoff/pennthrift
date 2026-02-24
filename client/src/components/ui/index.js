@@ -1,4 +1,5 @@
 export { Button } from './Button';
+export { Spinner } from './Spinner';
 export { Card } from './Card';
 export { Field } from './Field';
 export { Input } from './Input';

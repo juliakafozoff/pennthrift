@@ -8,7 +8,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import io from 'socket.io-client';
 import { path } from "../api/ProfileAPI";
 import { useAuth } from "../contexts/AuthContext";
-import { Card, Badge, Button } from "../components/ui";
+import { Card, Badge, Button, Spinner } from "../components/ui";
 import { normalizeImageUrl, getUserInitial } from "../utils/imageUtils";
 import { formatUsername } from "../utils/usernameUtils";
 import MessagingBlockedModal from "../components/MessagingBlockedModal";
@@ -203,15 +203,7 @@ const  User = props => {
                 <div className="container py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-center py-16">
                         <div className="text-center">
-                            <svg 
-                                className="animate-spin h-8 w-8 text-[var(--color-primary)] mx-auto mb-4" 
-                                xmlns="http://www.w3.org/2000/svg" 
-                                fill="none" 
-                                viewBox="0 0 24 24"
-                            >
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
+                            <Spinner className="h-8 w-8 mx-auto mb-4" alt="" />
                             <p className="text-base text-[var(--color-muted)]">Loading profile...</p>
                         </div>
                     </div>
@@ -362,15 +354,7 @@ const  User = props => {
                             {itemsLoading ? (
                                 <div className="flex items-center justify-center py-16">
                                     <div className="text-center">
-                                        <svg 
-                                            className="animate-spin h-8 w-8 text-[var(--color-primary)] mx-auto mb-4" 
-                                            xmlns="http://www.w3.org/2000/svg" 
-                                            fill="none" 
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
+                                        <Spinner className="h-8 w-8 mx-auto mb-4" alt="" />
                                         <p className="text-base text-[var(--color-muted)]">Loading items...</p>
                                     </div>
                                 </div>

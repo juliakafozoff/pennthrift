@@ -10,6 +10,7 @@ import {
 } from "react-router-dom";
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UnreadProvider } from './contexts/UnreadContext';
+import { Spinner } from './components/ui';
 import Header from './components/Header';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -34,7 +35,8 @@ const ProtectedRoute = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--color-bg)] flex flex-col items-center justify-center gap-4">
+        <Spinner className="h-12 w-12" alt="" />
         <div className="text-[var(--color-muted)]">Loading...</div>
       </div>
     );
