@@ -57,6 +57,13 @@ const sanitizeUser = (user) => {
         userObj.profile_pic = sanitizeProfilePic(userObj.profile_pic);
     }
     
+    // Always return Demo Quaker defaults for demo user (so correct avatar/bio/venmo show everywhere)
+    if (userObj.username === 'demo' || userObj.isDemo === true) {
+        userObj.profile_pic = '/demo-user-avatar.png';
+        userObj.bio = 'Demo Quaker - try out PennThrift!';
+        userObj.venmo = '@pennquaker';
+    }
+    
     // Ensure password is never included
     delete userObj.password;
     
@@ -88,7 +95,6 @@ router.route('/:username').get((req, res) => {
         ]
     }).select('-password')
     .then(user => {
-        // Sanitize profile_pic URL before sending
         const sanitizedUser = sanitizeUser(user);
         res.json(sanitizedUser);
     })
