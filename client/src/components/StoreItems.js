@@ -62,14 +62,10 @@ export default class StoreItems extends Component{
             const favouritesSafe = Array.isArray(this.state.favourites) ? this.state.favourites : [];
             const user = this.props.user;
             
-            // Check if user is authenticated
+            // Check if user is authenticated - show non-blocking message, do not open modal
             if (!user) {
-                // Call onAuthRequired callback if provided
-                if (this.props.onAuthRequired) {
-                    this.props.onAuthRequired(() => {
-                        // After auth, retry the favorite action
-                        this.update(id);
-                    });
+                if (this.props.onLoginPrompt) {
+                    this.props.onLoginPrompt();
                 }
                 return;
             }
@@ -169,17 +165,19 @@ export default class StoreItems extends Component{
                                 </Link>
                                 <div className='p-4 space-y-3'>
                                     <div className="flex items-start justify-between gap-2">
-                                        {item.category && (
-                                            <Badge variant="default" className="text-xs">
-                                                {item.category}
-                                            </Badge>
-                                        )}
+                                        <h3 className="font-semibold text-[var(--color-text)] flex-1 min-h-[2.5rem] overflow-hidden" style={{
+                                            display: '-webkit-box',
+                                            WebkitLineClamp: 2,
+                                            WebkitBoxOrient: 'vertical'
+                                        }}>
+                                            {item.name || 'Untitled'}
+                                        </h3>
                                         <button
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 update(item._id);
                                             }}
-                                            className="p-1.5 rounded-full hover:bg-[var(--color-surface-2)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                            className="p-2.5 rounded-full hover:bg-[var(--color-surface-2)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0 -m-1"
                                             aria-label={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
                                         >
                                             <img 
@@ -189,27 +187,25 @@ export default class StoreItems extends Component{
                                             />
                                         </button>
                                     </div>
-                                    <div>
-                                        <h3 className="font-semibold text-[var(--color-text)] mb-1 min-h-[2.5rem] overflow-hidden" style={{
-                                            display: '-webkit-box',
-                                            WebkitLineClamp: 2,
-                                            WebkitBoxOrient: 'vertical'
-                                        }}>
-                                            {item.name || 'Untitled'}
-                                        </h3>
-                                        <p className="text-lg font-semibold text-[var(--color-primary)]">
-                                            ${item.price ? parseFloat(item.price).toFixed(2) : '0.00'}
-                                        </p>
+                                    <p className="text-xl font-bold text-[var(--color-primary)]">
+                                        ${item.price ? parseFloat(item.price).toFixed(2) : '0.00'}
+                                    </p>
+                                    <div className="flex items-center justify-between gap-2">
+                                        {item.category && (
+                                            <span className="text-xs text-[var(--color-muted)] truncate">
+                                                {item.category}
+                                            </span>
+                                        )}
+                                        {item.owner && (
+                                            <Link 
+                                                to={`/user/${item.owner}`} 
+                                                className='text-sm text-[var(--color-muted)] hover:text-[var(--color-primary)] hover:underline truncate'
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                {formatHandle(item.owner)}
+                                            </Link>
+                                        )}
                                     </div>
-                                    {item.owner && (
-                                        <Link 
-                                            to={`/user/${item.owner}`} 
-                                            className='text-sm text-[var(--color-primary)] hover:underline block truncate'
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            {formatHandle(item.owner)}
-                                        </Link>
-                                    )}
                                 </div>
                             </Card>
                         )

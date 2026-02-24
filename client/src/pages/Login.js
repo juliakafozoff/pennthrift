@@ -127,7 +127,7 @@ const Login = () => {
                         disabled={demoLoading || loading}
                         className="w-full"
                     >
-                        {demoLoading ? 'Loading...' : 'Try Demo'}
+                        {demoLoading ? 'Loading...' : 'Try Demo Quaker'}
                     </Button>
                 </div>
                 

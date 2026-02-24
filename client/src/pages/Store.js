@@ -12,6 +12,7 @@ export default class Store extends Component {
         items:[],
         keyword:'',
         searchCategories:[],
+        sortOption: 'default',
         user:'',
         processed:false,
         favourites:[],
@@ -19,6 +20,7 @@ export default class Store extends Component {
         loading: true,
         showAuthModal: false,
         authModalCallback: null,
+        loginMessage: '',
     }
     
     componentDidMount(){
@@ -97,38 +99,78 @@ export default class Store extends Component {
         }
     }
 
-    search(items){
+    componentWillUnmount() {
+        if (this.loginMessageTimer) clearTimeout(this.loginMessageTimer);
+    }
+
+    // Pipeline: allItems -> keywordFiltered -> categoryFiltered -> sortedItems
+    getKeywordFiltered(items, keyword) {
         const itemsSafe = Array.isArray(items) ? items : [];
-        if(itemsSafe.length === 0) return [];
-        
-        let searchedItems = []
-        const keyword = this.state.keyword ? this.state.keyword.toLowerCase() : '';
+        if (!keyword || !keyword.trim()) return itemsSafe;
+        const kw = keyword.toLowerCase().trim();
+        return itemsSafe.filter(item => item && item.name && item.name.toLowerCase().includes(kw));
+    }
+
+    getCategoryFiltered(items, searchCategories) {
+        const itemsSafe = Array.isArray(items) ? items : [];
+        if (!Array.isArray(searchCategories) || searchCategories.length === 0) return itemsSafe;
+        return itemsSafe.filter(item => item && item.category && searchCategories.includes(item.category));
+    }
+
+    getSortedItems(items, sortOption) {
+        const itemsSafe = Array.isArray(items) ? items : [];
+        if (!sortOption || sortOption === 'default') return [...itemsSafe];
+        const sorted = [...itemsSafe];
+        if (sortOption === 'price-asc') {
+            sorted.sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
+        } else if (sortOption === 'price-desc') {
+            sorted.sort((a, b) => (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0));
+        } else if (sortOption === 'title-asc') {
+            sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        } else if (sortOption === 'newest') {
+            sorted.sort((a, b) => {
+                const idA = (a._id && a._id.toString) ? a._id.toString() : '';
+                const idB = (b._id && b._id.toString) ? b._id.toString() : '';
+                return idB.localeCompare(idA);
+            });
+        }
+        return sorted;
+    }
+
+    getFilteredAndSortedItems() {
+        const itemsSafe = Array.isArray(this.state.items) ? this.state.items : [];
+        const keyword = this.state.keyword || '';
         const searchCategories = Array.isArray(this.state.searchCategories) ? this.state.searchCategories : [];
-        
-        if(searchCategories.length > 0){
-            itemsSafe.forEach( item => {
-                if(item && item.category && searchCategories.includes(item.category)){
-                    if(keyword && !searchedItems.includes(item) && item.name && item.name.toLowerCase().includes(keyword) ){
-                        searchedItems.push(item)
-                    }else if(!keyword && !searchedItems.includes(item)){
-                        searchedItems.push(item)
-                    }
-                }
-            })
-        }
-        if(keyword){
-            itemsSafe.forEach( item => {
-                if(item && item.name && item.name.toLowerCase().includes(keyword)){
-                    if(searchCategories.length > 0 && !searchedItems.includes(item) && item.category && searchCategories.includes(item.category)){
-                        searchedItems.push(item)
-                    }else if(searchCategories.length === 0 && !searchedItems.includes(item) ){
-                        searchedItems.push(item)
-                    }
-                }
-            })
-        }
-        const searched = !!keyword || searchCategories.length > 0 ;
-        return searchedItems.length > 0 || searched ? searchedItems : itemsSafe;
+        const sortOption = this.state.sortOption || 'default';
+
+        const keywordFiltered = this.getKeywordFiltered(itemsSafe, keyword);
+        const categoryFiltered = this.getCategoryFiltered(keywordFiltered, searchCategories);
+        const hasFilters = !!keyword.trim() || searchCategories.length > 0;
+        const filtered = hasFilters ? categoryFiltered : keywordFiltered;
+        return this.getSortedItems(filtered, sortOption);
+    }
+
+    getCategoryCounts(items) {
+        const itemsSafe = Array.isArray(items) ? items : [];
+        const categories = ['Dorm & Home', 'Electronics', 'Books', 'Apparel', 'Tickets & Events', 'Other'];
+        const counts = {};
+        categories.forEach(cat => { counts[cat] = 0; });
+        itemsSafe.forEach(item => {
+            if (item && item.category && counts.hasOwnProperty(item.category)) {
+                counts[item.category]++;
+            }
+        });
+        return counts;
+    }
+
+    clearFilters = () => {
+        this.setState({ keyword: '', searchCategories: [], sortOption: 'default' });
+    }
+
+    showLoginMessage = () => {
+        this.setState({ loginMessage: 'Log in to save items' });
+        if (this.loginMessageTimer) clearTimeout(this.loginMessageTimer);
+        this.loginMessageTimer = setTimeout(() => this.setState({ loginMessage: '' }), 3000);
     }
     addSearchCategory(category){
         let searchCategories = [...this.state.searchCategories];
@@ -163,10 +205,19 @@ export default class Store extends Component {
         const categories  = ['Dorm & Home', 'Electronics', 'Books', 'Apparel', 'Tickets & Events', 'Other'];
         
         const itemsSafe = Array.isArray(this.state.items) ? this.state.items : [];
-        const searchResults = this.search(itemsSafe);
-        const searchResultsSafe = Array.isArray(searchResults) ? searchResults : [];
-        const hasActiveFilters = this.state.keyword || (Array.isArray(this.state.searchCategories) && this.state.searchCategories.length > 0);
-        const resultCount = searchResultsSafe.length;
+        const keyword = this.state.keyword || '';
+        const searchCategories = Array.isArray(this.state.searchCategories) ? this.state.searchCategories : [];
+        const sortOption = this.state.sortOption || 'default';
+
+        const keywordFiltered = this.getKeywordFiltered(itemsSafe, keyword);
+        const categoryFiltered = this.getCategoryFiltered(keywordFiltered, searchCategories);
+        const hasKeywordOrCategory = !!keyword.trim() || searchCategories.length > 0;
+        const filteredItems = hasKeywordOrCategory ? categoryFiltered : keywordFiltered;
+        const sortedItems = this.getSortedItems(filteredItems, sortOption);
+
+        const categoryCounts = this.getCategoryCounts(filteredItems);
+        const hasActiveFilters = !!keyword.trim() || searchCategories.length > 0 || sortOption !== 'default';
+        const resultCount = sortedItems.length;
 
         return(
             <div className="min-h-screen bg-[var(--color-bg)]">
@@ -194,9 +245,9 @@ export default class Store extends Component {
                                 />
                                 {hasActiveFilters && (
                                     <div className="flex flex-wrap gap-2 pt-2 border-t border-[var(--color-border)]">
-                                        {this.state.keyword && (
-                                            <Badge variant="primary">
-                                                "{this.state.keyword}"
+                                        {keyword.trim() && (
+                                            <Badge variant="primary" className="inline-flex items-center">
+                                                Search: {keyword}
                                                 <button
                                                     onClick={() => this.setState({keyword: ''})}
                                                     className="ml-2 hover:opacity-70 min-w-[44px] min-h-[44px] flex items-center justify-center"
@@ -206,8 +257,8 @@ export default class Store extends Component {
                                                 </button>
                                             </Badge>
                                         )}
-                                        {Array.isArray(this.state.searchCategories) && this.state.searchCategories.map(cat => (
-                                            <Badge key={cat} variant="primary">
+                                        {searchCategories.map(cat => (
+                                            <Badge key={cat} variant="primary" className="inline-flex items-center">
                                                 {cat}
                                                 <button
                                                     onClick={() => this.addSearchCategory(cat)}
@@ -218,10 +269,20 @@ export default class Store extends Component {
                                                 </button>
                                             </Badge>
                                         ))}
+                                        {sortOption !== 'default' && (
+                                            <Badge variant="primary" className="inline-flex items-center">
+                                                Sort
+                                                <button
+                                                    onClick={() => this.setState({ sortOption: 'default' })}
+                                                    className="ml-2 hover:opacity-70 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                                    aria-label="Reset sort"
+                                                >
+                                                    ×
+                                                </button>
+                                            </Badge>
+                                        )}
                                         <button
-                                            onClick={() => {
-                                                this.setState({keyword: '', searchCategories: []});
-                                            }}
+                                            onClick={this.clearFilters}
                                             className="text-xs text-[var(--color-primary)] hover:underline px-3 py-2 min-h-[44px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] rounded"
                                         >
                                             Clear all
@@ -246,7 +307,8 @@ export default class Store extends Component {
                             <Card className="mt-2">
                                 <div className="grid grid-cols-2 gap-2">
                                     {categories.map(catg => {
-                                        const isSelected = Array.isArray(this.state.searchCategories) && this.state.searchCategories.includes(catg);
+                                        const isSelected = searchCategories.includes(catg);
+                                        const count = categoryCounts[catg] ?? 0;
                                         return (
                                             <label
                                                 key={catg}
@@ -259,7 +321,7 @@ export default class Store extends Component {
                                                     className="w-4 h-4 mr-2 text-[var(--color-primary)] border-[var(--color-border)] rounded focus:ring-[var(--color-primary)] focus:ring-2"
                                                 />
                                                 <span className="text-sm text-[var(--color-text)] group-hover:text-[var(--color-primary)] transition-colors">
-                                                    {catg}
+                                                    {catg} ({count})
                                                 </span>
                                             </label>
                                         );
@@ -290,12 +352,23 @@ export default class Store extends Component {
 
                                     {/* Categories */}
                                     <div>
-                                        <label className="block text-sm font-medium text-[var(--color-text)] mb-3">
-                                            Categories
-                                        </label>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <label className="block text-sm font-medium text-[var(--color-text)]">
+                                                Categories
+                                            </label>
+                                            {hasActiveFilters && (
+                                                <button
+                                                    onClick={this.clearFilters}
+                                                    className="text-xs text-[var(--color-primary)] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] rounded"
+                                                >
+                                                    Clear filters
+                                                </button>
+                                            )}
+                                        </div>
                                         <div className="space-y-2">
                                             {categories.map(catg => {
-                                                const isSelected = Array.isArray(this.state.searchCategories) && this.state.searchCategories.includes(catg);
+                                                const isSelected = searchCategories.includes(catg);
+                                                const count = categoryCounts[catg] ?? 0;
                                                 return (
                                                     <label
                                                         key={catg}
@@ -308,56 +381,13 @@ export default class Store extends Component {
                                                             className="w-4 h-4 mr-3 text-[var(--color-primary)] border-[var(--color-border)] rounded focus:ring-[var(--color-primary)] focus:ring-2"
                                                         />
                                                         <span className="text-sm text-[var(--color-text)] group-hover:text-[var(--color-primary)] transition-colors">
-                                                            {catg}
+                                                            {catg} ({count})
                                                         </span>
                                                     </label>
                                                 );
                                             })}
                                         </div>
                                     </div>
-
-                                    {/* Active Filters */}
-                                    {hasActiveFilters && (
-                                        <div>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="text-sm font-medium text-[var(--color-text)]">Active filters</span>
-                                                <button
-                                                    onClick={() => {
-                                                        this.setState({keyword: '', searchCategories: []});
-                                                    }}
-                                                    className="text-xs text-[var(--color-primary)] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] rounded"
-                                                >
-                                                    Clear all
-                                                </button>
-                                            </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {this.state.keyword && (
-                                                    <Badge variant="primary">
-                                                        "{this.state.keyword}"
-                                                        <button
-                                                            onClick={() => this.setState({keyword: ''})}
-                                                            className="ml-2 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-primary)] rounded"
-                                                            aria-label="Remove keyword filter"
-                                                        >
-                                                            ×
-                                                        </button>
-                                                    </Badge>
-                                                )}
-                                                {Array.isArray(this.state.searchCategories) && this.state.searchCategories.map(cat => (
-                                                    <Badge key={cat} variant="primary">
-                                                        {cat}
-                                                        <button
-                                                            onClick={() => this.addSearchCategory(cat)}
-                                                            className="ml-2 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-primary)] rounded"
-                                                            aria-label={`Remove ${cat} filter`}
-                                                        >
-                                                            ×
-                                                        </button>
-                                                    </Badge>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             </Card>
                         </aside>
@@ -381,15 +411,92 @@ export default class Store extends Component {
                                     </div>
                                 </Card>
                             )}
+
+                            {this.state.loginMessage && (
+                                <div className="mb-4 px-4 py-2 bg-[var(--color-primary-light)] text-[var(--color-primary)] rounded-lg text-sm">
+                                    {this.state.loginMessage}
+                                </div>
+                            )}
                             
-                            {!this.state.loading && !this.state.error && (
-                                <StoreItems
-                                    refresh={this.refresh}
-                                    favourites={Array.isArray(this.state.favourites) ? this.state.favourites : []}
-                                    user={this.state.user}
-                                    data={searchResultsSafe}
-                                    onAuthRequired={this.handleAuthRequired}
-                                />
+                            {!this.state.loading && !this.state.error && resultCount === 0 && (
+                                <div className="flex flex-col items-center justify-center py-16 px-4">
+                                    <p className="text-base text-[var(--color-muted)] mb-4">No items match your filters.</p>
+                                    <button
+                                        onClick={this.clearFilters}
+                                        className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 transition-opacity focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+                                    >
+                                        Clear filters
+                                    </button>
+                                </div>
+                            )}
+                            
+                            {!this.state.loading && !this.state.error && resultCount > 0 && (
+                                <>
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                                        {hasActiveFilters && (
+                                            <div className="flex flex-wrap gap-2 items-center">
+                                                {keyword.trim() && (
+                                                    <Badge variant="primary" className="inline-flex items-center gap-1">
+                                                        Search: {keyword}
+                                                        <button
+                                                            onClick={() => this.setState({ keyword: '' })}
+                                                            className="ml-1 hover:opacity-70 min-w-[28px] min-h-[28px] flex items-center justify-center rounded focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-primary)]"
+                                                            aria-label="Remove search filter"
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </Badge>
+                                                )}
+                                                {searchCategories.map(cat => (
+                                                    <Badge key={cat} variant="primary" className="inline-flex items-center gap-1">
+                                                        {cat}
+                                                        <button
+                                                            onClick={() => this.addSearchCategory(cat)}
+                                                            className="ml-1 hover:opacity-70 min-w-[28px] min-h-[28px] flex items-center justify-center rounded focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-primary)]"
+                                                            aria-label={`Remove ${cat} filter`}
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </Badge>
+                                                ))}
+                                                {sortOption !== 'default' && (
+                                                    <Badge variant="primary" className="inline-flex items-center gap-1">
+                                                        Sort: {sortOption === 'newest' ? 'Newest' : sortOption === 'price-asc' ? 'Price ↑' : sortOption === 'price-desc' ? 'Price ↓' : sortOption === 'title-asc' ? 'Title A→Z' : sortOption}
+                                                        <button
+                                                            onClick={() => this.setState({ sortOption: 'default' })}
+                                                            className="ml-1 hover:opacity-70 min-w-[28px] min-h-[28px] flex items-center justify-center rounded focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--color-primary)]"
+                                                            aria-label="Reset sort"
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        )}
+                                        <div className="flex items-center justify-end">
+                                            <label className="text-sm text-[var(--color-muted)] mr-2">Sort:</label>
+                                            <select
+                                                value={sortOption}
+                                                onChange={(e) => this.setState({ sortOption: e.target.value })}
+                                                className="text-sm border border-[var(--color-border)] rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]"
+                                            >
+                                                <option value="default">Default</option>
+                                                <option value="newest">Newest</option>
+                                                <option value="price-asc">Price: low → high</option>
+                                                <option value="price-desc">Price: high → low</option>
+                                                <option value="title-asc">Title: A → Z</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <StoreItems
+                                        refresh={this.refresh}
+                                        favourites={Array.isArray(this.state.favourites) ? this.state.favourites : []}
+                                        user={this.state.user}
+                                        data={sortedItems}
+                                        onAuthRequired={this.handleAuthRequired}
+                                        onLoginPrompt={this.showLoginMessage}
+                                    />
+                                </>
                             )}
                         </main>
                     </div>

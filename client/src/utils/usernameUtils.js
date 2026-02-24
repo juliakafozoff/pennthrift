@@ -9,6 +9,8 @@ export const formatUsername = (username) => {
     if (!username || typeof username !== 'string') {
         return '';
     }
+    const normalized = username.trim().toLowerCase();
+    if (normalized === 'demo') return 'Demo Quaker';
     // Capitalize first letter, keep rest as-is (should already be lowercase from backend)
     return username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
 };

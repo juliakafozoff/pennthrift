@@ -290,10 +290,10 @@ router.post('/demo', async (req, res) => {
                 username: DEMO_USERNAME,
                 usernameLower: DEMO_USERNAME,
                 password: hashedPassword,
-                bio: 'Demo user - try out PennThrift!',
+                bio: 'Demo Quaker - try out PennThrift!',
                 class_year: '2025',
-                profile_pic: '/ben-franklin-demo-user.png', // Default avatar
-                venmo: '@benjaminfranklin',
+                profile_pic: '/demo-user-avatar.png', // Quaker mascot avatar for demo user
+                venmo: '@pennquaker',
                 isDemo: true // Flag to identify demo user
             });
             await demoUser.save();
@@ -308,11 +308,11 @@ router.post('/demo', async (req, res) => {
             // (This is idempotent - safe to call multiple times)
             // Note: We don't check sessionStorage here since it's client-side only
             // The client will prevent overwriting if user has customized this session
-            if (!demoUser.profile_pic || !demoUser.profile_pic.trim() || demoUser.profile_pic === '/ben-franklin-demo-user.png') {
+            if (!demoUser.profile_pic || !demoUser.profile_pic.trim() || demoUser.profile_pic === '/ben-franklin-demo-user.png' || demoUser.profile_pic === '/demo-user-avatar.png') {
                 await User.findByIdAndUpdate(demoUser._id, {
-                    $set: { profile_pic: '/ben-franklin-demo-user.png' }
+                    $set: { profile_pic: '/demo-user-avatar.png' }
                 });
-                demoUser.profile_pic = '/ben-franklin-demo-user.png';
+                demoUser.profile_pic = '/demo-user-avatar.png';
             }
         }
         
@@ -603,8 +603,8 @@ router.post('/demo/logout', async (req, res) => {
                     chats: [], 
                     unread: [],
                     favourites: [],
-                    profile_pic: '/ben-franklin-demo-user.png', // Reset to default avatar
-                    venmo: '@benjaminfranklin' // Reset to default venmo
+                    profile_pic: '/demo-user-avatar.png', // Reset to Quaker mascot avatar
+                    venmo: '@pennquaker' // Reset to default venmo
                 } 
             }
         );

@@ -173,7 +173,7 @@ const AboutPopover = ({ children, trigger = 'hover' }) => {
                         Buying, trading, gifting, and thrifting at Penn.
                     </p>
                     <p className="text-xs text-gray-500 mb-3">
-                        Browse as a guest. Try Demo to save items, message sellers, and post listings.
+                        Browse as a guest. Try Demo Quaker to save items, message sellers, and post listings.
                     </p>
                     <div className="flex flex-wrap gap-2">
                         <FeatureBadge to="/store">

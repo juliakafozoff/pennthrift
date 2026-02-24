@@ -226,7 +226,7 @@ const Header = props =>{
                             <>
                                 {authUser.username === 'demo' && (
                                     <Badge variant="primary" className="mr-2">
-                                        Demo
+                                        Demo Quaker
                                     </Badge>
                                 )}
                                 <TopNav onLogout={logOut} />
@@ -245,7 +245,7 @@ const Header = props =>{
                                         }
                                     }}
                                 >
-                                    Try Demo
+                                    Try Demo Quaker
                                 </Button>
                                 <Link to="/login">
                                     <Button variant="secondary" className="text-sm">
