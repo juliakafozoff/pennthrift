@@ -20,61 +20,66 @@ class Form extends Component{
     }
 
     render(){
-        const {name, error, userDetails, reset, loading} = this.props;
-        // Only show error styling when error exists and is not empty
+        const {name, error, userDetails, reset, loading, variant} = this.props;
+        const isLoginVariant = variant === 'login';
         const hasError = error && error.trim() !== '';
-        const error_class = hasError ? 'border-[#B31212]' : 'border-black';
-        const classes = `w-fit  flex-col items-center text-start flex border-2 rounded-3xl pt-10 pb-2 px-16 ${error_class}`
+        const containerClasses = isLoginVariant
+            ? 'w-full flex flex-col text-start'
+            : `w-fit flex-col items-center text-start flex border-2 rounded-3xl pt-10 pb-2 px-16 ${hasError ? 'border-[#B31212]' : 'border-black'}`;
+        const inputClasses = isLoginVariant
+            ? 'w-full text-sm my-2 h-11 px-3 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] focus:outline-none disabled:opacity-50'
+            : 'w-64 text-xs my-3 h-[45px] p-2 bg-[#F8F8F8]';
+        const labelClasses = isLoginVariant ? 'block text-sm font-medium text-gray-700 mt-3 mb-1' : 'w-full justify-self-start';
+        const submitIsPrimary = isLoginVariant;
+        const submitClasses = submitIsPrimary
+            ? `my-4 w-full h-11 flex justify-center items-center rounded-lg font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-primary)] ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)]'}`
+            : `my-3 w-28 h-8 flex justify-center items-center ${loading ? 'bg-[#A0A0A0] cursor-not-allowed opacity-50' : 'bg-[#C4C4C4] cursor-pointer'}`;
         return(
             <div data-testid="form" className="flex items-center flex-col">
-                <div  className={classes}>
-                    <div data-testid="username-label" className="w-full justify-self-start">Username</div>
+                <div className={containerClasses}>
+                    <label data-testid="username-label" htmlFor="form-username" className={labelClasses}>Username</label>
                     <input
-                    data-testid="email"
-                        type='email'
-                        className="w-64 text-xs my-3 h-[45px] p-2 bg-[#F8F8F8]"
+                        id="form-username"
+                        data-testid="email"
+                        type="text"
+                        autoComplete="username"
+                        className={inputClasses}
                         onChange={(event) => this.setState({email:event.target.value})}
                         onKeyPress={this.handleKeyPress}
                         value={this.state.email}
                         disabled={loading}
-                    ></input>
-                    <div className="w-full justify-self-start">Password</div>
+                        aria-invalid={hasError}
+                    />
+                    <label className={labelClasses} htmlFor="form-password">Password</label>
                     <input
-                        type='password'
-                        className="w-64 text-xs my-3 h-[45px] p-2 bg-[#F8F8F8]"
+                        id="form-password"
+                        type="password"
+                        autoComplete="current-password"
+                        className={inputClasses}
                         onChange={(event) => this.setState({password:event.target.value})}
                         onKeyPress={this.handleKeyPress}
                         value={this.state.password}
                         disabled={loading}
-                    >
-                    </input>
-                    <div
-                        className={`my-3 w-28 h-8 flex justify-center items-center ${
-                            loading 
-                                ? 'bg-[#A0A0A0] cursor-not-allowed opacity-50' 
-                                : 'bg-[#C4C4C4] cursor-pointer'
-                        }`}
+                        aria-invalid={hasError}
+                    />
+                    <button
+                        type="button"
+                        className={submitClasses}
                         onClick={this.handleSubmit}
-                        role="button"
-                        tabIndex={0}
+                        disabled={loading}
                         onKeyPress={(e) => e.key === 'Enter' && !loading && this.handleSubmit()}
+                        aria-busy={loading}
                     >
                         {loading ? 'Loading...' : name}
-                    </div>
-                    
+                    </button>
                 </div>
                 {hasError && (
-                    <div className="bg-[#B312120D] my-10 border-[#B31212] border h-10 flex justify-center items-center p-5 text-center flex-row">
-                        <div data-testid="error" className="text-[#B31212]">{error}</div>
-                        <div 
-                            onClick={() => reset()}
-                            className="mx-5 cursor-pointer">
-                            <div className="text-[#B31212]">x</div>
-                        </div>
+                    <div className="mt-4 w-full rounded-lg bg-red-50 border border-red-200 flex justify-between items-center px-4 py-3">
+                        <span data-testid="error" className="text-sm text-red-700">{error}</span>
+                        <button type="button" onClick={() => reset()} className="text-red-600 hover:text-red-800 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded" aria-label="Dismiss error">×</button>
                     </div>
                 )}
             </div>
-            
         )
     }
 }

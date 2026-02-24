@@ -5,6 +5,8 @@ import api from '../api/http';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui';
 
+const logoImg = require('../assets/logo.png');
+
 const Login = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -13,7 +15,6 @@ const Login = () => {
     const [loading, setLoading] = useState(false);
     const [demoLoading, setDemoLoading] = useState(false);
     
-    // Get intended destination or default to /profile
     const from = location.state?.from?.pathname || '/profile';
 
     const handleDemoLogin = async () => {
@@ -106,57 +107,68 @@ const Login = () => {
     }
     
     return (
-        <div className='grid grid-main justify-center w-full h-full items-center'>
-            <div className='col-span-8 flex flex-col justify-center'>
-                {/* Back to Home link */}
+        <div className="min-h-screen w-full bg-[var(--color-surface-2)] flex flex-col">
+            {/* Back to Home - top-left, outside card */}
+            <div className="flex-shrink-0 pt-4 pl-4 sm:pl-6">
                 <Link 
                     to="/" 
-                    className="self-start mb-4 text-sm text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+                    className="inline-block text-sm text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] rounded"
                 >
                     ← Back to Home
                 </Link>
-                
-                <div className='my-5 text-center text-5xl'>Welcome back!</div>
-                <div className='w-full my-10 h-[1px] bg-[gray]'></div>
-                
-                {/* Try Demo button */}
-                <div className='mb-6'>
-                    <Button
-                        variant="primary"
-                        onClick={handleDemoLogin}
-                        disabled={demoLoading || loading}
-                        className="w-full"
-                    >
-                        {demoLoading ? 'Loading...' : 'Try Demo Quaker'}
-                    </Button>
-                </div>
-                
-                <div className='relative my-6'>
-                    <div className='absolute inset-0 flex items-center'>
-                        <div className='w-full border-t border-gray-300'></div>
+            </div>
+
+            {/* Centered card */}
+            <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
+                <div className="w-full max-w-[420px] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl shadow-[var(--shadow-md)] p-6 sm:p-8">
+                    {/* Brand: logo + wordmark */}
+                    <div className="flex items-center justify-center gap-2.5 mb-6">
+                        <img 
+                            src={logoImg} 
+                            alt="" 
+                            className="h-9 w-9 object-contain"
+                            aria-hidden
+                        />
+                        <span className="text-xl font-semibold text-[var(--color-text)]">PennThrift</span>
                     </div>
-                    <div className='relative flex justify-center text-sm'>
-                        <span className='px-2 bg-white text-gray-500'>Or</span>
+                    <h1 className="text-2xl font-semibold text-center text-[var(--color-text)] mb-1">Welcome back!</h1>
+                    <p className="text-sm text-[var(--color-muted)] text-center mb-6">Log in to buy, sell, and message Penn students.</p>
+
+                    {/* Login form (primary flow) */}
+                    <Form
+                        userDetails={handleLogin}
+                        reset={() => setError('')}
+                        error={error}
+                        loading={loading}
+                        name="Login"
+                        variant="login"
+                    />
+
+                    {/* Demo: secondary below form */}
+                    <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
+                        <Button
+                            variant="secondary"
+                            type="button"
+                            onClick={handleDemoLogin}
+                            disabled={demoLoading || loading}
+                            className="w-full"
+                            aria-label="Try demo account"
+                        >
+                            {demoLoading ? 'Loading...' : 'Try demo'}
+                        </Button>
+                        <p className="mt-2 text-xs text-[var(--color-muted)] text-center">Uses a sample account — no password needed.</p>
                     </div>
-                </div>
-                
-                <Form
-                    userDetails={handleLogin}
-                    reset={() => setError('')}
-                    error={error}
-                    loading={loading}
-                    name='Login'
-                />
-                
-                {/* Register link */}
-                <div className='mt-6 text-center text-sm text-[var(--color-muted)]'>
-                    Don't have an account?{' '}
-                    <Link 
-                        to="/register" 
-                        className="text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
-                    >
-                        Register
-                    </Link>
+
+                    {/* Register link */}
+                    <div className="mt-6 text-center text-sm text-[var(--color-muted)]">
+                        Don&apos;t have an account?{' '}
+                        <Link 
+                            to="/register" 
+                            className="text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] rounded"
+                        >
+                            Register
+                        </Link>
+                    </div>
                 </div>
             </div>
         </div>
