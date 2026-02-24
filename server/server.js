@@ -142,6 +142,28 @@ app.use('/api/file', upload);
 app.use('/api/analytics', analyticsRoutes);
 //app.use('/api/messages', messageRoutes)
 
+// One-time category migration endpoint
+app.post('/api/admin/migrate-categories', async (req, res) => {
+    try {
+        const { CATEGORY_MAP, VALID_CATEGORIES } = require('./scripts/migrate-categories');
+        const db = mongoose.connection.db;
+        const collection = db.collection('Item');
+        const items = await collection.find({}).toArray();
+        let updated = 0, skipped = 0;
+        for (const item of items) {
+            const oldCat = item.category;
+            if (!oldCat || VALID_CATEGORIES.includes(oldCat)) { skipped++; continue; }
+            const mapped = CATEGORY_MAP[oldCat.toLowerCase().trim()] || 'Other';
+            await collection.updateOne({ _id: item._id }, { $set: { category: mapped } });
+            updated++;
+        }
+        res.json({ success: true, updated, skipped });
+    } catch (err) {
+        console.error('Migration error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 
 //initialization variables
 const PORT = process.env.PORT || 4000;

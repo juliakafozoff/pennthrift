@@ -22,8 +22,7 @@ const EditItem = () => {
     const [pageLoading, setPageLoading]     = useState(true);
 
     const conditions = ['New', 'Like new', 'Lightly used', 'Used'];
-    const categories = ['For Fun', 'Vehicle', 'Apparel', 'Tickets',
-                        'Furniture', 'Electronics', 'Books/ notes', 'Miscellaneous'];
+    const categories = ['Dorm & Home', 'Electronics', 'Books', 'Apparel', 'Tickets & Events', 'Other'];
 
     useEffect(() => {
         async function loadItem() {

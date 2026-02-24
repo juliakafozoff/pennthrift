@@ -62,12 +62,12 @@ const EditProfile = props => {
     ];
 
     const interestsList = [
-        {val:'Clothes'},
-        {val:'Books/ notes'},
+        {val:'Dorm & Home'},
         {val:'Electronics'},
-        {val:'Tickets'},
-        {val:'Furniture'},
-        {val:'Miscellaneous'}
+        {val:'Books'},
+        {val:'Apparel'},
+        {val:'Tickets & Events'},
+        {val:'Other'}
     ];
 
     // BUGFIX C: Move getUserInfo into useEffect with proper dependencies

@@ -22,8 +22,7 @@ const NewItem = ({ navigation, route }) => {
     const [error, setError]                 = useState('');
     const [clickable, setClickable]         = useState(true)
     const conditiions = ['New', 'Like new', 'Lightly used', 'Used'];
-    const categories  = ['For Fun', 'Vehicle', 'Apparel', 'Tickets', 
-                            'Furniture', 'Electronics', 'Books/ notes', 'Miscellaneous']
+    const categories  = ['Dorm & Home', 'Electronics', 'Books', 'Apparel', 'Tickets & Events', 'Other']
     //const navigate = useNavigate();
     //const inputRef = useRef()
 
@@ -94,14 +93,12 @@ const NewItem = ({ navigation, route }) => {
     ];
 
     const category_options = [
-        { label: 'For Fun', value: 'for fun' },
-        { label: 'Vehicle', value: 'vehicle' },
-        { label: 'Apparel', value: 'apparel' },
-        { label: 'Tickets', value: 'tickets' },
-        { label: 'Furniture', value: 'furniture' },
-        { label: 'Electronics', value: 'electronics' },
-        { label: 'Books/ notes', value: 'books/ notes' },
-        { label: 'Miscellaneous', value: 'miscellaneous' },
+        { label: 'Dorm & Home', value: 'Dorm & Home' },
+        { label: 'Electronics', value: 'Electronics' },
+        { label: 'Books', value: 'Books' },
+        { label: 'Apparel', value: 'Apparel' },
+        { label: 'Tickets & Events', value: 'Tickets & Events' },
+        { label: 'Other', value: 'Other' },
     ];
 
     const handlePress = () => {

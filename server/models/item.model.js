@@ -17,7 +17,8 @@ const itemSchema = new Schema({
         required: true,
     },
     category:{
-        type:String,
+        type: String,
+        enum: ['Dorm & Home', 'Electronics', 'Books', 'Apparel', 'Tickets & Events', 'Other'],
     },
     condition: {
         type: String,

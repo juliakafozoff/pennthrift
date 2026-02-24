@@ -87,13 +87,12 @@ const EditProfile = ({navigation, route}) => {
     ]
 
     const interestsList = [
-        {val:'Clothes'},
-        {val:'Books/ notes'},
+        {val:'Dorm & Home'},
         {val:'Electronics'},
-        {val:'Tickets'},
-        {val:'Furniture'},
-        {val:'Miscellaneous'}
-
+        {val:'Books'},
+        {val:'Apparel'},
+        {val:'Tickets & Events'},
+        {val:'Other'}
     ]
 
     
@@ -245,29 +244,9 @@ const EditProfile = ({navigation, route}) => {
                                 size={25}
                                 fillColor="red"
                                 unfillColor="#FFFFFF"
-                                text="Apparel"
+                                text="Dorm & Home"
                                 iconStyle={{ borderColor: "red" }}
                                 textStyle={{ textDecorationLine: "none"}}
-                                //onPress={(isChecked: boolean) => {}}
-                                // use onPress to make note of which filters we're using
-                            />
-                            <BouncyCheckbox
-                                size={25}
-                                fillColor="red"
-                                unfillColor="#FFFFFF"
-                                text="Books/ notes"
-                                iconStyle={{ borderColor: "red" }}
-                                textStyle={{ textDecorationLine: "none"}}
-                                //onPress={(isChecked: boolean) => {}}
-                            />
-                            <BouncyCheckbox
-                                size={25}
-                                fillColor="red"
-                                unfillColor="#FFFFFF"
-                                text="Furniture"
-                                iconStyle={{ borderColor: "red" }}
-                                textStyle={{ textDecorationLine: "none"}}
-                                //onPress={(isChecked: boolean) => {}}
                             />
                             <BouncyCheckbox
                                 size={25}
@@ -276,25 +255,38 @@ const EditProfile = ({navigation, route}) => {
                                 text="Electronics"
                                 iconStyle={{ borderColor: "red" }}
                                 textStyle={{ textDecorationLine: "none"}}
-                                //onPress={(isChecked: boolean) => {}}
                             />
                             <BouncyCheckbox
                                 size={25}
                                 fillColor="red"
                                 unfillColor="#FFFFFF"
-                                text="Tickets"
+                                text="Books"
                                 iconStyle={{ borderColor: "red" }}
                                 textStyle={{ textDecorationLine: "none"}}
-                                //onPress={(isChecked: boolean) => {}}
                             />
                             <BouncyCheckbox
                                 size={25}
                                 fillColor="red"
                                 unfillColor="#FFFFFF"
-                                text="Miscellaneous"
+                                text="Apparel"
                                 iconStyle={{ borderColor: "red" }}
                                 textStyle={{ textDecorationLine: "none"}}
-                                //onPress={(isChecked: boolean) => {}}
+                            />
+                            <BouncyCheckbox
+                                size={25}
+                                fillColor="red"
+                                unfillColor="#FFFFFF"
+                                text="Tickets & Events"
+                                iconStyle={{ borderColor: "red" }}
+                                textStyle={{ textDecorationLine: "none"}}
+                            />
+                            <BouncyCheckbox
+                                size={25}
+                                fillColor="red"
+                                unfillColor="#FFFFFF"
+                                text="Other"
+                                iconStyle={{ borderColor: "red" }}
+                                textStyle={{ textDecorationLine: "none"}}
                             />
                         </View>
                     </View>

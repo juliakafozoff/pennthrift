@@ -17,8 +17,7 @@ const NewItem = props => {
     const [error, setError]                 = useState('');
     const [loading, setLoading]             = useState(false);
     const conditions = ['New', 'Like new', 'Lightly used', 'Used'];
-    const categories  = ['For Fun', 'Vehicle', 'Apparel', 'Tickets', 
-                            'Furniture', 'Electronics', 'Books/ notes', 'Miscellaneous'];
+    const categories  = ['Dorm & Home', 'Electronics', 'Books', 'Apparel', 'Tickets & Events', 'Other'];
     const navigate = useNavigate();
 
 

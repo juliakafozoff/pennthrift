@@ -145,8 +145,7 @@ export default class Favourites extends Component {
 
     render(){
         
-    const categories  = ['For Fun', 'Vehicle', 'Apparel', 'Tickets', 
-                            'Furniture', 'Electronics', 'Books/ notes', 'Miscellaneous']
+    const categories  = ['Dorm & Home', 'Electronics', 'Books', 'Apparel', 'Tickets & Events', 'Other'];
 
         const favouritesSafe = Array.isArray(this.state.favourites) ? this.state.favourites : [];
         const searchedItems = this.search(favouritesSafe);

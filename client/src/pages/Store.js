@@ -160,8 +160,7 @@ export default class Store extends Component {
     };
 
     render(){
-        const categories  = ['For Fun', 'Vehicle', 'Apparel', 'Tickets', 
-                            'Furniture', 'Electronics', 'Books/ notes', 'Miscellaneous'];
+        const categories  = ['Dorm & Home', 'Electronics', 'Books', 'Apparel', 'Tickets & Events', 'Other'];
         
         const itemsSafe = Array.isArray(this.state.items) ? this.state.items : [];
         const searchResults = this.search(itemsSafe);
