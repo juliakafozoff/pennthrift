@@ -208,24 +208,58 @@ router.route('/favourites').post( (req, res) => {
     }).catch(err => res.status(400).json('Error! ' + err));
 })
 
-// get chats of user (case-insensitive)
+// get chats of user (case-insensitive); each chat includes image (other user's profile_pic) for sidebar avatars
 router.route('/chats/:username').get((req, res) => {
     try{
         const query = buildUsernameQuery(req.params.username);
+        const requestedLower = normalizeUsernameForLookup(req.params.username);
         User.findOne(query, {username: 1, chats: 1})
         .populate({
             path:'chats',
             options:{sort:{ updatedAt: -1 }}
-         }).exec((err, user) => {
+         }).exec(async (err, user) => {
+            if (err) return res.status(400).json('Error! ' + err);
             if (!user) {
                 return res.json([]);
             }
-            res.json(user.chats || []);
-        })
+            const chats = user.chats || [];
+            if (chats.length === 0) return res.json([]);
+
+            const otherUsernames = [...new Set(
+                chats
+                    .map(chat => {
+                        const users = chat.users || [];
+                        const other = users.find(u => normalizeUsernameForLookup(String(u)) !== requestedLower);
+                        return other;
+                    })
+                    .filter(Boolean)
+            )];
+            const otherLower = otherUsernames.map(u => normalizeUsernameForLookup(u));
+            const otherUsers = await User.find({
+                $or: [
+                    { username: { $in: otherLower } },
+                    { usernameLower: { $in: otherLower } }
+                ]
+            }).select('username usernameLower profile_pic').lean();
+
+            const picByLower = {};
+            otherUsers.forEach(u => {
+                const key = (u.usernameLower || u.username || '').toLowerCase();
+                if (key) picByLower[key] = sanitizeProfilePic(u.profile_pic) || null;
+            });
+
+            const enriched = chats.map(chat => {
+                const obj = chat.toObject ? chat.toObject() : { ...chat };
+                const users = chat.users || [];
+                const other = users.find(u => normalizeUsernameForLookup(String(u)) !== requestedLower);
+                obj.image = (other && picByLower[normalizeUsernameForLookup(other)]) || null;
+                return obj;
+            });
+            res.json(enriched);
+        });
     }catch(err){
         res.status(400).json('Error! ' + err);
     }
-    
 });
 
 
