@@ -321,6 +321,9 @@ const Messages = props => {
         
         const ensureConciergeOnlyForDemo = async () => {
             const isDemoUser = authUser?.username === 'demo' || authUser?.isDemo === true;
+            // Capture startConversation/draftTo from initial URL; another effect may clear query before async completes
+            const hadStartConversation = new URLSearchParams(location.search).get('startConversation');
+            const hadDraftTo = new URLSearchParams(location.search).get('draftTo');
             if (isDemoUser && isAuthenticated) {
                 didEnsureConciergeRef.current = true; // Set guard immediately to prevent re-runs
                 try {
@@ -335,10 +338,8 @@ const Messages = props => {
                             console.log('[MESSAGES] Chats updated after ensure:', updatedChats.map(c => getConvoId(c)));
                             setChats(updatedChats);
                             
-                            // When demo opened a draft thread with another user (draftTo in URL),
-                            // do NOT redirect to concierge — keep them on the draft view; send will show the blocked modal.
-                            const draftToParam = new URLSearchParams(location.search).get('draftTo');
-                            if (draftToParam) {
+                            // When demo opened draft or is starting a conversation, do NOT redirect to concierge.
+                            if (hadDraftTo || hadStartConversation) {
                                 return;
                             }
                             
